@@ -1,0 +1,27 @@
+# Local configuration and secrets
+deploy/.env
+*.user
+*.suo
+*.pem
+*.key
+
+# .NET
+**/bin/
+**/obj/
+*.userosscache
+*.sln.docstates
+
+# Node / Angular
+**/node_modules/
+**/dist/
+**/.angular/
+**/coverage/
+
+# Editors and operating systems
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+.DS_Store
+Thumbs.db

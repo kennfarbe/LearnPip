@@ -184,6 +184,7 @@ jobs:
         run: |
           solution="$(find backend -type f \( -name '*.sln' -o -name '*.slnx' \) -print -quit)"
           dotnet test "$solution" --configuration Release
+          dotnet format "$solution" --verify-no-changes --no-restore
 
   web:
     name: Web build
@@ -251,4 +252,5 @@ jobs:
         working-directory: frontend/web
         run: |
           npm test --if-present
+          npm run format:check
           npm run build --if-present
