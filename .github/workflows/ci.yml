@@ -1,0 +1,254 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-policy:
+    name: Repository policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check whitespace errors
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            git diff --check "$BASE_SHA...$PR_HEAD_SHA"
+          elif [ "$EVENT_NAME" = "push" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+            git diff --check "$BEFORE_SHA..$AFTER_SHA"
+          fi
+
+      - name: Validate pull request title
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          title = os.environ["PR_TITLE"]
+          pattern = re.compile(r"^(feat|fix|perf|refactor|build|ci|docs|style|test|chore|revert)(\([a-z0-9._/-]+\))?!?: .+")
+          if not pattern.fullmatch(title):
+              raise SystemExit(
+                  "Use a Conventional Commit title, e.g. 'feat(web): add practice mode' "
+                  "or 'docs: explain setup'."
+              )
+          PY
+
+      - name: Validate pull request commit subjects
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          import subprocess
+          base = os.environ["BASE_SHA"]
+          head = os.environ["PR_HEAD_SHA"]
+          result = subprocess.run(
+              ["git", "log", "--format=%s", f"{base}..{head}"],
+              check=True, text=True, capture_output=True
+          )
+          pattern = re.compile(r"^(feat|fix|perf|refactor|build|ci|docs|style|test|chore|revert)(\([a-z0-9._/-]+\))?!?: .+")
+          subjects = result.stdout.splitlines()
+          if not subjects:
+              raise SystemExit("Could not find pull request commit subjects.")
+          invalid = [subject for subject in subjects if not pattern.fullmatch(subject)]
+          if invalid:
+              raise SystemExit("Use Conventional Commit subjects. Invalid: " + "; ".join(invalid))
+          PY
+
+      - name: Validate local Markdown links and pinned actions
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from urllib.parse import unquote
+          import re
+          import sys
+
+          errors = []
+          for document in Path(".").rglob("*.md"):
+              if ".git" in document.parts:
+                  continue
+              text = document.read_text(encoding="utf-8")
+              for match in re.finditer(r"(?<!!)\[[^\]]*\]\(([^)\s]+)(?:\s+[^)]*)?\)", text):
+                  target = match.group(1)
+                  if target.startswith(("https://", "http://", "mailto:", "#")):
+                      continue
+                  target_path = unquote(target.split("#", 1)[0])
+                  if not target_path:
+                      continue
+                  resolved = (document.parent / target_path).resolve()
+                  if not resolved.exists():
+                      errors.append(f"{document}: missing local link target {target}")
+
+          for workflow in Path(".github/workflows").glob("*.y*ml"):
+              for line_number, line in enumerate(workflow.read_text(encoding="utf-8").splitlines(), 1):
+                  match = re.match(r"\s*uses:\s*([^\s#]+)", line)
+                  if not match:
+                      continue
+                  action = match.group(1)
+                  if action.startswith("./"):
+                      continue
+                  if not re.fullmatch(r".+@[0-9a-f]{40}", action):
+                      errors.append(f"{workflow}:{line_number}: pin actions to a full commit SHA")
+
+          if errors:
+              print("\n".join(errors), file=sys.stderr)
+              raise SystemExit(1)
+          print("Local Markdown links resolve and external actions use full commit SHAs.")
+          PY
+
+  backend:
+    name: Backend build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require a solution when backend files are introduced
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          import subprocess
+          event = os.environ["EVENT_NAME"]
+          if event == "pull_request":
+              changed = subprocess.run(
+                  ["git", "diff", "--name-only",
+                   f"{os.environ['BASE_SHA']}...{os.environ['PR_HEAD_SHA']}"],
+                  check=True, text=True, capture_output=True
+              ).stdout.splitlines()
+          elif event == "push" and os.environ["BEFORE_SHA"] != "0000000000000000000000000000000000000000":
+              changed = subprocess.run(
+                  ["git", "diff", "--name-only",
+                   f"{os.environ['BEFORE_SHA']}..{os.environ['AFTER_SHA']}"],
+                  check=True, text=True, capture_output=True
+              ).stdout.splitlines()
+          else:
+              changed = []
+          touched = any(path.startswith("backend/") for path in changed)
+          solutions = list(Path("backend").rglob("*.sln")) + list(Path("backend").rglob("*.slnx")) if Path("backend").exists() else []
+          if touched and not solutions:
+              raise SystemExit("Backend files changed but no .sln or .slnx solution exists.")
+          if not solutions:
+              print("No backend solution exists yet; build will run when one is added.")
+          PY
+
+      - name: Set up .NET
+        if: hashFiles('backend/**/*.sln', 'backend/**/*.slnx') != ''
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Test backend
+        if: hashFiles('backend/**/*.sln', 'backend/**/*.slnx') != ''
+        run: |
+          solution="$(find backend -type f \( -name '*.sln' -o -name '*.slnx' \) -print -quit)"
+          dotnet test "$solution" --configuration Release
+
+  web:
+    name: Web build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require a lockfile when web files are introduced
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          import subprocess
+          event = os.environ["EVENT_NAME"]
+          if event == "pull_request":
+              changed = subprocess.run(
+                  ["git", "diff", "--name-only",
+                   f"{os.environ['BASE_SHA']}...{os.environ['PR_HEAD_SHA']}"],
+                  check=True, text=True, capture_output=True
+              ).stdout.splitlines()
+          elif event == "push" and os.environ["BEFORE_SHA"] != "0000000000000000000000000000000000000000":
+              changed = subprocess.run(
+                  ["git", "diff", "--name-only",
+                   f"{os.environ['BEFORE_SHA']}..{os.environ['AFTER_SHA']}"],
+                  check=True, text=True, capture_output=True
+              ).stdout.splitlines()
+          else:
+              changed = []
+          touched = any(path.startswith("frontend/web/") for path in changed)
+          lockfile = Path("frontend/web/package-lock.json")
+          if touched and not lockfile.exists():
+              raise SystemExit("Web files changed but frontend/web/package-lock.json is missing.")
+          if not lockfile.exists():
+              print("No web project exists yet; build will run when the web app is added.")
+          PY
+
+      - name: Set up Node
+        if: hashFiles('frontend/web/package-lock.json') != ''
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/web/package-lock.json
+
+      - name: Install web dependencies
+        if: hashFiles('frontend/web/package-lock.json') != ''
+        working-directory: frontend/web
+        run: npm ci
+
+      - name: Test and build web
+        if: hashFiles('frontend/web/package-lock.json') != ''
+        working-directory: frontend/web
+        run: |
+          npm test --if-present
+          npm run build --if-present

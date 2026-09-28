@@ -1,0 +1,37 @@
+name: Bug report
+description: Report a problem with LearnPip or its repository setup.
+title: "bug: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not include passwords, API keys, personal information, or private learning material.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include only information that is safe to publish.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: LearnPip version or commit
+      placeholder: "Not yet released; include a commit if known"
+    validations:
+      required: false
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, browser, and deployment method, if relevant.
+    validations:
+      required: false
