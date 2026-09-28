@@ -42,6 +42,8 @@ Die folgenden Bereiche sind für spätere Ausbaustufen geplant; aktuell gibt es 
 
 Die Code-Lizenz erteilt keine Rechte an hochgeladenen Aufgaben, Antworten, Erklärungen, Fotos oder anderen Nutzerinhalten. Öffentliche Inhalte benötigen eine gesonderte, verständliche Freigabe und Lizenzentscheidung.
 
+Die geplanten Datenarten, Datenflüsse, Sichtbarkeiten und offenen Datenschutzentscheidungen sind im [Datenschutz- und Inhaltskonzept](docs/privacy/README.md) dokumentiert. Es beschreibt Zielregeln für die spätere Umsetzung; es ist keine Datenschutzerklärung für einen bereits betriebenen Dienst.
+
 ## Technischer Ansatz
 
 Geplant ist ein gemeinsames Repository mit getrennten Projekten und Docker-Images für eine ASP.NET-Core-API auf .NET 10, einen Hintergrunddienst und ein Angular-Webfrontend. PostgreSQL soll die Daten speichern. Die Anmeldung soll OpenID Connect für externe Identitätsanbieter unterstützen; weitere Zugangswege für die persönliche Nutzung sind vorgesehen. Eine versionierte API soll später auch von einer mobilen App genutzt werden können.
