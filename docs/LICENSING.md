@@ -13,7 +13,9 @@ This page describes the intended scope of the licenses used by LearnPip. It does
 
 ## Commercial licensing
 
-The AGPL permits commercial use when its terms are followed. An optional separate commercial license may be offered for software rights the project can license on those terms. It cannot cover third-party material or contributor work unless the necessary rights have been obtained. The planned CLA process is tracked in [Issue #3](https://github.com/kennfarbe/LearnPip/issues/3); until it is in place, do not assume that every external contribution can be sublicensed commercially.
+The AGPL permits commercial use when its terms are followed. An optional separate commercial license may be offered for software rights the project can license on those terms. It cannot cover third-party material or contributor work unless the necessary rights have been obtained.
+
+The individual and entity CLAs are currently drafts for legal review, not active agreements. Until a reviewed agreement is published and accepted by a contributor, do not assume the Project can sublicense that contributor's code under additional commercial terms. See [CONTRIBUTING.md](../CONTRIBUTING.md) and the [CLA rollout checklist](CLA-ROLLOUT.md).
 
 A separate commercial license does not remove the public AGPL release of the corresponding official project code.
 
