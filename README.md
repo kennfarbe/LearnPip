@@ -66,11 +66,13 @@ Der [Issue-Tracker](https://github.com/kennfarbe/LearnPip/issues) enthält die e
 
 Der **Programmcode dieses Projekts** wird unter **GNU AGPL-3.0-only** lizenziert. Die Lizenz gilt für die Software, die im Repository als Teil des Programmcodes gekennzeichnet ist. Die [Datei LICENSE](LICENSE) nennt die Lizenz und verweist auf ihren vollständigen offiziellen Text. Das AGPL-Netzwerk-Copyleft gilt nach den Bedingungen der Lizenz auch bei Nutzung einer modifizierten Version über ein Netzwerk.
 
-Eine **optionale individuelle kommerzielle Lizenz** kann für Code angeboten werden, für den die Projektleitung die dafür nötigen Rechte besitzt. Die AGPL erlaubt auch kommerzielle Nutzung unter ihren Bedingungen; eine Firma benötigt daher nicht allein wegen entgeltlicher Nutzung eine Zweitlizenz. Der offizielle Projektcode soll weiterhin öffentlich unter AGPL verfügbar bleiben. Rechte an fremden Beiträgen können erst dann in eine zusätzliche Lizenz einbezogen werden, wenn sie ausdrücklich und wirksam eingeräumt wurden; der CLA-Prozess ist in [Issue #3](https://github.com/kennfarbe/LearnPip/issues/3) vorgesehen.
+Eine **optionale individuelle kommerzielle Lizenz** kann für Code angeboten werden, für den die Projektleitung die dafür nötigen Rechte besitzt. Die AGPL erlaubt auch kommerzielle Nutzung unter ihren Bedingungen; eine Firma benötigt daher nicht allein wegen entgeltlicher Nutzung eine Zweitlizenz. Der offizielle Projektcode soll weiterhin öffentlich unter AGPL verfügbar bleiben. Rechte an fremden Beiträgen können erst dann in eine zusätzliche Lizenz einbezogen werden, wenn sie ausdrücklich und wirksam eingeräumt wurden.
 
 Die [Lizenzübersicht](docs/LICENSING.md) grenzt Programmcode von Dokumentation, Marke, Abhängigkeiten und Nutzerinhalten ab. Aufgaben, Antworten, Fotos und andere Nutzerinhalte werden durch die Code-Lizenz nicht automatisch an LearnPip lizenziert. Eine öffentliche Inhaltslizenz muss separat gewählt und vor einer Veröffentlichung angezeigt werden.
 
-Du möchtest mithelfen? Sieh dir die [offenen Issues](https://github.com/kennfarbe/LearnPip/issues) an und diskutiere eine Idee dort, bevor du größere Änderungen beginnst. Eine ausführliche Beitragsanleitung folgt mit Issue #3. Für Sicherheitsmeldungen wird ein eigener Meldeweg in [Issue #4](https://github.com/kennfarbe/LearnPip/issues/4) eingerichtet.
+Die Einzel- und Unternehmens-CLA liegen derzeit nur als **Entwürfe zur rechtlichen Prüfung** vor. Sie sind noch nicht aktiv; bis geprüfte Vereinbarungen und eine funktionierende Signaturprüfung eingerichtet sind, werden keine externen Codebeiträge übernommen. Lies [CONTRIBUTING.md](CONTRIBUTING.md) und die [CLA-Rollout-Checkliste](docs/CLA-ROLLOUT.md), bevor du Code beisteuerst.
+
+Für Sicherheitsmeldungen wird ein eigener Meldeweg in [Issue #4](https://github.com/kennfarbe/LearnPip/issues/4) eingerichtet.
 
 ## Lizenzhinweis für spätere gehostete Installationen
 
