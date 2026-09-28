@@ -1,0 +1,4 @@
+# Default owners review and maintain all files.
+# Required CODEOWNERS approvals remain disabled while LearnPip has a single maintainer;
+# the branch ruleset still requires every change to arrive through a pull request.
+* @kennfarbe
