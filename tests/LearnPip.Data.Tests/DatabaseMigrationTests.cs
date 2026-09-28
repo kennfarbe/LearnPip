@@ -79,7 +79,7 @@ public sealed class DatabaseMigrationTests
                 await existingContext.Database.MigrateAsync();
                 Assert.True(await existingContext.Database.CanConnectAsync());
                 Assert.Equal(2, await existingContext.Accounts.CountAsync());
-                Assert.Equal(assetId, (await existingContext.MediaAssets.SingleAsync()).Id);
+                Assert.Equal(assetId, (await existingContext.MediaAssets.SingleAsync(asset => asset.Id == assetId)).Id);
             }
         }
         finally
