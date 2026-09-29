@@ -7,7 +7,6 @@ using LearnPip.Data.Domain;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Microsoft.Net.Http.Headers;
 
 namespace LearnPip.Api.Identity;
 
@@ -55,7 +54,7 @@ public sealed class SessionAuthenticationHandler(
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         string? token;
-        if (Request.Headers.TryGetValue(HeaderNames.Authorization, out var authorization))
+        if (Request.Headers.TryGetValue("Authorization", out var authorization))
         {
             var header = authorization.ToString();
             token = header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
