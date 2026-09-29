@@ -142,12 +142,15 @@ public static class GroupEndpoints
                 catalog.OwnerAccountId == accountId, cancellationToken)) return Results.NotFound();
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         if (!await db.GroupCatalogShares.AnyAsync(share => share.StudyGroupId == id &&
-                share.PrivateCatalogId == catalogId, cancellationToken)) db.GroupCatalogShares.Add(new GroupCatalogShare
+                share.PrivateCatalogId == catalogId, cancellationToken))
         {
-            StudyGroupId = id,
-            PrivateCatalogId = catalogId,
-            SharedByAccountId = accountId
-        });
+            db.GroupCatalogShares.Add(new GroupCatalogShare
+            {
+                StudyGroupId = id,
+                PrivateCatalogId = catalogId,
+                SharedByAccountId = accountId
+            });
+        }
         var latest = await db.Questions.AsNoTracking()
             .Where(question => question.PrivateCatalogId == catalogId &&
                 question.OwnerAccountId == accountId && question.DeletedAtUtc == null)

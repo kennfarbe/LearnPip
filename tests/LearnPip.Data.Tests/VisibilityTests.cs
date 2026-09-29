@@ -82,35 +82,54 @@ public sealed class VisibilityTests
                 var adminRole = new RoleDefinition { Scope = "system", Code = "admin", Name = "Admin" };
                 db.Roles.AddRange(memberRole, leaderRole, moderatorRole, adminRole);
                 db.GroupMemberships.AddRange(
-                    new GroupMembership { StudyGroupId = group.Id, AccountId = member.AccountId,
-                        RoleDefinition = memberRole },
-                    new GroupMembership { StudyGroupId = group.Id, AccountId = leader.AccountId,
-                        RoleDefinition = leaderRole });
+                    new GroupMembership
+                    {
+                        StudyGroupId = group.Id,
+                        AccountId = member.AccountId,
+                        RoleDefinition = memberRole
+                    },
+                    new GroupMembership
+                    {
+                        StudyGroupId = group.Id,
+                        AccountId = leader.AccountId,
+                        RoleDefinition = leaderRole
+                    });
                 db.AccountRoles.AddRange(
                     new AccountRole { AccountId = moderator.AccountId, RoleDefinition = moderatorRole },
                     new AccountRole { AccountId = admin.AccountId, RoleDefinition = adminRole });
                 db.Questions.Add(new Question
                 {
-                    Id = questionId, OwnerAccountId = owner.AccountId, PrivateCatalogId = catalog.Id
+                    Id = questionId,
+                    OwnerAccountId = owner.AccountId,
+                    PrivateCatalogId = catalog.Id
                 });
                 db.QuestionVersions.Add(new QuestionVersion
                 {
-                    Id = firstId, QuestionId = questionId, CreatedByAccountId = owner.AccountId,
-                    VersionNumber = 1, Prompt = "Erste Fassung"
+                    Id = firstId,
+                    QuestionId = questionId,
+                    CreatedByAccountId = owner.AccountId,
+                    VersionNumber = 1,
+                    Prompt = "Erste Fassung"
                 });
                 foreach (var image in new[] { imageId, unrelatedImageId })
                 {
                     db.MediaAssets.Add(new MediaAsset
                     {
-                        Id = image, OwnerAccountId = owner.AccountId, StorageKey = $"private/{image:N}",
-                        MediaType = "image/png", ByteLength = 3
+                        Id = image,
+                        OwnerAccountId = owner.AccountId,
+                        StorageKey = $"private/{image:N}",
+                        MediaType = "image/png",
+                        ByteLength = 3
                     });
                     db.MediaBlobs.Add(new MediaBlob { MediaAssetId = image, Data = [1, 2, 3] });
                 }
                 db.QuestionContentBlocks.Add(new QuestionContentBlock
                 {
-                    QuestionVersionId = firstId, Section = "prompt", SortOrder = 0,
-                    Kind = "image", MediaAssetId = imageId
+                    QuestionVersionId = firstId,
+                    Section = "prompt",
+                    SortOrder = 0,
+                    Kind = "image",
+                    MediaAssetId = imageId
                 });
                 await db.SaveChangesAsync();
             }
@@ -132,8 +151,11 @@ public sealed class VisibilityTests
             {
                 db.QuestionVersions.Add(new QuestionVersion
                 {
-                    Id = secondId, QuestionId = questionId, CreatedByAccountId = owner.AccountId,
-                    VersionNumber = 2, Prompt = "Neue private Fassung"
+                    Id = secondId,
+                    QuestionId = questionId,
+                    CreatedByAccountId = owner.AccountId,
+                    VersionNumber = 2,
+                    Prompt = "Neue private Fassung"
                 });
                 await db.SaveChangesAsync();
             }
