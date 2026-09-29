@@ -48,7 +48,8 @@ public static class ReviewEndpoints
         {
             db.FrequentLearningContents.Add(new FrequentLearningContent
             {
-                AccountId = accountId, LearningContentId = id
+                AccountId = accountId,
+                LearningContentId = id
             });
             await db.SaveChangesAsync(cancellationToken);
         }
@@ -106,7 +107,10 @@ public static class ReviewEndpoints
                 item.QuestionVersion.Question.OwnerAccountId == accountId)
             .Select(item => new
             {
-                item.Id, item.AnsweredAtUtc, item.IsCorrect, item.WasGuessed,
+                item.Id,
+                item.AnsweredAtUtc,
+                item.IsCorrect,
+                item.WasGuessed,
                 item.ExplanationViewedAtUtc,
                 ContentId = item.QuestionVersion.Question.LearningContentId ??
                     item.QuestionVersion.QuestionId

@@ -82,7 +82,9 @@ public static class QuestionEndpoints
             question = new Question { OwnerAccountId = accountId };
             question.LearningContent = new LearningContent
             {
-                Id = question.Id, OwnerAccountId = accountId, Title = request.Topic.Trim()
+                Id = question.Id,
+                OwnerAccountId = accountId,
+                Title = request.Topic.Trim()
             };
             db.Questions.Add(question);
             nextVersion = 1;
