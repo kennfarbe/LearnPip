@@ -22,6 +22,25 @@ namespace LearnPip.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("LearnPip.Data.Domain.UserAiCredential", b =>
+                {
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<string>("Ciphertext").IsRequired().HasColumnType("text");
+                    b.Property<DateTimeOffset>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("AccountId");
+                    b.ToTable("UserAiCredentials");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.AiDailyUsage", b =>
+                {
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<DateOnly>("Day").HasColumnType("date");
+                    b.Property<string>("Mode").IsRequired().HasMaxLength(32).HasColumnType("character varying(32)");
+                    b.Property<int>("UsedRequests").HasColumnType("integer");
+                    b.HasKey("AccountId", "Day", "Mode");
+                    b.ToTable("AiDailyUsages");
+                });
+
             modelBuilder.Entity("LearnPip.Data.Domain.AdministrationAuditEvent", b =>
                 {
                     b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
@@ -95,6 +114,20 @@ namespace LearnPip.Data.Migrations
                         .HasColumnType("character varying(16)");
                     b.HasKey("AccountId", "PhaseDays", "ActivityAtUtc");
                     b.ToTable("AccountInactivityWarnings");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.UserAiCredential", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.AiDailyUsage", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
                 });
 
 

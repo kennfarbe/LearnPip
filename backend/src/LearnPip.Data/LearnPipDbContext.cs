@@ -47,9 +47,25 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
     public DbSet<RecoveryCredential> RecoveryCredentials => Set<RecoveryCredential>();
     public DbSet<AccountSession> AccountSessions => Set<AccountSession>();
     public DbSet<EmailLoginCode> EmailLoginCodes => Set<EmailLoginCode>();
+    public DbSet<UserAiCredential> UserAiCredentials => Set<UserAiCredential>();
+    public DbSet<AiDailyUsage> AiDailyUsages => Set<AiDailyUsage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<UserAiCredential>(entity =>
+        {
+            entity.HasKey(x => x.AccountId);
+            entity.Property(x => x.Ciphertext).IsRequired();
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.AccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<AiDailyUsage>(entity =>
+        {
+            entity.HasKey(x => new { x.AccountId, x.Day, x.Mode });
+            entity.Property(x => x.Mode).HasMaxLength(32).IsRequired();
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.AccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
         modelBuilder.Entity<SystemSetting>(entity =>
         {
             entity.HasKey(x => x.Key);
