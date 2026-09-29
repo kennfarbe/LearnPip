@@ -78,8 +78,18 @@ public static class ExamEndpoints
     {
         var items = await db.OfficialCatalogEditions.AsNoTracking()
             .OrderBy(item => item.Code).ThenByDescending(item => item.ChangedOn)
-            .Select(item => new { item.Id, item.Code, item.Title, item.Revision, item.SourceUrl,
-                item.License, item.Attribution, item.ChangedOn, item.ImportedAtUtc })
+            .Select(item => new
+            {
+                item.Id,
+                item.Code,
+                item.Title,
+                item.Revision,
+                item.SourceUrl,
+                item.License,
+                item.Attribution,
+                item.ChangedOn,
+                item.ImportedAtUtc
+            })
             .ToListAsync(ct);
         return Results.Ok(new ApiResponse<object>(items));
     }
@@ -92,8 +102,13 @@ public static class ExamEndpoints
             .ToListAsync(ct);
         return Results.Ok(new ApiResponse<object>(rows.Select(item => new
         {
-            item.Id, item.Code, item.Title, item.AmateurClass, item.Version,
-            item.CatalogEditionId, item.CatalogEdition.Revision,
+            item.Id,
+            item.Code,
+            item.Title,
+            item.AmateurClass,
+            item.Version,
+            item.CatalogEditionId,
+            item.CatalogEdition.Revision,
             Parts = Parse<ProfilePart>(item.PartsJson)
         }).ToArray()));
     }
@@ -132,7 +147,10 @@ public static class ExamEndpoints
         await db.SaveChangesAsync(ct);
         return Results.Created($"/api/v1/exams/catalogs", new ApiResponse<object>(new
         {
-            edition.Id, edition.Code, edition.Revision, Count = input.Questions.Count
+            edition.Id,
+            edition.Code,
+            edition.Revision,
+            Count = input.Questions.Count
         }));
     }
 
@@ -176,7 +194,9 @@ public static class ExamEndpoints
         await db.SaveChangesAsync(ct);
         return Results.Created("/api/v1/exams/profiles", new ApiResponse<object>(new
         {
-            profile.Id, profile.Code, profile.Version
+            profile.Id,
+            profile.Code,
+            profile.Version
         }));
     }
 
@@ -258,8 +278,13 @@ public static class ExamEndpoints
         if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
         var rows = await db.ExamSimulations.AsNoTracking()
             .Where(item => item.AccountId == accountId).OrderByDescending(item => item.StartedAtUtc)
-            .Take(50).Select(item => new { item.Id, item.ProfileVersionId, item.StartedAtUtc,
-                item.CompletedAtUtc }).ToListAsync(ct);
+            .Take(50).Select(item => new
+            {
+                item.Id,
+                item.ProfileVersionId,
+                item.StartedAtUtc,
+                item.CompletedAtUtc
+            }).ToListAsync(ct);
         return Results.Ok(new ApiResponse<object>(rows));
     }
 
@@ -341,7 +366,9 @@ public static class ExamEndpoints
         var results = Parse<PartResult>(simulation.ResultJson!);
         var visible = active?.Questions.Select(question => (object)new
         {
-            question.Code, question.Prompt, question.Answers
+            question.Code,
+            question.Prompt,
+            question.Answers
         }).ToArray() ?? [];
         return new SimulationView(simulation.Id, profile.Id, profile.Version, profile.Code,
             profile.CatalogEdition.Revision, simulation.StartedAtUtc, simulation.CompletedAtUtc,

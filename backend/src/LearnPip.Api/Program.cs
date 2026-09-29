@@ -1,7 +1,7 @@
-using LearnPip.Api.Exams;
 using System.Threading.RateLimiting;
 using LearnPip.Api;
 using LearnPip.Api.Administration;
+using LearnPip.Api.Exams;
 using LearnPip.Api.Groups;
 using LearnPip.Api.Identity;
 using LearnPip.Api.Media;
