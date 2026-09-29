@@ -188,10 +188,13 @@ public static class CommunityFeedbackEndpoints
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         var version = await db.QuestionVersions.FromSqlInterpolated(
             $"SELECT * FROM \"QuestionVersions\" WHERE \"Id\" = {versionId} FOR UPDATE")
-            .Include(item => item.Question).Include(item => item.Blocks)
-            .Include(item => item.AnswerOptions).ThenInclude(option => option.Blocks)
             .SingleOrDefaultAsync(cancellationToken);
         if (version == null) return Results.NotFound();
+        await db.Entry(version).Reference(item => item.Question).LoadAsync(cancellationToken);
+        await db.Entry(version).Collection(item => item.Blocks).LoadAsync(cancellationToken);
+        await db.Entry(version).Collection(item => item.AnswerOptions).LoadAsync(cancellationToken);
+        foreach (var option in version.AnswerOptions)
+            await db.Entry(option).Collection(item => item.Blocks).LoadAsync(cancellationToken);
         if (input.Action != "close" && !await db.QuestionReports.AnyAsync(report =>
             report.QuestionVersionId == versionId && report.Status == "open", cancellationToken))
             return Results.Conflict(new { error = "No open report exists for this version." });
