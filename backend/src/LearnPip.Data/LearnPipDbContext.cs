@@ -33,6 +33,9 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
     public DbSet<GroupInvitation> GroupInvitations => Set<GroupInvitation>();
     public DbSet<GroupCatalogShare> GroupCatalogShares => Set<GroupCatalogShare>();
     public DbSet<GroupVersionShare> GroupVersionShares => Set<GroupVersionShare>();
+    public DbSet<PublicSubmission> PublicSubmissions => Set<PublicSubmission>();
+    public DbSet<PublicSubmissionPreview> PublicSubmissionPreviews => Set<PublicSubmissionPreview>();
+    public DbSet<PublicSubmissionReview> PublicSubmissionReviews => Set<PublicSubmissionReview>();
     public DbSet<RecoveryCredential> RecoveryCredentials => Set<RecoveryCredential>();
     public DbSet<AccountSession> AccountSessions => Set<AccountSession>();
     public DbSet<EmailLoginCode> EmailLoginCodes => Set<EmailLoginCode>();
@@ -195,6 +198,7 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
             entity.Property(x => x.Language).HasMaxLength(35).IsRequired();
             entity.Property(x => x.Source).HasMaxLength(500).IsRequired();
             entity.Property(x => x.License).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.AuthorAttribution).HasMaxLength(120).IsRequired();
             entity.HasIndex(x => new { x.QuestionId, x.VersionNumber }).IsUnique();
             entity.HasOne(x => x.Question).WithMany(x => x.Versions)
                 .HasForeignKey(x => x.QuestionId).OnDelete(DeleteBehavior.Restrict);
@@ -364,6 +368,45 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(x => x.PrivateCatalog).WithMany().HasForeignKey(x => x.PrivateCatalogId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PublicSubmission>(entity =>
+        {
+            entity.HasKey(x => x.QuestionVersionId);
+            entity.Property(x => x.Status).HasMaxLength(24).IsRequired();
+            entity.Property(x => x.LicenseChoice).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.AuthorAttribution).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.AgeDeclaration).HasMaxLength(16).IsRequired();
+            entity.Property(x => x.ReviewNote).HasMaxLength(1000);
+            entity.HasOne(x => x.QuestionVersion).WithMany().HasForeignKey(x => x.QuestionVersionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.AccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.ReviewedByAccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => new { x.Status, x.SubmittedAtUtc });
+        });
+
+        modelBuilder.Entity<PublicSubmissionPreview>(entity =>
+        {
+            entity.HasKey(x => x.QuestionVersionId);
+            entity.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
+            entity.HasOne<QuestionVersion>().WithMany().HasForeignKey(x => x.QuestionVersionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.AccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PublicSubmissionReview>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Decision).HasMaxLength(24).IsRequired();
+            entity.Property(x => x.Note).HasMaxLength(1000).IsRequired();
+            entity.HasOne<QuestionVersion>().WithMany().HasForeignKey(x => x.QuestionVersionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.ModeratorAccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => x.QuestionVersionId);
         });
 
         base.OnModelCreating(modelBuilder);

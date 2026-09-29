@@ -22,6 +22,22 @@ type Draft = {
 };
 type Catalog = { id: string; name: string; questionCount: number };
 type Api<T> = { data: T };
+type SubmissionPreview = {
+  previewToken: string;
+  hasImages: boolean;
+  version: {
+    source: string;
+    prompt: { kind: string; text: string | null; mediaId: string | null; altText: string | null }[];
+    answers: {
+      blocks: {
+        kind: string;
+        text: string | null;
+        mediaId: string | null;
+        altText: string | null;
+      }[];
+    }[];
+  };
+};
 
 @Component({
   selector: 'app-question-editor',
@@ -244,20 +260,92 @@ type Api<T> = { data: T };
             <p class="privacy">
               Fassung {{ latestVersion() }} ist
               {{ visibility() === 'public' ? 'öffentlich' : 'privat' }}. Eine neue Fassung bleibt
-              immer privat, bis du sie ausdrücklich freigibst.
+              immer privat. Eine öffentliche Einreichung wird erst nach Moderation sichtbar.
             </p>
-            <button
-              type="button"
-              class="secondary"
-              [disabled]="busy()"
-              (click)="setVisibility(visibility() === 'public' ? 'private' : 'public')"
-            >
-              {{
-                visibility() === 'public'
-                  ? 'Öffentliche Freigabe zurücknehmen'
-                  : 'Diese Fassung öffentlich freigeben'
-              }}
-            </button>
+            @if (submissionStatus()) {
+              <p role="status">Einreichung: {{ submissionStatus() }}</p>
+            }
+            @if (
+              visibility() === 'public' ||
+              submissionStatus() === 'pending' ||
+              submissionStatus() === 'minor_hold'
+            ) {
+              <button type="button" class="secondary" [disabled]="busy()" (click)="withdraw()">
+                Freigabe oder Einreichung zurückziehen
+              </button>
+            } @else {
+              <button
+                type="button"
+                class="secondary"
+                [disabled]="busy()"
+                (click)="requestPreview()"
+              >
+                Öffentliche Einreichung vorbereiten und Vorschau anzeigen
+              </button>
+              @if (submissionPreview(); as preview) {
+                <div class="privacy">
+                  <h4>Vorschau der einzureichenden Fassung</h4>
+                  <p>Herkunft: {{ preview.version.source }}</p>
+                  @for (block of preview.version.prompt; track $index) {
+                    @if (block.kind === 'text') {
+                      <p>{{ block.text }}</p>
+                    }
+                    @if (block.kind === 'image' && block.mediaId) {
+                      <img [src]="imageUrl(block.mediaId)" [alt]="block.altText || ''" />
+                    }
+                  }
+                  <ol>
+                    @for (answer of preview.version.answers; track $index) {
+                      <li>
+                        @for (block of answer.blocks; track $index) {
+                          @if (block.kind === 'text') {
+                            {{ block.text }}
+                          }
+                          @if (block.kind === 'image' && block.mediaId) {
+                            <img [src]="imageUrl(block.mediaId)" [alt]="block.altText || ''" />
+                          }
+                        }
+                      </li>
+                    }
+                  </ol>
+                  <label
+                    >Inhaltslizenz
+                    <select [(ngModel)]="publicLicense">
+                      <option value="">Bitte bewusst auswählen</option>
+                      <option value="CC BY 4.0">CC BY 4.0</option>
+                      <option value="CC BY-SA 4.0">CC BY-SA 4.0</option>
+                      <option value="CC0 1.0">CC0 1.0</option>
+                    </select>
+                  </label>
+                  <label
+                    >Urheberangabe <input [(ngModel)]="authorAttribution" maxlength="120"
+                  /></label>
+                  <label
+                    >Alterserklärung
+                    <select [(ngModel)]="ageDeclaration">
+                      <option value="">Bitte auswählen</option>
+                      <option value="adult">Volljährig</option>
+                      <option value="minor">Minderjährig (gesonderte Prüfung ohne Freigabe)</option>
+                    </select>
+                  </label>
+                  <label
+                    ><input type="checkbox" [(ngModel)]="rightsConfirmed" /> Ich besitze die nötigen
+                    Rechte an Text und Antworten und stimme der gewählten öffentlichen Lizenz
+                    zu.</label
+                  >
+                  @if (preview.hasImages) {
+                    <label
+                      ><input type="checkbox" [(ngModel)]="imageRightsConfirmed" /> Ich besitze die
+                      nötigen Bildrechte und habe persönliche Daten geprüft. Schulbuchfotos ohne
+                      Rechte darf ich nicht einreichen.</label
+                    >
+                  }
+                  <button type="button" [disabled]="busy()" (click)="submitForReview()">
+                    Diese Fassung zur Moderation einreichen
+                  </button>
+                </div>
+              }
+            }
           }
           @if (status()) {
             <p role="status" class="status">{{ status() }}</p>
@@ -274,12 +362,19 @@ export class QuestionEditor implements OnInit {
   readonly questionId = signal('');
   readonly latestVersion = signal(0);
   readonly visibility = signal<'private' | 'public'>('private');
+  readonly submissionPreview = signal<SubmissionPreview | null>(null);
+  readonly submissionStatus = signal('');
   readonly status = signal('');
   readonly busy = signal(false);
   newCatalog = '';
   renamedCatalog = '';
   filterCatalog = 'all';
   catalogId = '';
+  publicLicense = '';
+  authorAttribution = '';
+  ageDeclaration = '';
+  rightsConfirmed = false;
+  imageRightsConfirmed = false;
   subject = '';
   topic = '';
   language = 'de';
@@ -386,6 +481,8 @@ export class QuestionEditor implements OnInit {
     this.questionId.set('');
     this.latestVersion.set(0);
     this.visibility.set('private');
+    this.submissionPreview.set(null);
+    this.submissionStatus.set('');
     this.catalogId = this.activeCatalog()?.id ?? '';
     this.subject = '';
     this.topic = '';
@@ -405,6 +502,8 @@ export class QuestionEditor implements OnInit {
     this.questionId.set(draft.questionId);
     this.latestVersion.set(draft.latestVersion);
     this.visibility.set('private');
+    this.submissionPreview.set(null);
+    this.submissionStatus.set('');
     if (draft.latestVersion) void this.loadVisibility(draft.questionId, draft.latestVersion);
     this.catalogId = draft.catalogId ?? '';
     this.promptImageAlt = '';
@@ -588,6 +687,8 @@ export class QuestionEditor implements OnInit {
       const version = ((await response.json()) as Api<{ version: number }>).data;
       this.latestVersion.set(version.version);
       this.visibility.set('private');
+      this.submissionPreview.set(null);
+      this.submissionStatus.set('');
       this.status.set(`Fassung ${version.version} veröffentlicht. Die Frage bleibt privat.`);
       await this.refresh();
     } catch {
@@ -606,12 +707,22 @@ export class QuestionEditor implements OnInit {
       const version = ((await response.json()) as Api<{ visibility: 'private' | 'public' }>).data;
       if (this.questionId() === questionId && this.latestVersion() === number)
         this.visibility.set(version.visibility);
+      const submission = await fetch(
+        `/api/v1/questions/${questionId}/versions/${number}/submission`,
+        {
+          credentials: 'same-origin',
+        },
+      );
+      if (submission.ok && this.questionId() === questionId && this.latestVersion() === number) {
+        const info = ((await submission.json()) as Api<{ status: string }>).data;
+        this.submissionStatus.set(info.status);
+      }
     } catch {
       /* Continue showing the safe private state. */
     }
   }
 
-  async setVisibility(visibility: 'private' | 'public'): Promise<void> {
+  async withdraw(): Promise<void> {
     const id = this.questionId();
     const number = this.latestVersion();
     if (!id || !number || this.busy()) return;
@@ -621,17 +732,84 @@ export class QuestionEditor implements OnInit {
         method: 'PUT',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visibility }),
+        body: JSON.stringify({ visibility: 'private' }),
       });
       if (!response.ok) throw new Error();
-      this.visibility.set(visibility);
-      this.status.set(
-        visibility === 'public'
-          ? 'Diese Fassung ist jetzt öffentlich lesbar.'
-          : 'Die öffentliche Freigabe wurde zurückgenommen.',
-      );
+      this.visibility.set('private');
+      this.submissionStatus.set('withdrawn');
+      this.submissionPreview.set(null);
+      this.status.set('Die öffentliche Freigabe oder Einreichung wurde zurückgenommen.');
     } catch {
       this.status.set('Sichtbarkeit konnte nicht geändert werden.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  async requestPreview(): Promise<void> {
+    try {
+      const response = await fetch(
+        `/api/v1/questions/${this.questionId()}/versions/${this.latestVersion()}/submission-preview`,
+        {
+          credentials: 'same-origin',
+        },
+      );
+      if (!response.ok) throw new Error();
+      this.submissionPreview.set(((await response.json()) as Api<SubmissionPreview>).data);
+      this.rightsConfirmed = false;
+      this.imageRightsConfirmed = false;
+      this.status.set('Prüfe Vorschau, Herkunft, Lizenz und Bildrechte vor der Einreichung.');
+    } catch {
+      this.status.set('Die Vorschau konnte nicht geladen werden.');
+    }
+  }
+
+  async submitForReview(): Promise<void> {
+    const preview = this.submissionPreview();
+    if (
+      !preview ||
+      !this.publicLicense ||
+      !this.authorAttribution.trim() ||
+      !this.rightsConfirmed ||
+      !this.ageDeclaration ||
+      (preview.hasImages && !this.imageRightsConfirmed)
+    ) {
+      this.status.set(
+        'Bitte Lizenz, Urheber, Alterserklärung und alle Rechtebestätigungen ausfüllen.',
+      );
+      return;
+    }
+    this.busy.set(true);
+    try {
+      const response = await fetch(
+        `/api/v1/questions/${this.questionId()}/versions/${this.latestVersion()}/submission`,
+        {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            previewToken: preview.previewToken,
+            licenseChoice: this.publicLicense,
+            authorAttribution: this.authorAttribution.trim(),
+            rightsConfirmed: this.rightsConfirmed,
+            imageRightsConfirmed: this.imageRightsConfirmed,
+            ageDeclaration: this.ageDeclaration,
+          }),
+        },
+      );
+      if (!response.ok) throw new Error();
+      const result = ((await response.json()) as Api<{ status: string }>).data;
+      this.submissionStatus.set(result.status);
+      this.submissionPreview.set(null);
+      this.status.set(
+        result.status === 'minor_hold'
+          ? 'Die Einreichung Minderjähriger bleibt ohne öffentliches Freigabeverfahren gesperrt.'
+          : 'Zur Moderation eingereicht. Die Fassung bleibt bis zur Freigabe privat.',
+      );
+    } catch {
+      this.status.set(
+        'Einreichung fehlgeschlagen. Bitte Vorschau und Rechteangaben erneut prüfen.',
+      );
     } finally {
       this.busy.set(false);
     }

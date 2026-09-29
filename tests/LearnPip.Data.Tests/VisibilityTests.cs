@@ -109,7 +109,8 @@ public sealed class VisibilityTests
                     QuestionId = questionId,
                     CreatedByAccountId = owner.AccountId,
                     VersionNumber = 1,
-                    Prompt = "Erste Fassung"
+                    Prompt = "Erste Fassung",
+                    Source = "Eigener Text"
                 });
                 foreach (var image in new[] { imageId, unrelatedImageId })
                 {
@@ -155,7 +156,8 @@ public sealed class VisibilityTests
                     QuestionId = questionId,
                     CreatedByAccountId = owner.AccountId,
                     VersionNumber = 2,
-                    Prompt = "Neue private Fassung"
+                    Prompt = "Neue private Fassung",
+                    Source = "Eigener Text"
                 });
                 await db.SaveChangesAsync();
             }
@@ -188,11 +190,50 @@ public sealed class VisibilityTests
             Assert.Equal(HttpStatusCode.NotFound, (await leaderClient.PutAsJsonAsync(
                 $"/api/v1/questions/{questionId}/versions/1/visibility",
                 new VersionVisibilityInput("public"))).StatusCode);
-            Assert.Equal(HttpStatusCode.NoContent, (await ownerClient.PutAsJsonAsync(
+            Assert.Equal(HttpStatusCode.Conflict, (await ownerClient.PutAsJsonAsync(
                 $"/api/v1/questions/{questionId}/versions/1/visibility",
                 new VersionVisibilityInput("public"))).StatusCode);
-            Assert.Equal(HttpStatusCode.OK, (await anonymous.GetAsync(
+            Assert.Equal(HttpStatusCode.BadRequest, (await ownerClient.PostAsJsonAsync(
+                $"/api/v1/questions/{questionId}/versions/1/submission",
+                new PublicSubmissionInput("invalid", "CC BY 4.0", "Eigener Name",
+                    true, true, "adult"))).StatusCode);
+            var previewResponse = await ownerClient.GetAsync(
+                $"/api/v1/questions/{questionId}/versions/1/submission-preview");
+            Assert.Equal(HttpStatusCode.OK, previewResponse.StatusCode);
+            var preview = (await previewResponse.Content.ReadFromJsonAsync<ApiResponse<PublicPreview>>())!.Data;
+            Assert.True(preview.HasImages);
+            Assert.Equal(HttpStatusCode.BadRequest, (await ownerClient.PostAsJsonAsync(
+                $"/api/v1/questions/{questionId}/versions/1/submission",
+                new PublicSubmissionInput(preview.PreviewToken, "CC BY 4.0", "Eigener Name",
+                    true, false, "adult"))).StatusCode);
+            Assert.Equal(HttpStatusCode.Accepted, (await ownerClient.PostAsJsonAsync(
+                $"/api/v1/questions/{questionId}/versions/1/submission",
+                new PublicSubmissionInput(preview.PreviewToken, "CC BY 4.0", "Eigener Name",
+                    true, true, "adult"))).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await anonymous.GetAsync(
                 $"/api/v1/public/questions/{questionId}/versions/1")).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await outsiderClient.GetAsync(
+                "/api/v1/moderation/submissions/")).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await moderatorClient.GetAsync(
+                $"/api/v1/moderation/submissions/{firstId}")).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await moderatorClient.GetAsync(
+                $"/api/v1/moderation/submissions/{firstId}/media/{imageId}")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await moderatorClient.GetAsync(
+                $"/api/v1/moderation/submissions/{firstId}/media/{unrelatedImageId}")).StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, (await moderatorClient.PostAsJsonAsync(
+                $"/api/v1/moderation/submissions/{firstId}/decision",
+                new PublicReviewInput("approve", true, false, true, true, ""))).StatusCode);
+            Assert.Equal(HttpStatusCode.NoContent, (await moderatorClient.PostAsJsonAsync(
+                $"/api/v1/moderation/submissions/{firstId}/decision",
+                new PublicReviewInput("approve", true, true, true, true, "Geprüft"))).StatusCode);
+            var publicResponse = await anonymous.GetAsync(
+                $"/api/v1/public/questions/{questionId}/versions/1");
+            Assert.Equal(HttpStatusCode.OK, publicResponse.StatusCode);
+            var publicVersion = (await publicResponse.Content
+                .ReadFromJsonAsync<ApiResponse<PublishedQuestionVersion>>())!.Data;
+            Assert.Equal("CC BY 4.0", publicVersion.License);
+            Assert.Equal("Eigener Name", publicVersion.AuthorAttribution);
+            Assert.Equal("Eigener Text", publicVersion.Source);
             Assert.Equal(HttpStatusCode.NotFound, (await anonymous.GetAsync(
                 $"/api/v1/public/questions/{questionId}/versions/2")).StatusCode);
             Assert.Equal(HttpStatusCode.OK, (await anonymous.GetAsync(
@@ -204,6 +245,21 @@ public sealed class VisibilityTests
                 new VersionVisibilityInput("private"))).StatusCode);
             Assert.Equal(HttpStatusCode.NotFound, (await anonymous.GetAsync(
                 $"/api/v1/public/media/{imageId}/content")).StatusCode);
+            var minorPreviewResponse = await ownerClient.GetAsync(
+                $"/api/v1/questions/{questionId}/versions/2/submission-preview");
+            var minorPreview = (await minorPreviewResponse.Content
+                .ReadFromJsonAsync<ApiResponse<PublicPreview>>())!.Data;
+            Assert.Equal(HttpStatusCode.Accepted, (await ownerClient.PostAsJsonAsync(
+                $"/api/v1/questions/{questionId}/versions/2/submission",
+                new PublicSubmissionInput(minorPreview.PreviewToken, "CC BY-SA 4.0", "Eigener Name",
+                    true, false, "minor"))).StatusCode);
+            Assert.Equal(HttpStatusCode.Conflict, (await adminClient.PostAsJsonAsync(
+                $"/api/v1/moderation/submissions/{secondId}/decision",
+                new PublicReviewInput("approve", true, true, true, true, ""))).StatusCode);
+            Assert.Equal(HttpStatusCode.NoContent, (await moderatorClient.PostAsJsonAsync(
+                $"/api/v1/moderation/submissions/{secondId}/decision",
+                new PublicReviewInput("reject", true, true, true, true,
+                    "Für Minderjährige fehlt ein Freigabeverfahren."))).StatusCode);
             Assert.Equal(HttpStatusCode.OK, (await memberClient.GetAsync(
                 $"/api/v1/questions/{questionId}/versions/1")).StatusCode);
             Assert.Equal(HttpStatusCode.NoContent, (await ownerClient.DeleteAsync(

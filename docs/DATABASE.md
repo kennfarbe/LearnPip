@@ -17,8 +17,9 @@ Der Datenbankstand verwendet PostgreSQL 18 und Entity Framework Core mit dem Npg
 | `ExamObjectives`, `QuestionObjectives` | Lernziele mit einer n:m-Zuordnung zu Fragen. Ein Lernziel-Code ist eindeutig. |
 | `StudyGroups`, `GroupMemberships`, `GroupQuestionShares`, `GroupCatalogShares`, `GroupVersionShares` | Geschlossene Gruppen mit unabhängiger Mitgliedschaft und auf konkrete Fassungen beschränkten Katalogfreigaben. Neue Fassungen werden nicht automatisch sichtbar. |
 | `GroupInvitations` | Einladungen mit ausschließlich gehashtem Code, Ablaufzeit, Nutzungsgrenze und Widerruf. |
+| `PublicSubmissions`, `PublicSubmissionPreviews`, `PublicSubmissionReviews` | Einreichungsstatus und Rechteangaben pro Fassung, kurzlebige gehashte Vorschautokens und protokollierte Moderationsentscheidungen. |
 
-Die API prüft aktives Konto, Mitgliedschaft und Freigabe bei jedem Zugriff. Für Inhalte gilt standardmäßig privat; `QuestionVersions.Visibility` wird erst durch den Eigentümer für eine konkrete Fassung auf `public` gesetzt. Eine Einladung ist kein Login und gewährt nach dem Beitritt keine zusätzliche Berechtigung; die gespeicherte Mitgliedschaft bleibt bei Ablauf oder Widerruf des Codes bestehen. Gruppen- und öffentliche Bilder werden nur ausgeliefert, wenn ein Inhaltsblock der lesbaren Fassung auf genau dieses Medium verweist; der Eigentümer kann es verwalten.
+Die API prüft aktives Konto, Mitgliedschaft und Freigabe bei jedem Zugriff. Für Inhalte gilt standardmäßig privat; `QuestionVersions.Visibility` wird nur durch eine genehmigte Einreichung für eine konkrete Fassung auf `public` gesetzt. Ein öffentlicher Lesezugriff verlangt zusätzlich `PublicSubmissions.Status = approved`. Die Migration setzt zuvor direkt öffentlich geschaltete Fassungen auf privat zurück. Eine Einladung ist kein Login und gewährt nach dem Beitritt keine zusätzliche Berechtigung; die gespeicherte Mitgliedschaft bleibt bei Ablauf oder Widerruf des Codes bestehen. Gruppen- und öffentliche Bilder werden nur ausgeliefert, wenn ein Inhaltsblock der lesbaren Fassung auf genau dieses Medium verweist; der Eigentümer kann es verwalten.
 
 ## Migrationen
 
