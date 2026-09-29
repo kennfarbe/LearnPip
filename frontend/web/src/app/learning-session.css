@@ -1,0 +1,132 @@
+:host {
+  display: block;
+}
+.learning {
+  margin-top: 3rem;
+  padding: clamp(1rem, 3vw, 2rem);
+  border: 1px solid #dfe9df;
+  border-radius: 1rem;
+  background: #f8fbf7;
+  color: #1d3a32;
+}
+.learning h2 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.6rem, 4vw, 2rem);
+}
+.learning p {
+  line-height: 1.6;
+}
+.settings,
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.8rem;
+  margin-top: 1.2rem;
+}
+label {
+  display: grid;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+select {
+  min-width: 11rem;
+  max-width: 100%;
+  padding: 0.7rem;
+  border: 1px solid #98afa4;
+  border-radius: 0.5rem;
+  background: white;
+  color: #1d3a32;
+  font: inherit;
+}
+button {
+  min-height: 2.75rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid #205d45;
+  border-radius: 0.5rem;
+  background: #205d45;
+  color: white;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid #e5a44c;
+  outline-offset: 2px;
+}
+.secondary {
+  background: white;
+  color: #205d45;
+}
+.question,
+.feedback {
+  margin-top: 1rem;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid #dfe9df;
+  border-radius: 0.8rem;
+  background: white;
+}
+.progress,
+.hint {
+  color: #3c6252;
+}
+.options {
+  display: grid;
+  gap: 0.65rem;
+}
+.option {
+  display: flex;
+  align-items: start;
+  gap: 0.8rem;
+  min-width: 0;
+  padding: 0.8rem;
+  border: 1px solid #b6cdbd;
+  border-radius: 0.65rem;
+  cursor: pointer;
+}
+.option:has(input:checked) {
+  background: #e4f3e7;
+  border-color: #205d45;
+}
+.option input {
+  margin-top: 0.35rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  flex: none;
+}
+.blocks {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.blocks img {
+  display: block;
+  max-width: min(100%, 22rem);
+  max-height: 18rem;
+  margin: 0.5rem 0;
+  border-radius: 0.45rem;
+  object-fit: contain;
+}
+.correct-option {
+  display: inline-block;
+  margin: 0.2rem 0.4rem 0.2rem 0;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.4rem;
+  background: #e4f3e7;
+}
+.message {
+  color: #7c3626;
+}
+@media (max-width: 35rem) {
+  .settings,
+  .settings label,
+  .settings select,
+  .actions button {
+    width: 100%;
+  }
+}

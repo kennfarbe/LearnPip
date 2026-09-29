@@ -2,9 +2,10 @@ import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { PrivateMedia } from './private-media';
 import { QuestionEditor } from './question-editor';
+import { LearningSession } from './learning-session';
 
 @Component({
-  imports: [RouterOutlet, PrivateMedia, QuestionEditor],
+  imports: [RouterOutlet, PrivateMedia, QuestionEditor, LearningSession],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',

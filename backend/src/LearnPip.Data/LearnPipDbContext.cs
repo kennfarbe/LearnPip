@@ -220,6 +220,7 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
         modelBuilder.Entity<StudySession>(entity =>
         {
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.PlanJson).HasMaxLength(8192);
             entity.HasIndex(x => new { x.AccountId, x.StartedAtUtc });
             entity.HasOne(x => x.Account).WithMany(x => x.StudySessions)
                 .HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Restrict);
