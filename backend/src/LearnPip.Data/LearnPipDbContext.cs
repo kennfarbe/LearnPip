@@ -20,6 +20,9 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
     public DbSet<StudyGroup> StudyGroups => Set<StudyGroup>();
     public DbSet<GroupMembership> GroupMemberships => Set<GroupMembership>();
     public DbSet<GroupQuestionShare> GroupQuestionShares => Set<GroupQuestionShare>();
+    public DbSet<RecoveryCredential> RecoveryCredentials => Set<RecoveryCredential>();
+    public DbSet<AccountSession> AccountSessions => Set<AccountSession>();
+    public DbSet<EmailLoginCode> EmailLoginCodes => Set<EmailLoginCode>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,6 +42,38 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
             entity.HasIndex(x => new { x.Provider, x.Subject }).IsUnique();
             entity.HasOne(x => x.Account).WithMany(x => x.ExternalIdentities)
                 .HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<RecoveryCredential>(entity =>
+        {
+            entity.HasKey(x => x.AccountId);
+            entity.Property(x => x.SecretHash).HasMaxLength(64).IsRequired();
+            entity.HasIndex(x => x.SecretHash).IsUnique();
+            entity.HasOne(x => x.Account).WithOne()
+                .HasForeignKey<RecoveryCredential>(x => x.AccountId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AccountSession>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
+            entity.HasIndex(x => x.TokenHash).IsUnique();
+            entity.HasIndex(x => new { x.AccountId, x.ExpiresAtUtc });
+            entity.HasOne(x => x.Account).WithMany()
+                .HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EmailLoginCode>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Email).HasMaxLength(255).IsRequired();
+            entity.Property(x => x.Purpose).HasMaxLength(16).IsRequired();
+            entity.Property(x => x.CodeHash).HasMaxLength(64).IsRequired();
+            entity.HasIndex(x => new { x.Email, x.Purpose, x.CreatedAtUtc });
+            entity.HasOne(x => x.Account).WithMany().HasForeignKey(x => x.AccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.InitiatingSession).WithMany()
+                .HasForeignKey(x => x.InitiatingSessionId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<RoleDefinition>(entity =>

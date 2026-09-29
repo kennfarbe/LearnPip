@@ -49,6 +49,8 @@ npm run build
 
 Backend und Web werden von getrennten CI-Jobs gebaut. Der Backend-Job startet eine Wegwerf-PostgreSQL-Instanz für Migrationstests. Pull-Request-Builds benötigen keine Produktionsgeheimnisse. Lokale Formatierung folgt `.editorconfig`; Angular verwendet zusätzlich Prettier.
 
+Die lokale API kann ohne E-Mail- oder OIDC-Anbieter pseudonyme Konten erstellen. Browser-Sitzungscookies verlangen HTTPS; auf `http://localhost` kann zum Test das einmalig ausgegebene Bearer-Token verwendet werden. Die optionalen Identitätsdienste und ihre Konfiguration stehen unter [Konten und Identitätswege](IDENTITY.md).
+
 ## Bereiche
 
 - `backend/src/LearnPip.Api/`: ASP.NET Core API
