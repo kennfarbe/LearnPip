@@ -411,6 +411,7 @@ export class LearningSession implements OnInit {
       }
       this.feedback.set(((await response.json()) as Api<Feedback>).data);
       await this.loadReview();
+      window.dispatchEvent(new Event('learnpip:progress-changed'));
       this.message.set('');
     } catch {
       this.message.set('Verbindung zum Server fehlgeschlagen.');
@@ -434,6 +435,7 @@ export class LearningSession implements OnInit {
       }
       this.selected.set([]);
       await this.load(session.id);
+      window.dispatchEvent(new Event('learnpip:progress-changed'));
       this.message.set('Frage ohne Wertung übersprungen.');
     } catch {
       this.message.set('Verbindung zum Server fehlgeschlagen.');
@@ -476,6 +478,7 @@ export class LearningSession implements OnInit {
           return;
         }
         await this.loadReview();
+        window.dispatchEvent(new Event('learnpip:progress-changed'));
       } catch {
         this.message.set('Verbindung zum Server fehlgeschlagen.');
         return;
@@ -496,6 +499,7 @@ export class LearningSession implements OnInit {
         return;
       }
       await this.loadReview();
+      window.dispatchEvent(new Event('learnpip:progress-changed'));
     } catch {
       this.message.set('Verbindung zum Server fehlgeschlagen.');
     } finally {
