@@ -40,3 +40,46 @@ private, no-store`. Fehlende und fremde IDs ergeben beide 404.
 Implementierung speichert Bytes in `MediaBlobs` mit kaskadierender Löschung; die
 Schnittstelle `IPrivateMediaStore` kann später einen privaten Objektspeicher
 anbinden. Die Storage-Key-Werte werden nicht über die API ausgegeben.
+
+## Veröffentlichte Fragen und Bewertung (LP-13)
+
+`POST /api/v1/questions/` veröffentlicht Version 1 einer eigenen Frage.
+`POST /api/v1/questions/{id}/versions` veröffentlicht eine neue, unveränderliche
+Fassung; parallele Veröffentlichungen derselben Frage werden in der Datenbank
+serialisiert. Beide Endpunkte erwarten beispielsweise:
+
+```json
+{
+  "selectionMode": "multiple",
+  "subject": "Biologie",
+  "topic": "Pflanzen",
+  "language": "de",
+  "source": "Eigene Frage",
+  "license": "CC-BY-4.0",
+  "prompt": [{"kind":"text","text":"Welche Aussagen treffen zu?"}, {"kind":"image","mediaId":"<eigene-medien-uuid>"}],
+  "explanation": [{"kind":"text","text":"Beide Aussagen stimmen."}],
+  "answers": [
+    {"isCorrect":true,"blocks":[{"kind":"text","text":"A"}]},
+    {"isCorrect":true,"blocks":[{"kind":"image","mediaId":"<eigene-medien-uuid>"}]},
+    {"isCorrect":false,"blocks":[{"kind":"text","text":"C"}]}
+  ]
+}
+```
+
+Blöcke sind in Array-Reihenfolge geordnet. `text` benötigt Text, `image` eine
+eigene aktive Medien-ID mit Bildbeschreibung; Mischformen pro Block sind nicht
+erlaubt. Pro Abschnitt sind bis zu 20 Blöcke und pro Frage 2–8 Antworten möglich.
+`single` hat exakt eine richtige Antwort, `multiple` mindestens zwei. Fach, Thema,
+Sprache, Herkunft und Lizenz gehören zur Version und bleiben bei späteren
+Änderungen nachvollziehbar. Bilder in veröffentlichten Fassungen können nicht
+separat gelöscht werden, damit historische Inhalte erhalten bleiben.
+
+`GET /api/v1/questions/{id}/versions/{number}` liefert dem Besitzer die
+vollständige Fassung einschließlich der richtigen Antwortmenge. Die allgemeine
+Fragenabfrage bleibt auf ihre bisherige Zusammenfassung beschränkt.
+`POST /api/v1/questions/{id}/attempts` nimmt `versionId` und
+`selectedOptionIds` entgegen. Die Auswahl muss genau aus den Optionen dieser
+Version stammen, ohne Duplikate. Die Bewertung vergleicht die gesamte Menge;
+Teiltreffer sind falsch. Die Antwort enthält nach dem Versuch die richtige Menge,
+und die gespeicherte `StudyAttempt` verweist auf die unveränderte Version. Die
+gewählten Optionen werden einzeln in `StudyAttemptSelections` gespeichert.

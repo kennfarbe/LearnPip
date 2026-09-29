@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Text.Encodings.Web;
 using LearnPip.Api;
 using LearnPip.Api.Security;
+using LearnPip.Api.Questions;
 using LearnPip.Data;
 using LearnPip.Data.Domain;
 using Microsoft.AspNetCore.Authentication;
@@ -231,6 +232,69 @@ public sealed class ApiV1Tests
             {
                 Assert.False(await checkDb.MediaAssets.AnyAsync(item => item.Id == uploadedId));
                 Assert.False(await checkDb.MediaBlobs.AnyAsync(item => item.MediaAssetId == uploadedId));
+            }
+
+            using var questionImageUpload = new MultipartFormDataContent();
+            var questionImage = new ByteArrayContent(jpeg);
+            questionImage.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+            questionImageUpload.Add(questionImage, "file", "answer.jpg");
+            questionImageUpload.Add(new StringContent("Grünes Symbol"), "altText");
+            var questionImageResponse = await ownerClient.PostAsync("/api/v1/media/", questionImageUpload);
+            Assert.Equal(HttpStatusCode.Created, questionImageResponse.StatusCode);
+            var questionMedia = (await questionImageResponse.Content
+                .ReadFromJsonAsync<ApiResponse<MediaDetails>>())!.Data.Id;
+            var draft = new QuestionPublishRequest("multiple", "Biologie", "Pflanzen", "de", "Eigene Frage",
+                "CC-BY-4.0",
+                [new ContentBlockInput("text", "Welche Aussagen treffen zu?", null),
+                    new ContentBlockInput("image", null, questionMedia)],
+                [new ContentBlockInput("text", "Grün ist richtig.", null)],
+                [new AnswerInput(true, [new ContentBlockInput("image", null, questionMedia)]),
+                    new AnswerInput(true, [new ContentBlockInput("text", "Chlorophyll", null)]),
+                    new AnswerInput(false, [new ContentBlockInput("text", "Keine der beiden", null)])]);
+            var created = await ownerClient.PostAsJsonAsync("/api/v1/questions/", draft);
+            Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+            var firstVersion = (await created.Content
+                .ReadFromJsonAsync<ApiResponse<PublishedQuestionVersion>>())!.Data;
+            var createdQuestionId = Guid.Parse(created.Headers.Location!.ToString().Split('/')[4]);
+            Assert.Equal(1, firstVersion.Version);
+            Assert.Contains(firstVersion.Prompt, block => block.MediaId == questionMedia);
+            Assert.Contains(firstVersion.Answers[0].Blocks, block => block.MediaId == questionMedia);
+            Assert.Equal(HttpStatusCode.Conflict,
+                (await ownerClient.DeleteAsync($"/api/v1/media/{questionMedia}")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound,
+                (await strangerClient.GetAsync($"/api/v1/questions/{createdQuestionId}/versions/1")).StatusCode);
+            var selected = firstVersion.Answers.Take(2).Select(answer => answer.Id).ToArray();
+            var grade = await ownerClient.PostAsJsonAsync($"/api/v1/questions/{createdQuestionId}/attempts",
+                new GradeRequest(firstVersion.Id, selected));
+            Assert.Equal(HttpStatusCode.OK, grade.StatusCode);
+            var firstGrade = (await grade.Content.ReadFromJsonAsync<ApiResponse<GradeResult>>())!.Data;
+            Assert.True(firstGrade.IsCorrect);
+            var partial = await ownerClient.PostAsJsonAsync($"/api/v1/questions/{createdQuestionId}/attempts",
+                new GradeRequest(firstVersion.Id, [selected[0]]));
+            Assert.False((await partial.Content.ReadFromJsonAsync<ApiResponse<GradeResult>>())!.Data.IsCorrect);
+            var changedDraft = draft with
+            {
+                Answers = [new AnswerInput(false, draft.Answers[0].Blocks),
+                    new AnswerInput(true, draft.Answers[1].Blocks),
+                    new AnswerInput(true, draft.Answers[2].Blocks)]
+            };
+            var published = await ownerClient.PostAsJsonAsync(
+                $"/api/v1/questions/{createdQuestionId}/versions", changedDraft);
+            Assert.Equal(HttpStatusCode.Created, published.StatusCode);
+            var secondVersion = (await published.Content
+                .ReadFromJsonAsync<ApiResponse<PublishedQuestionVersion>>())!.Data;
+            Assert.Equal(2, secondVersion.Version);
+            Assert.False(secondVersion.Answers[0].IsCorrect);
+            var oldVersion = await ownerClient.GetFromJsonAsync<ApiResponse<PublishedQuestionVersion>>(
+                $"/api/v1/questions/{createdQuestionId}/versions/1");
+            Assert.True(oldVersion!.Data.Answers[0].IsCorrect);
+            await using (var checkAttempts = new LearnPipDbContext(options))
+            {
+                var saved = await checkAttempts.StudyAttempts.Include(item => item.Selections)
+                    .SingleAsync(item => item.Id == firstGrade.AttemptId);
+                Assert.Equal(firstVersion.Id, saved.QuestionVersionId);
+                Assert.True(saved.IsCorrect);
+                Assert.Equal(selected.Order(), saved.Selections.Select(item => item.AnswerOptionId).Order());
             }
 
             using var scope = factory.Services.CreateScope();
