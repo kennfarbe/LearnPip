@@ -108,8 +108,10 @@ public static class QuestionEndpoints
         {
             var option = new AnswerOption
             {
-                QuestionVersionId = version.Id, SortOrder = index,
-                IsCorrect = answer.IsCorrect, Text = Summary(answer.Blocks)
+                QuestionVersionId = version.Id,
+                SortOrder = index,
+                IsCorrect = answer.IsCorrect,
+                Text = Summary(answer.Blocks)
             };
             db.AnswerOptions.Add(option);
             AddBlocks(db, null, option.Id, "answer", answer.Blocks);
@@ -161,14 +163,17 @@ public static class QuestionEndpoints
         var session = new StudySession { AccountId = accountId, CompletedAtUtc = DateTimeOffset.UtcNow };
         var attempt = new StudyAttempt
         {
-            StudySessionId = session.Id, QuestionVersionId = version.Id, IsCorrect = isCorrect
+            StudySessionId = session.Id,
+            QuestionVersionId = version.Id,
+            IsCorrect = isCorrect
         };
         db.StudySessions.Add(session);
         db.StudyAttempts.Add(attempt);
         foreach (var optionId in selected)
             db.StudyAttemptSelections.Add(new StudyAttemptSelection
             {
-                StudyAttemptId = attempt.Id, AnswerOptionId = optionId
+                StudyAttemptId = attempt.Id,
+                AnswerOptionId = optionId
             });
         await db.SaveChangesAsync(cancellationToken);
         return Results.Ok(new ApiResponse<GradeResult>(new GradeResult(attempt.Id, version.Id,
@@ -203,8 +208,11 @@ public static class QuestionEndpoints
         for (var index = 0; index < blocks.Count; index++)
             db.QuestionContentBlocks.Add(new QuestionContentBlock
             {
-                QuestionVersionId = versionId, AnswerOptionId = optionId,
-                Section = section, SortOrder = index, Kind = blocks[index].Kind,
+                QuestionVersionId = versionId,
+                AnswerOptionId = optionId,
+                Section = section,
+                SortOrder = index,
+                Kind = blocks[index].Kind,
                 Text = blocks[index].Kind == "text" ? blocks[index].Text!.Trim() : null,
                 MediaAssetId = blocks[index].MediaId
             });
