@@ -255,6 +255,11 @@ type SubmissionPreview = {
             <button type="button" class="publish" [disabled]="busy()" (click)="publish()">
               {{ latestVersion() ? 'Neue Fassung veröffentlichen' : 'Fassung veröffentlichen' }}
             </button>
+            @if (questionId() && latestVersion()) {
+              <button type="button" class="secondary" [disabled]="busy()" (click)="createVariant()">
+                Bearbeitbare Variante zum Lerninhalt anlegen
+              </button>
+            }
           </div>
           @if (latestVersion()) {
             <p class="privacy">
@@ -633,6 +638,33 @@ export class QuestionEditor implements OnInit, OnDestroy {
         blocks: blocks(answer.text, answer.imageId),
       })),
     };
+  }
+
+  async createVariant(): Promise<void> {
+    if (!this.questionId() || !this.latestVersion() || this.busy()) return;
+    this.busy.set(true);
+    try {
+      const response = await fetch(`/api/v1/questions/${this.questionId()}/variants/drafts`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: this.content(), catalogId: this.catalogId || null }),
+      });
+      if (!response.ok) {
+        this.status.set('Variante konnte nicht angelegt werden.');
+        return;
+      }
+      const draft = ((await response.json()) as Api<Draft>).data;
+      await this.refresh();
+      this.editDraft(draft);
+      this.status.set(
+        'Variante als privater Entwurf angelegt. Formuliere Frage und Antworten neu und prüfe die Lösung vor der Veröffentlichung.',
+      );
+    } catch {
+      this.status.set('Variante konnte nicht angelegt werden.');
+    } finally {
+      this.busy.set(false);
+    }
   }
 
   async saveDraft(): Promise<boolean> {
