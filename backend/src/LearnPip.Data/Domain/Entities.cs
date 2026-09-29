@@ -83,6 +83,7 @@ public sealed class MediaAsset
     public Guid? QuestionVersionId { get; set; }
     public string StorageKey { get; set; } = string.Empty;
     public string MediaType { get; set; } = string.Empty;
+    public string AltText { get; set; } = string.Empty;
     public long ByteLength { get; set; }
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? DeletedAtUtc { get; set; }
@@ -159,4 +160,11 @@ public sealed class GroupQuestionShare
     public DateTimeOffset? RevokedAtUtc { get; set; }
     public StudyGroup StudyGroup { get; set; } = null!;
     public Question Question { get; set; } = null!;
+}
+
+public sealed class MediaBlob
+{
+    public Guid MediaAssetId { get; set; }
+    public byte[] Data { get; set; } = [];
+    public MediaAsset MediaAsset { get; set; } = null!;
 }

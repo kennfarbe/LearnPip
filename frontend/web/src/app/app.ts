@@ -1,8 +1,9 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { PrivateMedia } from './private-media';
 
 @Component({
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, PrivateMedia],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',

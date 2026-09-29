@@ -110,7 +110,7 @@ public static class V1Endpoints
         }
 
         return Results.Ok(new ApiResponse<MediaDetails>(
-            new MediaDetails(media.Id, media.MediaType, media.ByteLength, media.QuestionVersionId)));
+            new MediaDetails(media.Id, media.MediaType, media.ByteLength, media.QuestionVersionId, media.AltText)));
     }
 
     private static async Task<IResult> ListGroupQuestions(

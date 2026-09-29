@@ -15,6 +15,7 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
     public DbSet<QuestionVersion> QuestionVersions => Set<QuestionVersion>();
     public DbSet<AnswerOption> AnswerOptions => Set<AnswerOption>();
     public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
+    public DbSet<MediaBlob> MediaBlobs => Set<MediaBlob>();
     public DbSet<StudySession> StudySessions => Set<StudySession>();
     public DbSet<StudyAttempt> StudyAttempts => Set<StudyAttempt>();
     public DbSet<ExamObjective> ExamObjectives => Set<ExamObjective>();
@@ -149,6 +150,7 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
             entity.HasKey(x => x.Id);
             entity.Property(x => x.StorageKey).HasMaxLength(512).IsRequired();
             entity.Property(x => x.MediaType).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.AltText).HasMaxLength(300).IsRequired();
             entity.HasIndex(x => x.StorageKey).IsUnique();
             entity.HasIndex(x => new { x.OwnerAccountId, x.CreatedAtUtc });
             entity.ToTable(table => table.HasCheckConstraint("CK_MediaAssets_ByteLength", "\"ByteLength\" > 0"));
@@ -156,6 +158,13 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.QuestionVersion).WithMany(x => x.MediaAssets)
                 .HasForeignKey(x => x.QuestionVersionId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<MediaBlob>(entity =>
+        {
+            entity.HasKey(x => x.MediaAssetId);
+            entity.HasOne(x => x.MediaAsset).WithOne()
+                .HasForeignKey<MediaBlob>(x => x.MediaAssetId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<StudySession>(entity =>

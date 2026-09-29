@@ -5,4 +5,4 @@ public sealed record PageResponse<T>(IReadOnlyList<T> Items, int Page, int PageS
 public sealed record QuestionSummary(Guid Id, int? Version, string? Prompt);
 public sealed record QuestionDetails(Guid Id, QuestionVersionDetails? LatestVersion);
 public sealed record QuestionVersionDetails(Guid Id, int Version, string Prompt);
-public sealed record MediaDetails(Guid Id, string MediaType, long ByteLength, Guid? QuestionVersionId);
+public sealed record MediaDetails(Guid Id, string MediaType, long ByteLength, Guid? QuestionVersionId, string AltText);

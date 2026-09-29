@@ -60,3 +60,11 @@ docker compose --env-file deploy/.env --file deploy/compose.yaml up --detach
 Nach der Wiederherstellung API-Liveness und -Readiness prüfen sowie einen gezielten Lesezugriff im privaten Testkonto durchführen. Für einen echten Betrieb müssen zusätzlich die privaten Mediendateien und die Verschlüsselungs- beziehungsweise Schlüsselverwaltung separat gesichert und gemeinsam mit der Datenbank wiederherstellbar sein. Medien-Objektspeicher ist noch nicht implementiert; diese Sicherungsstrecke ist vor dem ersten produktiven Foto-Upload zu ergänzen und zu testen.
 
 Sicherungen enthalten private Lerninhalte und sind entsprechend zugriffsbeschränkt aufzubewahren. Passwortdateien, Sicherungen und lokale `.env`-Dateien werden nicht ins Repository eingecheckt.
+
+## Private Bilddaten (LP-12)
+
+Die Tabelle `MediaBlobs` speichert sanitisierte JPEG-/PNG-Bytes zu genau einem
+`MediaAsset`. Diese PostgreSQL-Implementierung ist der erste private Speicheradapter.
+Die API liefert Bytes nur nach Besitzerprüfung aus; beim Löschen des Assets entfernt
+der Fremdschlüssel mit `ON DELETE CASCADE` die Bytes in derselben Transaktion.
+Datenbanksicherungen enthalten damit auch alle privaten Bilder.
