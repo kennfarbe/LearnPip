@@ -83,3 +83,25 @@ Version stammen, ohne Duplikate. Die Bewertung vergleicht die gesamte Menge;
 Teiltreffer sind falsch. Die Antwort enthält nach dem Versuch die richtige Menge,
 und die gespeicherte `StudyAttempt` verweist auf die unveränderte Version. Die
 gewählten Optionen werden einzeln in `StudyAttemptSelections` gespeichert.
+
+## Private Kataloge und Editorentwürfe (LP-14)
+
+`GET/POST /api/v1/catalogs/`, `PUT/DELETE /api/v1/catalogs/{id}` und
+`GET /api/v1/catalogs/{id}/questions` verwalten ausschließlich die Kataloge
+des angemeldeten Kontos. Das Löschen eines Katalogs löst seine Zuordnungen;
+Fragen und ihre Fassungen bleiben erhalten. Ein Katalogname ist pro Konto
+eindeutig.
+
+`POST /api/v1/questions/drafts` und `PUT /api/v1/questions/{id}/draft`
+speichern `{ "content": <QuestionPublishRequest>, "catalogId": null | "uuid" }`.
+Unvollständige Entwürfe sind erlaubt (bis 64 KiB JSON) und erzeugen keine
+veröffentlichte Fassung. `GET /api/v1/questions/drafts` listet nur eigene
+Entwürfe; `GET /api/v1/questions/{id}/draft` liest einen einzelnen. Mit
+`PUT /api/v1/questions/{id}/catalog` und `{ "catalogId": null | "uuid" }`
+ordnet man auch bereits veröffentlichte eigene Fragen um.
+
+Erst `POST /api/v1/questions/{id}/publish` validiert den Entwurf vollständig
+und erzeugt die nächste unveränderliche Fassung. Auch eine veröffentlichte
+Fassung bleibt standardmäßig privat und wird damit nicht automatisch für
+andere Konten freigegeben. Änderungen am Entwurf verändern die bisherige
+Fassung nicht.

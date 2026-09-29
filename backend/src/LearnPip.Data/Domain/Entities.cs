@@ -44,6 +44,9 @@ public sealed class Question
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid OwnerAccountId { get; set; }
+    public Guid? PrivateCatalogId { get; set; }
+    public PrivateCatalog? PrivateCatalog { get; set; }
+    public QuestionDraft? Draft { get; set; }
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? DeletedAtUtc { get; set; }

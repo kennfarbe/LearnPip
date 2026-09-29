@@ -11,6 +11,8 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
     public DbSet<ExternalIdentity> ExternalIdentities => Set<ExternalIdentity>();
     public DbSet<RoleDefinition> Roles => Set<RoleDefinition>();
     public DbSet<AccountRole> AccountRoles => Set<AccountRole>();
+    public DbSet<PrivateCatalog> PrivateCatalogs => Set<PrivateCatalog>();
+    public DbSet<QuestionDraft> QuestionDrafts => Set<QuestionDraft>();
     public DbSet<Question> Questions => Set<Question>();
     public DbSet<QuestionVersion> QuestionVersions => Set<QuestionVersion>();
     public DbSet<AnswerOption> AnswerOptions => Set<AnswerOption>();
@@ -116,6 +118,23 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
                 .HasForeignKey(x => x.RoleDefinitionId).OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<PrivateCatalog>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Name).HasMaxLength(120).IsRequired();
+            entity.HasIndex(x => new { x.OwnerAccountId, x.Name }).IsUnique();
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.OwnerAccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<QuestionDraft>(entity =>
+        {
+            entity.HasKey(x => x.QuestionId);
+            entity.Property(x => x.PayloadJson).HasMaxLength(65536).IsRequired();
+            entity.HasOne(x => x.Question).WithOne(x => x.Draft)
+                .HasForeignKey<QuestionDraft>(x => x.QuestionId).OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<Question>(entity =>
         {
             entity.HasKey(x => x.Id);
@@ -124,6 +143,8 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
             entity.Property(x => x.UpdatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.HasOne(x => x.Owner).WithMany(x => x.Questions)
                 .HasForeignKey(x => x.OwnerAccountId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.PrivateCatalog).WithMany(x => x.Questions)
+                .HasForeignKey(x => x.PrivateCatalogId).OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<QuestionVersion>(entity =>
