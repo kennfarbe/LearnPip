@@ -1,0 +1,120 @@
+:host {
+  display: block;
+}
+.progress-panel {
+  margin-top: 3rem;
+  padding: clamp(1rem, 3vw, 2rem);
+  border: 1px solid #dfe9df;
+  border-radius: 1rem;
+  background: #f8fbf7;
+  color: #1d3a32;
+}
+.heading,
+.topic-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+h2 {
+  margin: 0;
+  font-size: clamp(1.6rem, 4vw, 2rem);
+}
+h3 {
+  margin: 1.8rem 0 0.8rem;
+}
+p {
+  line-height: 1.55;
+}
+.heading p {
+  margin: 0.5rem 0;
+}
+.highlights {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin: 1.4rem 0;
+}
+.highlights div,
+.weeks div {
+  display: grid;
+  gap: 0.4rem;
+  padding: 1rem;
+  border: 1px solid #dfe9df;
+  border-radius: 0.7rem;
+  background: white;
+}
+.highlights strong {
+  font-size: 1.5rem;
+  color: #205d45;
+}
+.highlights span,
+.note {
+  color: #476457;
+  font-size: 0.92rem;
+}
+.topics {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.topics li {
+  padding: 1rem;
+  margin: 0.6rem 0;
+  border: 1px solid #dfe9df;
+  border-radius: 0.7rem;
+  background: white;
+}
+.bar {
+  height: 0.75rem;
+  margin-top: 0.75rem;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: #e5ece5;
+}
+.bar span {
+  display: block;
+  height: 100%;
+  border-radius: 1rem;
+  background: #39785e;
+}
+.improved {
+  margin: 0.7rem 0 0;
+  color: #205d45;
+}
+.weeks {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+.weeks small {
+  color: #476457;
+}
+button {
+  min-height: 2.75rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #205d45;
+  border-radius: 0.5rem;
+  background: white;
+  color: #205d45;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:focus-visible {
+  outline: 3px solid #e5a44c;
+  outline-offset: 2px;
+}
+@media (max-width: 42rem) {
+  .highlights,
+  .weeks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 25rem) {
+  .highlights,
+  .weeks {
+    grid-template-columns: 1fr;
+  }
+}

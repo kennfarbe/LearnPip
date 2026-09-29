@@ -156,3 +156,20 @@ Zustand wird chronologisch aus gespeicherten Ereignissen rekonstruiert;
 persönliche Merkliste. Sie beeinflusst nur die Auswahlpriorität, weder die
 berechnete Fälligkeit noch die Zielquote. Die API gibt ausschließlich eigene
 Inhalte und Versuche zurück.
+
+## Fortschritt und Rückmeldung (LP-17)
+
+`GET /api/v1/learning/progress` liefert ausschließlich den eigenen Lernweg:
+beherrschte Inhalte je Fach und Thema, Inhalte mit einer sicheren Antwort
+nach einer früheren Unsicherheit, Lerntage, Mitmachpunkte und vier gleitende
+Sieben-Tage-Zeiträume. Fragevarianten zählen pro Thema als ein Lerninhalt.
+Eine kurze Einheit zählt, wenn sie abgeschlossen ist und mindestens eine
+Antwort enthält. Bloßes Überspringen erhöht weder Punkte noch Einheiten.
+
+Mitmachpunkte entstehen aus beantworteten Inhalten: 1 für einen ehrlich
+markierten Rateversuch, 2 für eine andere Antwort, 1 zusätzlich für eine
+sichere richtige Antwort und 1 für eine abgerufene Erklärung. Pro Lerninhalt
+und UTC-Tag zählen höchstens 4 Punkte; wiederholte Klicks auf Varianten
+summieren sich nicht. Es gibt weder Zeitbonus noch einen Tages-Streak.
+Eine Pause löscht keine Punkte oder Ergebnisse. Wochenwerte sind ein Blick
+auf Aktivität, keine Pflicht oder Leistungsbewertung.

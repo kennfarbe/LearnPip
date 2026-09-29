@@ -396,6 +396,18 @@ public sealed class ApiV1Tests
             Assert.Equal(afterMark.TotalContents - 1, grouped.TotalContents);
             Assert.Equal(2, grouped.Contents.Single(item => item.Id == correctFeedback.ContentId)
                 .QuestionIds.Count);
+            Assert.Equal(HttpStatusCode.Unauthorized,
+                (await anonymous.GetAsync("/api/v1/learning/progress")).StatusCode);
+            var privateProgress = (await strangerClient.GetFromJsonAsync<ApiResponse<LearningProgress>>(
+                "/api/v1/learning/progress"))!.Data;
+            Assert.Equal(0, privateProgress.TotalContents);
+            Assert.Equal(0, privateProgress.ParticipationPoints);
+            var progressBeforeSkip = (await ownerClient.GetFromJsonAsync<ApiResponse<LearningProgress>>(
+                "/api/v1/learning/progress"))!.Data;
+            Assert.Equal(grouped.TotalContents, progressBeforeSkip.TotalContents);
+            Assert.Contains(progressBeforeSkip.Topics, topic => topic.ImprovedContents > 0);
+            Assert.True(progressBeforeSkip.ParticipationPoints > 0);
+            Assert.Equal(2, progressBeforeSkip.RecentWeeks.Sum(week => week.CompletedSessions));
 
             var mixedStart = await ownerClient.PostAsJsonAsync("/api/v1/learning/sessions/",
                 new StartLearningRequest(null, 10));
@@ -414,6 +426,12 @@ public sealed class ApiV1Tests
             Assert.True(mixed.Completed);
             Assert.Equal(0, mixed.Answered);
             Assert.Equal(mixed.Total, mixed.Skipped);
+            var progressAfterSkip = (await ownerClient.GetFromJsonAsync<ApiResponse<LearningProgress>>(
+                "/api/v1/learning/progress"))!.Data;
+            Assert.Equal(progressBeforeSkip.ParticipationPoints, progressAfterSkip.ParticipationPoints);
+            Assert.Equal(progressBeforeSkip.MasteredContents, progressAfterSkip.MasteredContents);
+            Assert.Equal(progressBeforeSkip.RecentWeeks.Sum(week => week.CompletedSessions),
+                progressAfterSkip.RecentWeeks.Sum(week => week.CompletedSessions));
             await using (var checkSkipped = new LearnPipDbContext(options))
                 Assert.False(await checkSkipped.StudyAttempts.AnyAsync(item => item.StudySessionId == mixed.Id));
 

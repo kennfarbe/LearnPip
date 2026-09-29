@@ -14,7 +14,7 @@ public sealed record ReviewOverview(int TotalContents, int MasteredContents, int
 public sealed record ContentAssignment(Guid ContentId);
 
 internal sealed record ReviewCandidate(Guid QuestionId, Guid VersionId, Guid ContentId,
-    string Title, Guid? CatalogId);
+    string Title, string Subject, Guid? CatalogId);
 
 public static class ReviewEndpoints
 {
@@ -95,13 +95,15 @@ public static class ReviewEndpoints
                 Title = question.LearningContent != null ? question.LearningContent.Title :
                     question.Versions.OrderByDescending(v => v.VersionNumber)
                         .Select(v => v.Topic).FirstOrDefault() ?? "Lerninhalt",
+                Subject = question.Versions.OrderByDescending(v => v.VersionNumber)
+                    .Select(v => v.Subject).FirstOrDefault() ?? "Allgemein",
                 VersionId = question.Versions.OrderByDescending(v => v.VersionNumber)
                     .Select(v => (Guid?)v.Id).FirstOrDefault()
             })
             .Where(item => item.VersionId != null)
             .ToListAsync(cancellationToken);
         var items = candidates.Select(item => new ReviewCandidate(item.Id, item.VersionId!.Value,
-            item.ContentId, item.Title, item.PrivateCatalogId)).ToList();
+            item.ContentId, item.Title, item.Subject, item.PrivateCatalogId)).ToList();
         var attempts = await db.StudyAttempts.AsNoTracking()
             .Where(item => item.StudySession.AccountId == accountId &&
                 item.QuestionVersion.Question.OwnerAccountId == accountId)
