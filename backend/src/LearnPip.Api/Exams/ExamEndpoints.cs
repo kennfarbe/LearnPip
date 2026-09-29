@@ -283,7 +283,7 @@ public static class ExamEndpoints
         var simulation = await Locked(db, id, accountId, ct);
         if (simulation == null) return Results.NotFound();
         var parts = Parse<SnapshotPart>(simulation.SnapshotJson);
-        if (simulation.CompletedAtUtc != null || simulation.CurrentPartIndex >= parts.Length)
+        if (simulation.CompletedAtUtc != null || simulation.CurrentPartIndex >= parts.Count)
             return Results.Conflict();
         var part = parts[simulation.CurrentPartIndex];
         var question = part.Questions.SingleOrDefault(item => item.Code == questionCode);
@@ -308,7 +308,7 @@ public static class ExamEndpoints
         var simulation = await Locked(db, id, accountId, ct);
         if (simulation == null) return Results.NotFound();
         var parts = Parse<SnapshotPart>(simulation.SnapshotJson);
-        if (simulation.CompletedAtUtc != null || simulation.CurrentPartIndex >= parts.Length)
+        if (simulation.CompletedAtUtc != null || simulation.CurrentPartIndex >= parts.Count)
             return Results.Conflict();
         var part = parts[simulation.CurrentPartIndex];
         if (part.Rule.Code != partCode) return Results.NotFound();
@@ -319,7 +319,7 @@ public static class ExamEndpoints
         results.Add(ExamScoring.Score(part, answers, timedOut));
         simulation.ResultJson = JsonSerializer.Serialize(results, Json);
         var next = parts.FindIndex(simulation.CurrentPartIndex + 1, item => !item.Credited);
-        simulation.CurrentPartIndex = next < 0 ? parts.Length : next;
+        simulation.CurrentPartIndex = next < 0 ? parts.Count : next;
         simulation.PartStartedAtUtc = now;
         if (next < 0) simulation.CompletedAtUtc = now;
         await db.SaveChangesAsync(ct);
