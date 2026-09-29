@@ -137,11 +137,16 @@ public static class V1Endpoints
         }
 
         var questions = dbContext.Questions.AsNoTracking()
-            .Where(question => question.DeletedAtUtc == null &&
+            .Where(question => question.DeletedAtUtc == null && (
                 dbContext.GroupQuestionShares.Any(share =>
                     share.QuestionId == question.Id &&
                     share.StudyGroupId == groupId &&
-                    share.RevokedAtUtc == null));
+                    share.RevokedAtUtc == null) ||
+                question.PrivateCatalogId != null && question.Versions.Any() &&
+                dbContext.GroupCatalogShares.Any(share =>
+                    share.PrivateCatalogId == question.PrivateCatalogId &&
+                    share.PrivateCatalog.OwnerAccountId == question.OwnerAccountId &&
+                    share.StudyGroupId == groupId)));
 
         return Results.Ok(new ApiResponse<PageResponse<QuestionSummary>>(
             await ReadPage(questions, page, pageSize, cancellationToken)));

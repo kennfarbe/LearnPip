@@ -130,12 +130,17 @@ public static class QuestionEndpoints
     }
 
     private static async Task<IResult> ReadVersion(Guid id, int number, LearnPipDbContext db,
-        ClaimsPrincipal user, CancellationToken cancellationToken)
+        IAuthorizationService authorization, ClaimsPrincipal user, CancellationToken cancellationToken)
     {
         if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        var question = await db.Questions.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+        if (question == null ||
+            !(await authorization.AuthorizeAsync(user, question, ApiPolicies.QuestionRead)).Succeeded)
+            return Results.NotFound();
         var versionId = await db.QuestionVersions.AsNoTracking()
             .Where(item => item.QuestionId == id && item.VersionNumber == number &&
-                item.Question.OwnerAccountId == accountId && item.Question.DeletedAtUtc == null)
+                item.Question.DeletedAtUtc == null)
             .Select(item => (Guid?)item.Id).SingleOrDefaultAsync(cancellationToken);
         if (!versionId.HasValue) return Results.NotFound();
         return Results.Ok(new ApiResponse<PublishedQuestionVersion>(

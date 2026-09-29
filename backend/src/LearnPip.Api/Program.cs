@@ -1,6 +1,7 @@
 using System.Threading.RateLimiting;
 using LearnPip.Api;
 using LearnPip.Api.Administration;
+using LearnPip.Api.Groups;
 using LearnPip.Api.Identity;
 using LearnPip.Api.Media;
 using LearnPip.Api.Questions;
@@ -40,6 +41,7 @@ builder.Services.AddProblemDetails(options =>
 
 builder.Services.AddScoped<IdentityService>();
 builder.Services.AddScoped<AdministrationService>();
+builder.Services.AddScoped<GroupService>();
 builder.Services.AddScoped<SessionService>();
 builder.Services.AddScoped<IPrivateMediaStore, PostgresPrivateMediaStore>();
 builder.Services.AddSingleton<IEmailCodeSender, SmtpEmailCodeSender>();
@@ -56,6 +58,15 @@ builder.Services.AddRateLimiter(options =>
         _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = 20,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        }));
+    options.AddPolicy("group-join", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
             Window = TimeSpan.FromMinutes(1),
             QueueLimit = 0,
             AutoReplenishment = true
@@ -125,6 +136,7 @@ app.MapLearningSessionEndpoints();
 app.MapReviewEndpoints();
 app.MapProgressEndpoints();
 app.MapCatalogEditorEndpoints();
+app.MapGroupEndpoints();
 app.MapAdministrationEndpoints();
 
 if (args.Contains("--migrate", StringComparer.OrdinalIgnoreCase))

@@ -205,6 +205,30 @@ public sealed class GroupQuestionShare
     public Question Question { get; set; } = null!;
 }
 
+public sealed class GroupInvitation
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid StudyGroupId { get; set; }
+    public string CodeHash { get; set; } = string.Empty;
+    public Guid CreatedByAccountId { get; set; }
+    public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset ExpiresAtUtc { get; set; }
+    public int MaxUses { get; set; }
+    public int UsedCount { get; set; }
+    public DateTimeOffset? RevokedAtUtc { get; set; }
+    public StudyGroup StudyGroup { get; set; } = null!;
+}
+
+public sealed class GroupCatalogShare
+{
+    public Guid StudyGroupId { get; set; }
+    public Guid PrivateCatalogId { get; set; }
+    public Guid SharedByAccountId { get; set; }
+    public DateTimeOffset SharedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+    public StudyGroup StudyGroup { get; set; } = null!;
+    public PrivateCatalog PrivateCatalog { get; set; } = null!;
+}
+
 public sealed class MediaBlob
 {
     public Guid MediaAssetId { get; set; }

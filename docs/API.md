@@ -19,7 +19,21 @@ Antworten mit Daten haben ein `data`-Feld. Listen verwenden `data.items`, `data.
 
 Die API akzeptiert lokal ausgegebene, widerrufbare Bearer-Sitzungen und ein geschütztes Browser-Cookie. Der Server speichert nur Token-Hashes und ordnet jede Anfrage einem vorhandenen, aktiven LearnPip-Konto zu. E-Mail-Codes und OIDC verbinden zusätzliche Identitätswege mit diesem Konto. Ein externer OIDC-`sub` wird nicht als Konto-ID interpretiert; ein frei gesetzter HTTP-Header gewährt keinen Zugriff. Einzelheiten stehen unter [Konten und Identitätswege](IDENTITY.md).
 
-Serverseitige Policies prüfen das aktive Konto, Eigentum, aktive Gruppenmitgliedschaft und aktive Gruppenfreigaben. Eine Gruppenfreigabe einer Frage gibt **keinen** Zugriff auf ihre Medien. `Moderation` und `Admin` werden aus Systemrollen in der Datenbank geprüft; eine Adminrolle erfüllt auch die Moderationspolicy. Diese Policies sind für spätere Verwaltungsendpunkte vorbereitet und eröffnen hier keinen generellen Zugriff auf private Fragen oder Fotos. Vor Schreib- und Upload-Endpunkten müssen deren Berechtigungen ebenfalls ausdrücklich festgelegt und getestet werden.
+Serverseitige Policies prüfen das aktive Konto, Eigentum, aktive Gruppenmitgliedschaft und aktive Gruppenfreigaben. Eine Katalogfreigabe gibt Mitgliedern Zugriff auf veröffentlichte Fragen und die zugehörigen Bilder; Medienverwaltung bleibt dem Eigentümer vorbehalten. `Moderation` und `Admin` werden aus Systemrollen in der Datenbank geprüft; eine Adminrolle erfüllt auch die Moderationspolicy. Diese Rollen eröffnen keinen generellen Zugriff auf private Fragen oder Fotos.
+
+## Geschlossene Gruppen (LP-19)
+
+| Endpunkt | Berechtigung und Wirkung |
+| --- | --- |
+| `GET /api/v1/groups/`, `POST /api/v1/groups/` | Eigene Gruppen auflisten bzw. Gruppe erstellen. |
+| `POST /api/v1/groups/{id}/invitations` | Eigentümer oder Gruppenleitung erstellt einen Code (Ablauf innerhalb von 30 Tagen, 1 bis 1000 Nutzungen); Klartext nur in dieser Antwort. |
+| `DELETE /api/v1/groups/{id}/invitations/{invitationId}` | Leitung widerruft den Code sofort. |
+| `POST /api/v1/groups/join` | Angemeldetes Konto tritt mit gültigem Code bei; Ablauf, Widerruf und Nutzungsgrenze werden unter Datenbanksperre geprüft. |
+| `GET /api/v1/groups/{id}/members`, `DELETE /api/v1/groups/{id}/members/{accountId}` | Mitglieder sehen die Liste; Leitung entfernt Mitglieder, Mitglieder können selbst austreten. |
+| `GET /api/v1/groups/{id}/catalogs`, `PUT/DELETE /api/v1/groups/{id}/catalogs/{catalogId}` | Mitglieder sehen Freigaben; Leitung teilt eigene Kataloge oder hebt die eigene Freigabe auf. |
+| `GET /api/v1/groups/{id}/questions` | Nur Mitglieder und Eigentümer sehen veröffentlichte Fragen freigegebener Kataloge. |
+
+Der Gruppencode ist kein persönliches Anmeldegeheimnis. Der Server speichert seinen SHA-256-Hash; nach dem Beitritt wird der Code für die Mitgliedschaft nicht mehr benötigt. Ablauf und Widerruf sperren nur neue Beitritte. Der Gruppenbeitrag einer entfernten Person ist sofort unzugänglich.
 
 Der Integrationstest verwendet eine temporäre PostgreSQL-Datenbank und eine ausschließlich im Testprojekt definierte Authentifizierung. Er prüft HTTP 401/404, Eigentümerzugriff, Gruppenfreigabe, das Verbergen des Speicherschlüssels, Paging-Validierung, Systemrollen und das generierte OpenAPI-Dokument. Der Test-Header ist nicht Teil der produktiven API.
 
