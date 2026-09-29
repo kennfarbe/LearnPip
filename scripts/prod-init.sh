@@ -30,11 +30,14 @@ fi
 if [[ ! -e "$secrets_dir/Authentication__EmailCodeKey" ]]; then
   openssl rand -base64 32 | tr -d "\n" > "$secrets_dir/Authentication__EmailCodeKey"
 fi
-for optional_secret in Mail__Password Oidc__ClientSecret; do
+for optional_secret in Mail__Password Oidc__ClientSecret Ai__CloudKey; do
   if [[ ! -e "$secrets_dir/$optional_secret" ]]; then
     : > "$secrets_dir/$optional_secret"
   fi
 done
+if [[ ! -e "$secrets_dir/Ai__KeyEncryptionKey" ]]; then
+  openssl rand -base64 32 | tr -d '\n' > "$secrets_dir/Ai__KeyEncryptionKey"
+fi
 chmod 600 "$secrets_dir"/*
 
 printf 'Edit deploy/.env.production (domain and optional providers), then follow docs/OPERATIONS.md.\n'

@@ -54,11 +54,22 @@ services:
       Oidc__Authority: ${LEARNPIP_OIDC_AUTHORITY:-}
       Oidc__ClientId: ${LEARNPIP_OIDC_CLIENT_ID:-}
       Oidc__PostLoginPath: ${LEARNPIP_OIDC_POST_LOGIN_PATH:-/}
+      Ai__AllowedModes: ${LEARNPIP_AI_ALLOWED_MODES:-off}
+      Ai__CloudEndpoint: ${LEARNPIP_AI_CLOUD_ENDPOINT:-}
+      Ai__CloudModel: ${LEARNPIP_AI_CLOUD_MODEL:-}
+      Ai__LocalEndpoint: ${LEARNPIP_AI_LOCAL_ENDPOINT:-}
+      Ai__LocalModel: ${LEARNPIP_AI_LOCAL_MODEL:-}
+      Ai__MaxInputBytes: ${LEARNPIP_AI_MAX_INPUT_BYTES:-8192}
+      Ai__Quota__operator-cloud: ${LEARNPIP_AI_CLOUD_DAILY_QUOTA:-10}
+      Ai__Quota__operator-local: ${LEARNPIP_AI_LOCAL_DAILY_QUOTA:-50}
+      Ai__Quota__user-key: ${LEARNPIP_AI_USER_DAILY_QUOTA:-20}
     secrets:
       - ConnectionStrings__LearnPip
       - Authentication__EmailCodeKey
       - Mail__Password
       - Oidc__ClientSecret
+      - Ai__CloudKey
+      - Ai__KeyEncryptionKey
     networks:
       - private
       - frontend
@@ -159,3 +170,7 @@ secrets:
     file: ./secrets/Mail__Password
   Oidc__ClientSecret:
     file: ./secrets/Oidc__ClientSecret
+  Ai__CloudKey:
+    file: ./secrets/Ai__CloudKey
+  Ai__KeyEncryptionKey:
+    file: ./secrets/Ai__KeyEncryptionKey

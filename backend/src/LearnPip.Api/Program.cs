@@ -1,6 +1,7 @@
 using System.Threading.RateLimiting;
 using LearnPip.Api;
 using LearnPip.Api.Administration;
+using LearnPip.Api.Ai;
 using LearnPip.Api.Exams;
 using LearnPip.Api.Groups;
 using LearnPip.Api.Identity;
@@ -45,6 +46,7 @@ builder.Services.AddScoped<AdministrationService>();
 builder.Services.AddScoped<GroupService>();
 builder.Services.AddScoped<PublicSubmissionService>();
 builder.Services.AddScoped<SessionService>();
+builder.Services.AddSingleton<AiGateway>();
 builder.Services.AddScoped<IPrivateMediaStore, PostgresPrivateMediaStore>();
 builder.Services.AddSingleton<IEmailCodeSender, SmtpEmailCodeSender>();
 builder.Services.AddAuthentication(SessionAuthentication.Scheme)
@@ -79,6 +81,16 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseRouting();
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/api/v1/ai") &&
+        context.Request.Method is "PUT" or "POST")
+    {
+        var limit = context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpMaxRequestBodySizeFeature>();
+        if (limit is { IsReadOnly: false }) limit.MaxRequestBodySize = 65536;
+    }
+    await next();
+});
 app.UseRateLimiter();
 app.Use(async (context, next) =>
 {
@@ -141,6 +153,7 @@ app.MapReviewEndpoints();
 app.MapProgressEndpoints();
 app.MapExamPlanEndpoints();
 app.MapExamEndpoints();
+app.MapAiEndpoints();
 app.MapCatalogEditorEndpoints();
 app.MapGroupEndpoints();
 app.MapAdministrationEndpoints();

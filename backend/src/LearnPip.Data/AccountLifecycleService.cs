@@ -184,6 +184,8 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
         await db.StudyAttempts.Where(item => item.StudySession.AccountId == id ||
             item.QuestionVersion.Question.OwnerAccountId == id).ExecuteDeleteAsync(cancellationToken);
         await db.ExamSimulations.Where(item => item.AccountId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.UserAiCredentials.Where(item => item.AccountId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.AiDailyUsages.Where(item => item.AccountId == id).ExecuteDeleteAsync(cancellationToken);
         await db.AccountExamCredits.Where(item => item.AccountId == id)
             .ExecuteDeleteAsync(cancellationToken);
         await db.StudySessions.Where(item => item.AccountId == id).ExecuteDeleteAsync(cancellationToken);

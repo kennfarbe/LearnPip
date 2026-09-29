@@ -10,6 +10,7 @@ import { ModerationQueue } from './moderation-queue';
 import { CommunityFeedback } from './community-feedback';
 import { ExamPlan } from './exam-plan';
 import { ExamProfiles } from './exam-profiles';
+import { AiAssistant } from './ai-assistant';
 
 @Component({
   imports: [
@@ -24,6 +25,7 @@ import { ExamProfiles } from './exam-profiles';
     CommunityFeedback,
     ExamPlan,
     ExamProfiles,
+    AiAssistant,
   ],
   selector: 'app-root',
   styleUrl: './app.css',

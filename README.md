@@ -48,6 +48,8 @@ Geplant ist ein gemeinsames Repository mit getrennten Projekten und Docker-Image
 
 Der technische Aufbau mit [C1-Systemkontext, C2-Containerübersicht und ADRs](docs/architecture/README.md) beschreibt die Architektur. Den lokalen Stack kannst du mit der [Entwicklungsanleitung](docs/DEVELOPMENT.md) starten; für Proxmox gibt es eine [Schritt-für-Schritt-Installation](docs/PROXMOX.md) und für den laufenden Betrieb die [Betriebsanleitung](docs/OPERATIONS.md). Das [Datenmodell und die Wiederherstellung](docs/DATABASE.md) sind ebenfalls dokumentiert. Der [API-v1-Vertrag](docs/API.md) beschreibt Endpunkte und Berechtigungen; [Konten und Identitätswege](docs/IDENTITY.md) erläutert die Anmeldung.
 
+Die [optionalen KI-Betriebsarten](docs/AI_PROVIDERS.md) sind standardmäßig deaktiviert und beschreiben Provider, Datenweg und Kostenlimits vor einer Anfrage.
+
 ## Roadmap
 
 | Phase | Ziel |
