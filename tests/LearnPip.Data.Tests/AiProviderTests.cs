@@ -46,7 +46,7 @@ public sealed class AiProviderTests
         var sealedKey = AiKeyVault.Seal("secret-key-0123456789", owner, config);
         Assert.DoesNotContain("secret-key", sealedKey);
         Assert.Equal("secret-key-0123456789", AiKeyVault.Open(sealedKey, owner, config));
-        Assert.Throws<CryptographicException>(() => AiKeyVault.Open(sealedKey, Guid.NewGuid(), config));
+        Assert.ThrowsAny<CryptographicException>(() => AiKeyVault.Open(sealedKey, Guid.NewGuid(), config));
         Assert.False(AiPolicy.Describe("user-key", config, false).Available);
         Assert.True(AiPolicy.Describe("user-key", config, true).Available);
         Assert.DoesNotContain("secret-key", AiPolicy.Describe("user-key", config, true).ToString());
