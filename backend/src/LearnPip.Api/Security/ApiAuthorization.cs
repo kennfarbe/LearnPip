@@ -1,6 +1,6 @@
 using System.Security.Claims;
-using LearnPip.Data;
 using LearnPip.Api.Identity;
+using LearnPip.Data;
 using LearnPip.Data.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;

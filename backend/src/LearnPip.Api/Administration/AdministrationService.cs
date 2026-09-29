@@ -16,11 +16,19 @@ public sealed class AdministrationService(LearnPipDbContext db)
         var role = await db.Roles.SingleOrDefaultAsync(item => item.Scope == scope && item.Code == code,
             cancellationToken);
         if (role != null) return role;
-        role = new RoleDefinition { Scope = scope, Code = code, Name = code switch
+        role = new RoleDefinition
         {
-            "user" => "User", "moderator" => "Moderator", "admin" => "Administrator",
-            "leader" => "Group leader", _ => "Group member"
-        } };
+            Scope = scope,
+            Code = code,
+            Name = code switch
+            {
+                "user" => "User",
+                "moderator" => "Moderator",
+                "admin" => "Administrator",
+                "leader" => "Group leader",
+                _ => "Group member"
+            }
+        };
         db.Roles.Add(role);
         await db.SaveChangesAsync(cancellationToken);
         return role;
@@ -42,7 +50,9 @@ public sealed class AdministrationService(LearnPipDbContext db)
         db.SystemSettings.Add(new SystemSetting { Key = BootstrapKey, Value = "true" });
         db.AdministrationAuditEvents.Add(new AdministrationAuditEvent
         {
-            Action = "admin.bootstrap", Target = $"account:{accountId}", NewValue = "admin"
+            Action = "admin.bootstrap",
+            Target = $"account:{accountId}",
+            NewValue = "admin"
         });
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
@@ -77,8 +87,10 @@ public sealed class AdministrationService(LearnPipDbContext db)
         else db.AccountRoles.Remove(existing!);
         db.AdministrationAuditEvents.Add(new AdministrationAuditEvent
         {
-            ActorAccountId = actorId, Action = grant ? "system_role.grant" : "system_role.revoke",
-            Target = $"account:{targetId}", PreviousValue = grant ? null : code,
+            ActorAccountId = actorId,
+            Action = grant ? "system_role.grant" : "system_role.revoke",
+            Target = $"account:{targetId}",
+            PreviousValue = grant ? null : code,
             NewValue = grant ? code : null
         });
         await db.SaveChangesAsync(cancellationToken);
@@ -112,13 +124,18 @@ public sealed class AdministrationService(LearnPipDbContext db)
         var previous = membership?.RoleDefinition.Code;
         if (membership == null) db.GroupMemberships.Add(new GroupMembership
         {
-            StudyGroupId = groupId, AccountId = targetId, RoleDefinitionId = role.Id
+            StudyGroupId = groupId,
+            AccountId = targetId,
+            RoleDefinitionId = role.Id
         });
         else membership.RoleDefinitionId = role.Id;
         db.AdministrationAuditEvents.Add(new AdministrationAuditEvent
         {
-            ActorAccountId = actorId, Action = "group_role.set",
-            Target = $"group:{groupId}:account:{targetId}", PreviousValue = previous, NewValue = code
+            ActorAccountId = actorId,
+            Action = "group_role.set",
+            Target = $"group:{groupId}:account:{targetId}",
+            PreviousValue = previous,
+            NewValue = code
         });
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
@@ -140,8 +157,11 @@ public sealed class AdministrationService(LearnPipDbContext db)
         else { setting.Value = value; setting.UpdatedAtUtc = DateTimeOffset.UtcNow; }
         db.AdministrationAuditEvents.Add(new AdministrationAuditEvent
         {
-            ActorAccountId = actorId, Action = "setting.change", Target = "setting:maintenance_notice",
-            PreviousValue = previous, NewValue = value
+            ActorAccountId = actorId,
+            Action = "setting.change",
+            Target = "setting:maintenance_notice",
+            PreviousValue = previous,
+            NewValue = value
         });
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);

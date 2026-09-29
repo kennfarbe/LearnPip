@@ -33,8 +33,16 @@ public static class AdministrationEndpoints
         admin.MapGet("/audit", async (LearnPipDbContext db, CancellationToken cancellationToken) =>
             Results.Ok(await db.AdministrationAuditEvents.AsNoTracking()
                 .OrderByDescending(item => item.CreatedAtUtc).Take(100)
-                .Select(item => new { item.Id, item.ActorAccountId, item.Action, item.Target,
-                    item.PreviousValue, item.NewValue, item.CreatedAtUtc })
+                .Select(item => new
+                {
+                    item.Id,
+                    item.ActorAccountId,
+                    item.Action,
+                    item.Target,
+                    item.PreviousValue,
+                    item.NewValue,
+                    item.CreatedAtUtc
+                })
                 .ToListAsync(cancellationToken)));
 
         app.MapPut("/api/v1/groups/{groupId:guid}/members/{accountId:guid}/role", async (
