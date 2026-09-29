@@ -183,6 +183,9 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
             .ExecuteDeleteAsync(cancellationToken);
         await db.StudyAttempts.Where(item => item.StudySession.AccountId == id ||
             item.QuestionVersion.Question.OwnerAccountId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.ExamSimulations.Where(item => item.AccountId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.AccountExamCredits.Where(item => item.AccountId == id)
+            .ExecuteDeleteAsync(cancellationToken);
         await db.StudySessions.Where(item => item.AccountId == id).ExecuteDeleteAsync(cancellationToken);
         await db.QuestionObjectives.Where(item => item.Question.OwnerAccountId == id)
             .ExecuteDeleteAsync(cancellationToken);

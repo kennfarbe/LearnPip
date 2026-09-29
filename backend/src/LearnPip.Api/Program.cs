@@ -1,6 +1,7 @@
 using System.Threading.RateLimiting;
 using LearnPip.Api;
 using LearnPip.Api.Administration;
+using LearnPip.Api.Exams;
 using LearnPip.Api.Groups;
 using LearnPip.Api.Identity;
 using LearnPip.Api.Media;
@@ -139,6 +140,7 @@ app.MapLearningSessionEndpoints();
 app.MapReviewEndpoints();
 app.MapProgressEndpoints();
 app.MapExamPlanEndpoints();
+app.MapExamEndpoints();
 app.MapCatalogEditorEndpoints();
 app.MapGroupEndpoints();
 app.MapAdministrationEndpoints();

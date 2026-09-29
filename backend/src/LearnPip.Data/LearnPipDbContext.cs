@@ -26,6 +26,10 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
     public DbSet<StudyAttempt> StudyAttempts => Set<StudyAttempt>();
     public DbSet<StudyAttemptSelection> StudyAttemptSelections => Set<StudyAttemptSelection>();
     public DbSet<ExamObjective> ExamObjectives => Set<ExamObjective>();
+    public DbSet<OfficialCatalogEdition> OfficialCatalogEditions => Set<OfficialCatalogEdition>();
+    public DbSet<ExamProfileVersion> ExamProfileVersions => Set<ExamProfileVersion>();
+    public DbSet<ExamSimulation> ExamSimulations => Set<ExamSimulation>();
+    public DbSet<AccountExamCredit> AccountExamCredits => Set<AccountExamCredit>();
     public DbSet<QuestionObjective> QuestionObjectives => Set<QuestionObjective>();
     public DbSet<StudyGroup> StudyGroups => Set<StudyGroup>();
     public DbSet<GroupMembership> GroupMemberships => Set<GroupMembership>();
@@ -288,6 +292,44 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
                 .HasForeignKey(x => x.StudyAttemptId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(x => x.AnswerOption).WithMany()
                 .HasForeignKey(x => x.AnswerOptionId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<OfficialCatalogEdition>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Code).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Title).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Revision).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.SourceUrl).HasMaxLength(1000).IsRequired();
+            entity.Property(x => x.License).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Attribution).HasMaxLength(500).IsRequired();
+            entity.HasIndex(x => new { x.Code, x.Revision }).IsUnique();
+        });
+        modelBuilder.Entity<ExamProfileVersion>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Code).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Title).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.AmateurClass).HasMaxLength(1).IsRequired();
+            entity.HasIndex(x => new { x.Code, x.Version }).IsUnique();
+            entity.HasOne(x => x.CatalogEdition).WithMany()
+                .HasForeignKey(x => x.CatalogEditionId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<ExamSimulation>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.AccountId, x.StartedAtUtc });
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.AccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.ProfileVersion).WithMany()
+                .HasForeignKey(x => x.ProfileVersionId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<AccountExamCredit>(entity =>
+        {
+            entity.HasKey(x => new { x.AccountId, x.Code });
+            entity.Property(x => x.Code).HasMaxLength(16).IsRequired();
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.AccountId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ExamObjective>(entity =>
