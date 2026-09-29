@@ -9,6 +9,7 @@ import { GroupSpace } from './group-space';
 import { ModerationQueue } from './moderation-queue';
 import { CommunityFeedback } from './community-feedback';
 import { ExamPlan } from './exam-plan';
+import { ExamProfiles } from './exam-profiles';
 
 @Component({
   imports: [
@@ -22,6 +23,7 @@ import { ExamPlan } from './exam-plan';
     ModerationQueue,
     CommunityFeedback,
     ExamPlan,
+    ExamProfiles,
   ],
   selector: 'app-root',
   styleUrl: './app.css',

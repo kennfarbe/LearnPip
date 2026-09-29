@@ -248,6 +248,66 @@ namespace LearnPip.Data.Migrations
                     b.ToTable("AnswerOptions");
                 });
 
+            modelBuilder.Entity("LearnPip.Data.Domain.OfficialCatalogEdition", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<string>("Code").IsRequired().HasMaxLength(80).HasColumnType("character varying(80)");
+                    b.Property<string>("Title").IsRequired().HasMaxLength(200).HasColumnType("character varying(200)");
+                    b.Property<string>("Revision").IsRequired().HasMaxLength(80).HasColumnType("character varying(80)");
+                    b.Property<string>("SourceUrl").IsRequired().HasMaxLength(1000).HasColumnType("character varying(1000)");
+                    b.Property<string>("License").IsRequired().HasMaxLength(80).HasColumnType("character varying(80)");
+                    b.Property<string>("Attribution").IsRequired().HasMaxLength(500).HasColumnType("character varying(500)");
+                    b.Property<DateOnly>("ChangedOn").HasColumnType("date");
+                    b.Property<DateTimeOffset>("ImportedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<string>("QuestionsJson").IsRequired().HasColumnType("text");
+                    b.HasKey("Id");
+                    b.HasIndex("Code", "Revision").IsUnique();
+                    b.ToTable("OfficialCatalogEditions");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.ExamProfileVersion", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<string>("Code").IsRequired().HasMaxLength(80).HasColumnType("character varying(80)");
+                    b.Property<string>("Title").IsRequired().HasMaxLength(200).HasColumnType("character varying(200)");
+                    b.Property<string>("AmateurClass").IsRequired().HasMaxLength(1).HasColumnType("character varying(1)");
+                    b.Property<int>("Version").HasColumnType("integer");
+                    b.Property<Guid>("CatalogEditionId").HasColumnType("uuid");
+                    b.Property<string>("PartsJson").IsRequired().HasColumnType("text");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("Id");
+                    b.HasIndex("CatalogEditionId");
+                    b.HasIndex("Code", "Version").IsUnique();
+                    b.ToTable("ExamProfileVersions");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.ExamSimulation", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<Guid>("ProfileVersionId").HasColumnType("uuid");
+                    b.Property<string>("SnapshotJson").IsRequired().HasColumnType("text");
+                    b.Property<string>("AnswersJson").IsRequired().HasColumnType("text");
+                    b.Property<int>("CurrentPartIndex").HasColumnType("integer");
+                    b.Property<DateTimeOffset>("StartedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset>("PartStartedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset?>("CompletedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<string>("ResultJson").HasColumnType("text");
+                    b.HasKey("Id");
+                    b.HasIndex("AccountId", "StartedAtUtc");
+                    b.HasIndex("ProfileVersionId");
+                    b.ToTable("ExamSimulations");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.AccountExamCredit", b =>
+                {
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<string>("Code").HasMaxLength(16).HasColumnType("character varying(16)");
+                    b.Property<DateTimeOffset>("ReportedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("AccountId", "Code");
+                    b.ToTable("AccountExamCredits");
+                });
+
             modelBuilder.Entity("LearnPip.Data.Domain.ExamObjective", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1176,6 +1236,32 @@ namespace LearnPip.Data.Migrations
                     b.Navigation("Owner");
                     b.Navigation("PrivateCatalog");
                     b.Navigation("LearningContent");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.ExamProfileVersion", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.OfficialCatalogEdition", "CatalogEdition")
+                        .WithMany().HasForeignKey("CatalogEditionId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.Navigation("CatalogEdition");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.ExamSimulation", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.HasOne("LearnPip.Data.Domain.ExamProfileVersion", "ProfileVersion")
+                        .WithMany().HasForeignKey("ProfileVersionId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.Navigation("ProfileVersion");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.AccountExamCredit", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
                 });
 
             modelBuilder.Entity("LearnPip.Data.Domain.QuestionObjective", b =>
