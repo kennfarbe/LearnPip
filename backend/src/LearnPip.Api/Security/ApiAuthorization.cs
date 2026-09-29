@@ -81,34 +81,18 @@ public sealed class ResourceAuthorizationHandler(LearnPipDbContext dbContext) :
                 case QuestionReadRequirement when context.Resource is Question question &&
                     question.DeletedAtUtc == null &&
                     (question.OwnerAccountId == accountId ||
-                     await dbContext.GroupQuestionShares.AsNoTracking().AnyAsync(share =>
-                         share.QuestionId == question.Id &&
-                         share.RevokedAtUtc == null &&
-                         share.StudyGroup.DeletedAtUtc == null &&
-                         (share.StudyGroup.OwnerAccountId == accountId ||
-                          share.StudyGroup.Memberships.Any(member => member.AccountId == accountId))) ||
-                     await dbContext.QuestionVersions.AsNoTracking().AnyAsync(version =>
-                         version.QuestionId == question.Id) &&
-                     await dbContext.GroupCatalogShares.AsNoTracking().AnyAsync(share =>
-                         share.PrivateCatalogId == question.PrivateCatalogId &&
-                         share.PrivateCatalog.OwnerAccountId == question.OwnerAccountId &&
-                         share.StudyGroup.DeletedAtUtc == null &&
-                         (share.StudyGroup.OwnerAccountId == accountId ||
-                          share.StudyGroup.Memberships.Any(member => member.AccountId == accountId)))):
+                     await QuestionAccess.ReadableVersions(dbContext, accountId)
+                         .AnyAsync(version => version.QuestionId == question.Id)):
                     context.Succeed(requirement);
                     break;
                 case MediaReadRequirement when context.Resource is MediaAsset media &&
                     media.DeletedAtUtc == null && (media.OwnerAccountId == accountId ||
-                     media.QuestionVersionId != null &&
-                     await dbContext.GroupCatalogShares.AsNoTracking().AnyAsync(share =>
-                         share.PrivateCatalog.OwnerAccountId == media.OwnerAccountId &&
-                         share.StudyGroup.DeletedAtUtc == null &&
-                         dbContext.QuestionVersions.Any(version =>
-                             version.Id == media.QuestionVersionId &&
-                             version.Question.PrivateCatalogId == share.PrivateCatalogId &&
-                             version.Question.DeletedAtUtc == null) &&
-                         (share.StudyGroup.OwnerAccountId == accountId ||
-                          share.StudyGroup.Memberships.Any(member => member.AccountId == accountId)))) &&
+                     await QuestionAccess.ReadableVersions(dbContext, accountId)
+                         .AnyAsync(version => version.Question.OwnerAccountId == media.OwnerAccountId &&
+                             dbContext.QuestionContentBlocks.Any(block => block.MediaAssetId == media.Id &&
+                                 (block.QuestionVersionId == version.Id ||
+                                  block.AnswerOption != null &&
+                                  block.AnswerOption.QuestionVersionId == version.Id)))) &&
                     (media.QuestionVersionId == null ||
                      await dbContext.QuestionVersions.AsNoTracking().AnyAsync(version =>
                          version.Id == media.QuestionVersionId &&

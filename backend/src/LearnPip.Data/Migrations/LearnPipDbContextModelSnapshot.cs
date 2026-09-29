@@ -362,6 +362,18 @@ namespace LearnPip.Data.Migrations
                     b.ToTable("GroupMemberships");
                 });
 
+            modelBuilder.Entity("LearnPip.Data.Domain.GroupVersionShare", b =>
+                {
+                    b.Property<Guid>("StudyGroupId").HasColumnType("uuid");
+                    b.Property<Guid>("QuestionVersionId").HasColumnType("uuid");
+                    b.Property<Guid>("PrivateCatalogId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("SharedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("StudyGroupId", "QuestionVersionId");
+                    b.HasIndex("PrivateCatalogId");
+                    b.HasIndex("QuestionVersionId");
+                    b.ToTable("GroupVersionShares");
+                });
+
             modelBuilder.Entity("LearnPip.Data.Domain.GroupQuestionShare", b =>
                 {
                     b.Property<Guid>("Id")
@@ -600,6 +612,8 @@ namespace LearnPip.Data.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("SelectionMode").IsRequired().HasMaxLength(16).HasColumnType("character varying(16)");
+                    b.Property<string>("Visibility").IsRequired().HasMaxLength(16).HasColumnType("character varying(16)")
+                        .HasDefaultValue("private");
                     b.Property<string>("Subject").IsRequired().HasMaxLength(120).HasColumnType("character varying(120)");
                     b.Property<string>("Topic").IsRequired().HasMaxLength(120).HasColumnType("character varying(120)");
                     b.Property<string>("Language").IsRequired().HasMaxLength(35).HasColumnType("character varying(35)");
@@ -888,6 +902,22 @@ namespace LearnPip.Data.Migrations
                     b.Navigation("RoleDefinition");
 
                     b.Navigation("StudyGroup");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.GroupVersionShare", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.StudyGroup", "StudyGroup")
+                        .WithMany().HasForeignKey("StudyGroupId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
+                    b.HasOne("LearnPip.Data.Domain.QuestionVersion", "QuestionVersion")
+                        .WithMany().HasForeignKey("QuestionVersionId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
+                    b.HasOne("LearnPip.Data.Domain.PrivateCatalog", "PrivateCatalog")
+                        .WithMany().HasForeignKey("PrivateCatalogId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
+                    b.Navigation("StudyGroup");
+                    b.Navigation("QuestionVersion");
+                    b.Navigation("PrivateCatalog");
                 });
 
             modelBuilder.Entity("LearnPip.Data.Domain.GroupQuestionShare", b =>

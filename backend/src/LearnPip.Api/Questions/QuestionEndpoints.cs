@@ -18,12 +18,13 @@ public sealed record ContentBlockOutput(string Kind, string? Text, Guid? MediaId
 public sealed record AnswerOutput(Guid Id, bool IsCorrect, IReadOnlyList<ContentBlockOutput> Blocks);
 public sealed record PublishedQuestionVersion(
     Guid Id, int Version, string SelectionMode, string Subject, string Topic, string Language,
-    string Source, string License, DateTimeOffset PublishedAtUtc,
+    string Source, string License, DateTimeOffset PublishedAtUtc, string Visibility,
     IReadOnlyList<ContentBlockOutput> Prompt, IReadOnlyList<ContentBlockOutput> Explanation,
     IReadOnlyList<AnswerOutput> Answers);
 public sealed record GradeRequest(Guid VersionId, IReadOnlyList<Guid> SelectedOptionIds);
 public sealed record GradeResult(Guid AttemptId, Guid VersionId, bool IsCorrect,
     IReadOnlyList<Guid> SelectedOptionIds, IReadOnlyList<Guid> CorrectOptionIds);
+public sealed record VersionVisibilityInput(string Visibility);
 
 public static class QuestionEndpoints
 {
@@ -38,6 +39,7 @@ public static class QuestionEndpoints
             LearnPipDbContext db, ClaimsPrincipal user, CancellationToken cancellationToken) =>
             Publish(id, request, db, user, cancellationToken));
         questions.MapGet("/{id:guid}/versions/{number:int}", ReadVersion);
+        questions.MapPut("/{id:guid}/versions/{number:int}/visibility", SetVisibility);
         questions.MapPost("/{id:guid}/attempts", Grade);
         return app;
     }
@@ -138,9 +140,8 @@ public static class QuestionEndpoints
         if (question == null ||
             !(await authorization.AuthorizeAsync(user, question, ApiPolicies.QuestionRead)).Succeeded)
             return Results.NotFound();
-        var versionId = await db.QuestionVersions.AsNoTracking()
-            .Where(item => item.QuestionId == id && item.VersionNumber == number &&
-                item.Question.DeletedAtUtc == null)
+        var versionId = await QuestionAccess.ReadableVersions(db, accountId).AsNoTracking()
+            .Where(item => item.QuestionId == id && item.VersionNumber == number)
             .Select(item => (Guid?)item.Id).SingleOrDefaultAsync(cancellationToken);
         if (!versionId.HasValue) return Results.NotFound();
         return Results.Ok(new ApiResponse<PublishedQuestionVersion>(
@@ -155,8 +156,10 @@ public static class QuestionEndpoints
             cancellationToken);
         if (question == null || !(await authorization.AuthorizeAsync(user, question, ApiPolicies.QuestionRead)).Succeeded)
             return Results.NotFound();
+        var readableIds = QuestionAccess.ReadableVersions(db, accountId).Select(item => item.Id);
         var version = await db.QuestionVersions.AsNoTracking().Include(item => item.AnswerOptions)
-            .SingleOrDefaultAsync(item => item.Id == request.VersionId && item.QuestionId == id,
+            .SingleOrDefaultAsync(item => item.Id == request.VersionId && item.QuestionId == id &&
+                readableIds.Contains(item.Id),
                 cancellationToken);
         if (version == null) return Results.NotFound();
         var selected = request.SelectedOptionIds;
@@ -191,6 +194,19 @@ public static class QuestionEndpoints
             isCorrect, selected.ToArray(), correct)));
     }
 
+    private static async Task<IResult> SetVisibility(Guid id, int number, VersionVisibilityInput input,
+        LearnPipDbContext db, ClaimsPrincipal user, CancellationToken cancellationToken)
+    {
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (input.Visibility is not ("private" or "public")) return Results.BadRequest();
+        var changed = await db.QuestionVersions.Where(version => version.QuestionId == id &&
+                version.VersionNumber == number && version.Question.OwnerAccountId == accountId &&
+                version.Question.DeletedAtUtc == null)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(version => version.Visibility,
+                input.Visibility), cancellationToken);
+        return changed == 1 ? Results.NoContent() : Results.NotFound();
+    }
+
     internal static async Task<PublishedQuestionVersion?> LoadVersion(LearnPipDbContext db,
         Guid versionId, CancellationToken cancellationToken)
     {
@@ -206,7 +222,8 @@ public static class QuestionEndpoints
                     block.MediaAsset?.AltText)).ToArray();
         return new PublishedQuestionVersion(version.Id, version.VersionNumber, version.SelectionMode,
             version.Subject, version.Topic, version.Language, version.Source, version.License,
-            version.PublishedAtUtc, Convert(version.Blocks.Where(block => block.Section == "prompt")),
+            version.PublishedAtUtc, version.Visibility,
+            Convert(version.Blocks.Where(block => block.Section == "prompt")),
             Convert(version.Blocks.Where(block => block.Section == "explanation")),
             version.AnswerOptions.OrderBy(option => option.SortOrder)
                 .Select(option => new AnswerOutput(option.Id, option.IsCorrect, Convert(option.Blocks)))

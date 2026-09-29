@@ -64,6 +64,7 @@ public sealed class QuestionVersion
     public Guid QuestionId { get; set; }
     public Guid CreatedByAccountId { get; set; }
     public int VersionNumber { get; set; }
+    public string Visibility { get; set; } = "private";
     public string Prompt { get; set; } = string.Empty;
     public string? Explanation { get; set; }
     public string SelectionMode { get; set; } = "single";
@@ -226,6 +227,17 @@ public sealed class GroupCatalogShare
     public Guid SharedByAccountId { get; set; }
     public DateTimeOffset SharedAtUtc { get; set; } = DateTimeOffset.UtcNow;
     public StudyGroup StudyGroup { get; set; } = null!;
+    public PrivateCatalog PrivateCatalog { get; set; } = null!;
+}
+
+public sealed class GroupVersionShare
+{
+    public Guid StudyGroupId { get; set; }
+    public Guid QuestionVersionId { get; set; }
+    public Guid PrivateCatalogId { get; set; }
+    public DateTimeOffset SharedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+    public StudyGroup StudyGroup { get; set; } = null!;
+    public QuestionVersion QuestionVersion { get; set; } = null!;
     public PrivateCatalog PrivateCatalog { get; set; } = null!;
 }
 

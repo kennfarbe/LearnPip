@@ -12,6 +12,8 @@ public static class MediaEndpoints
 {
     public static IEndpointRouteBuilder MapMediaEndpoints(this IEndpointRouteBuilder app)
     {
+        app.MapGet("/api/v1/public/media/{id:guid}/content", ReadPublic)
+            .WithTags("Public media");
         var media = app.MapGroup("/api/v1/media").WithTags("Private media")
             .RequireAuthorization(ApiPolicies.ActiveAccount);
         media.MapPost("/", Upload).DisableAntiforgery()
@@ -76,6 +78,24 @@ public static class MediaEndpoints
         var bytes = await store.ReadAsync(id, cancellationToken);
         if (bytes == null) return Results.NotFound();
         context.Response.Headers.CacheControl = "private, no-store";
+        context.Response.Headers.XContentTypeOptions = "nosniff";
+        return Results.File(bytes, asset.MediaType);
+    }
+
+    private static async Task<IResult> ReadPublic(Guid id, IPrivateMediaStore store,
+        LearnPipDbContext db, HttpContext context, CancellationToken cancellationToken)
+    {
+        var asset = await db.MediaAssets.AsNoTracking().SingleOrDefaultAsync(media =>
+            media.Id == id && media.DeletedAtUtc == null, cancellationToken);
+        if (asset == null || !await QuestionAccess.PublicVersions(db).AnyAsync(version =>
+                version.Question.OwnerAccountId == asset.OwnerAccountId &&
+                db.QuestionContentBlocks.Any(block => block.MediaAssetId == id &&
+                    (block.QuestionVersionId == version.Id ||
+                     block.AnswerOption != null && block.AnswerOption.QuestionVersionId == version.Id)),
+                cancellationToken)) return Results.NotFound();
+        var bytes = await store.ReadAsync(id, cancellationToken);
+        if (bytes == null) return Results.NotFound();
+        context.Response.Headers.CacheControl = "public, no-store";
         context.Response.Headers.XContentTypeOptions = "nosniff";
         return Results.File(bytes, asset.MediaType);
     }

@@ -43,6 +43,11 @@ public static class V1Endpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesValidationProblem();
 
+        app.MapGet("/api/v1/public/questions", ListPublicQuestions)
+            .WithTags("Public questions");
+        app.MapGet("/api/v1/public/questions/{id:guid}/versions/{number:int}", ReadPublicVersion)
+            .WithTags("Public questions");
+
         return app;
     }
 
@@ -84,7 +89,8 @@ public static class V1Endpoints
             return Results.NotFound();
         }
 
-        var version = await dbContext.QuestionVersions.AsNoTracking()
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        var version = await QuestionAccess.ReadableVersions(dbContext, accountId).AsNoTracking()
             .Where(item => item.QuestionId == question.Id)
             .OrderByDescending(item => item.VersionNumber)
             .Select(item => new QuestionVersionDetails(item.Id, item.VersionNumber, item.Prompt))
@@ -136,26 +142,43 @@ public static class V1Endpoints
             return Results.NotFound();
         }
 
+        var visible = QuestionAccess.GroupVersions(dbContext, groupId);
         var questions = dbContext.Questions.AsNoTracking()
-            .Where(question => question.DeletedAtUtc == null && (
-                dbContext.GroupQuestionShares.Any(share =>
-                    share.QuestionId == question.Id &&
-                    share.StudyGroupId == groupId &&
-                    share.RevokedAtUtc == null) ||
-                question.PrivateCatalogId != null && question.Versions.Any() &&
-                dbContext.GroupCatalogShares.Any(share =>
-                    share.PrivateCatalogId == question.PrivateCatalogId &&
-                    share.PrivateCatalog.OwnerAccountId == question.OwnerAccountId &&
-                    share.StudyGroupId == groupId)));
+            .Where(question => visible.Any(version => version.QuestionId == question.Id));
 
         return Results.Ok(new ApiResponse<PageResponse<QuestionSummary>>(
-            await ReadPage(questions, page, pageSize, cancellationToken)));
+            await ReadPage(questions, page, pageSize, cancellationToken, visible)));
+    }
+
+    private static async Task<IResult> ListPublicQuestions(LearnPipDbContext db,
+        CancellationToken cancellationToken, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        var invalid = ValidatePage(page, pageSize);
+        if (invalid != null) return invalid;
+        var visible = QuestionAccess.PublicVersions(db);
+        var questions = db.Questions.AsNoTracking()
+            .Where(question => visible.Any(version => version.QuestionId == question.Id));
+        return Results.Ok(new ApiResponse<PageResponse<QuestionSummary>>(
+            await ReadPage(questions, page, pageSize, cancellationToken, visible)));
+    }
+
+    private static async Task<IResult> ReadPublicVersion(Guid id, int number,
+        LearnPipDbContext db, CancellationToken cancellationToken)
+    {
+        var versionId = await QuestionAccess.PublicVersions(db).AsNoTracking()
+            .Where(version => version.QuestionId == id && version.VersionNumber == number)
+            .Select(version => (Guid?)version.Id).SingleOrDefaultAsync(cancellationToken);
+        if (!versionId.HasValue) return Results.NotFound();
+        return Results.Ok(new ApiResponse<Questions.PublishedQuestionVersion>(
+            (await Questions.QuestionEndpoints.LoadVersion(db, versionId.Value, cancellationToken))!));
     }
 
     private static async Task<PageResponse<QuestionSummary>> ReadPage(
-        IQueryable<Question> questions, int page, int pageSize, CancellationToken cancellationToken)
+        IQueryable<Question> questions, int page, int pageSize, CancellationToken cancellationToken,
+        IQueryable<QuestionVersion>? visibleVersions = null)
     {
         var total = await questions.CountAsync(cancellationToken);
+        var visible = visibleVersions ?? questions.SelectMany(question => question.Versions);
         var items = await questions
             .OrderByDescending(question => question.UpdatedAtUtc)
             .ThenBy(question => question.Id)
@@ -163,9 +186,11 @@ public static class V1Endpoints
             .Take(pageSize)
             .Select(question => new QuestionSummary(
                 question.Id,
-                question.Versions.OrderByDescending(version => version.VersionNumber)
+                visible.Where(version => version.QuestionId == question.Id)
+                    .OrderByDescending(version => version.VersionNumber)
                     .Select(version => (int?)version.VersionNumber).FirstOrDefault(),
-                question.Versions.OrderByDescending(version => version.VersionNumber)
+                visible.Where(version => version.QuestionId == question.Id)
+                    .OrderByDescending(version => version.VersionNumber)
                     .Select(version => version.Prompt).FirstOrDefault()))
             .ToListAsync(cancellationToken);
         return new PageResponse<QuestionSummary>(items, page, pageSize, total);

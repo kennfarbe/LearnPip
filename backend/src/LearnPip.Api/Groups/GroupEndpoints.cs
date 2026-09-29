@@ -140,15 +140,35 @@ public static class GroupEndpoints
         if (!await service.CanManageAsync(id, accountId, cancellationToken) ||
             !await db.PrivateCatalogs.AnyAsync(catalog => catalog.Id == catalogId &&
                 catalog.OwnerAccountId == accountId, cancellationToken)) return Results.NotFound();
-        if (await db.GroupCatalogShares.AnyAsync(share => share.StudyGroupId == id &&
-                share.PrivateCatalogId == catalogId, cancellationToken)) return Results.NoContent();
-        db.GroupCatalogShares.Add(new GroupCatalogShare
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        if (!await db.GroupCatalogShares.AnyAsync(share => share.StudyGroupId == id &&
+                share.PrivateCatalogId == catalogId, cancellationToken))
+        {
+            db.GroupCatalogShares.Add(new GroupCatalogShare
+            {
+                StudyGroupId = id,
+                PrivateCatalogId = catalogId,
+                SharedByAccountId = accountId
+            });
+        }
+        var latest = await db.Questions.AsNoTracking()
+            .Where(question => question.PrivateCatalogId == catalogId &&
+                question.OwnerAccountId == accountId && question.DeletedAtUtc == null)
+            .Select(question => question.Versions.OrderByDescending(version => version.VersionNumber)
+                .Select(version => (Guid?)version.Id).FirstOrDefault())
+            .Where(versionId => versionId != null)
+            .Select(versionId => versionId!.Value).ToListAsync(cancellationToken);
+        var existing = await db.GroupVersionShares.AsNoTracking()
+            .Where(share => share.StudyGroupId == id && latest.Contains(share.QuestionVersionId))
+            .Select(share => share.QuestionVersionId).ToListAsync(cancellationToken);
+        foreach (var versionId in latest.Except(existing)) db.GroupVersionShares.Add(new GroupVersionShare
         {
             StudyGroupId = id,
             PrivateCatalogId = catalogId,
-            SharedByAccountId = accountId
+            QuestionVersionId = versionId
         });
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return Results.NoContent();
     }
 
@@ -158,9 +178,13 @@ public static class GroupEndpoints
     {
         if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
         if (!await service.CanManageAsync(id, accountId, cancellationToken)) return Results.NotFound();
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         var removed = await db.GroupCatalogShares.Where(share => share.StudyGroupId == id &&
                 share.PrivateCatalogId == catalogId && share.SharedByAccountId == accountId)
             .ExecuteDeleteAsync(cancellationToken);
+        if (removed == 1) await db.GroupVersionShares.Where(share => share.StudyGroupId == id &&
+            share.PrivateCatalogId == catalogId).ExecuteDeleteAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return removed == 1 ? Results.NoContent() : Results.NotFound();
     }
 }

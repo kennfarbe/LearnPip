@@ -79,7 +79,7 @@ interface Api<T> {
                   }
                 </select>
               </label>
-              <button type="button" (click)="share(group)">Katalog teilen</button>
+              <button type="button" (click)="share(group)">Aktuelle Fassungen freigeben</button>
             </div>
             <div class="actions">
               <label
