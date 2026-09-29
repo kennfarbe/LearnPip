@@ -22,7 +22,7 @@ public sealed class ExamScoringTests
         Assert.Equal("B1-V", variants[0].Code);
         Assert.Equal(2, mixed.Count);
         Assert.All(originals.Concat(variants).Concat(mixed), question =>
-            Assert.Contains(question.Answers[question.CorrectIndex], ["correct", "right"]));
+            Assert.Contains(question.Answers[question.CorrectIndex], new[] { "correct", "right" }));
         Assert.Throws<ArgumentException>(() => ExamQuestionSelection.Select(catalog, rule,
             "variant", 2, new Random(42)));
     }

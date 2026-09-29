@@ -562,7 +562,8 @@ public static class ExamEndpoints
                 answers.TryGetValue(question.Code, out var selected) &&
                 selected == question.CorrectIndex), part.Questions.Count)).ToArray();
         return new PowerView(run.Id, profile.Id, profile.Code, profile.CatalogEdition.Revision,
-            snapshot.QuestionMode, run.CurrentPartIndex + 1,
+            snapshot.QuestionMode, Math.Min(run.CurrentPartIndex + 1,
+                (all.Count + snapshot.StageSize - 1) / snapshot.StageSize),
             (all.Count + snapshot.StageSize - 1) / snapshot.StageSize, run.CompletedAtUtc,
             current.Select(question => (object)new
             {
