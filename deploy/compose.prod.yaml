@@ -1,0 +1,151 @@
+# Production stack. Use --env-file deploy/.env.production -f deploy/compose.prod.yaml.
+name: learnpip
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: learnpip
+      POSTGRES_USER: learnpip
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    networks:
+      - private
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U learnpip -d learnpip"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  migrate:
+    profiles: [ops]
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    restart: "no"
+    command: ["--migrate"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+    secrets:
+      - ConnectionStrings__LearnPip
+    networks:
+      - private
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Authentication__PublicOrigin: https://${LEARNPIP_DOMAIN:?Set LEARNPIP_DOMAIN in deploy/.env.production}
+      Mail__Host: ${LEARNPIP_MAIL_HOST:-}
+      Mail__Port: ${LEARNPIP_MAIL_PORT:-587}
+      Mail__From: ${LEARNPIP_MAIL_FROM:-}
+      Mail__Username: ${LEARNPIP_MAIL_USERNAME:-}
+      Oidc__Authority: ${LEARNPIP_OIDC_AUTHORITY:-}
+      Oidc__ClientId: ${LEARNPIP_OIDC_CLIENT_ID:-}
+      Oidc__PostLoginPath: ${LEARNPIP_OIDC_POST_LOGIN_PATH:-/}
+    secrets:
+      - ConnectionStrings__LearnPip
+      - Authentication__EmailCodeKey
+      - Mail__Password
+      - Oidc__ClientSecret
+    networks:
+      - private
+      - frontend
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "dotnet", "LearnPip.Api.dll", "--healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+
+  worker:
+    build:
+      context: ..
+      dockerfile: backend/src/LearnPip.Worker/Dockerfile
+    restart: unless-stopped
+    networks:
+      - private
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "dotnet", "LearnPip.Worker.dll", "--healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+
+  web:
+    build:
+      context: ..
+      dockerfile: frontend/web/Dockerfile
+    restart: unless-stopped
+    networks:
+      - frontend
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      LEARNPIP_DOMAIN: ${LEARNPIP_DOMAIN:?Set LEARNPIP_DOMAIN in deploy/.env.production}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - frontend
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:8081/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+networks:
+  private:
+    internal: true
+  frontend:
+
+volumes:
+  postgres-data:
+  caddy-data:
+  caddy-config:
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password
+  ConnectionStrings__LearnPip:
+    file: ./secrets/ConnectionStrings__LearnPip
+  Authentication__EmailCodeKey:
+    file: ./secrets/Authentication__EmailCodeKey
+  Mail__Password:
+    file: ./secrets/Mail__Password
+  Oidc__ClientSecret:
+    file: ./secrets/Oidc__ClientSecret

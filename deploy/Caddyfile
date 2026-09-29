@@ -1,0 +1,16 @@
+{$LEARNPIP_DOMAIN} {
+    encode zstd gzip
+
+    @api path /api/* /health/* /signin-oidc
+    handle @api {
+        reverse_proxy api:8080
+    }
+
+    handle {
+        reverse_proxy web:80
+    }
+}
+
+:8081 {
+    respond /healthz "ok" 200
+}

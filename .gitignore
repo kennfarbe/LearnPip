@@ -25,3 +25,5 @@ deploy/.env
 !.vscode/tasks.json
 .DS_Store
 Thumbs.db
+deploy/.env.production
+deploy/secrets/

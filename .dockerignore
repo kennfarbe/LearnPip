@@ -7,3 +7,5 @@
 **/.angular
 **/coverage
 deploy/.env
+deploy/.env.production
+deploy/secrets
