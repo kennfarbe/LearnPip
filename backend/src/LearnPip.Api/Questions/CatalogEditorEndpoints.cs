@@ -106,9 +106,13 @@ public static class CatalogEditorEndpoints
             .Where(question => question.OwnerAccountId == accountId &&
                 question.PrivateCatalogId == id && question.DeletedAtUtc == null)
             .OrderByDescending(question => question.UpdatedAtUtc)
-            .Select(question => new { question.Id, question.UpdatedAtUtc,
+            .Select(question => new
+            {
+                question.Id,
+                question.UpdatedAtUtc,
                 LatestVersion = question.Versions.Max(version => (int?)version.VersionNumber) ?? 0,
-                HasDraft = question.Draft != null })
+                HasDraft = question.Draft != null
+            })
             .ToListAsync(cancellationToken);
         return Results.Ok(new ApiResponse<object>(items));
     }
@@ -121,9 +125,14 @@ public static class CatalogEditorEndpoints
             .Where(item => item.Question.OwnerAccountId == accountId &&
                 item.Question.DeletedAtUtc == null)
             .OrderByDescending(item => item.UpdatedAtUtc)
-            .Select(item => new { item.QuestionId, item.Question.PrivateCatalogId,
-                item.UpdatedAtUtc, item.PayloadJson,
-                LatestVersion = item.Question.Versions.Max(version => (int?)version.VersionNumber) ?? 0 })
+            .Select(item => new
+            {
+                item.QuestionId,
+                item.Question.PrivateCatalogId,
+                item.UpdatedAtUtc,
+                item.PayloadJson,
+                LatestVersion = item.Question.Versions.Max(version => (int?)version.VersionNumber) ?? 0
+            })
             .ToListAsync(cancellationToken);
         var views = rows.Select(row => new DraftView(row.QuestionId, row.PrivateCatalogId,
             row.LatestVersion, row.UpdatedAtUtc, JsonSerializer.Deserialize<QuestionPublishRequest>(row.PayloadJson)!))
@@ -155,9 +164,14 @@ public static class CatalogEditorEndpoints
         var row = await db.QuestionDrafts.AsNoTracking()
             .Where(item => item.QuestionId == id && item.Question.OwnerAccountId == accountId &&
                 item.Question.DeletedAtUtc == null)
-            .Select(item => new { item.QuestionId, item.Question.PrivateCatalogId,
-                item.PayloadJson, item.UpdatedAtUtc,
-                LatestVersion = item.Question.Versions.Max(version => (int?)version.VersionNumber) ?? 0 })
+            .Select(item => new
+            {
+                item.QuestionId,
+                item.Question.PrivateCatalogId,
+                item.PayloadJson,
+                item.UpdatedAtUtc,
+                LatestVersion = item.Question.Versions.Max(version => (int?)version.VersionNumber) ?? 0
+            })
             .SingleOrDefaultAsync(cancellationToken);
         if (row == null) return Results.NotFound();
         return Results.Ok(new ApiResponse<DraftView>(new DraftView(row.QuestionId, row.PrivateCatalogId,
@@ -181,7 +195,9 @@ public static class CatalogEditorEndpoints
         if (question.Draft == null)
             db.QuestionDrafts.Add(new QuestionDraft
             {
-                QuestionId = id, PayloadJson = json, UpdatedAtUtc = question.UpdatedAtUtc
+                QuestionId = id,
+                PayloadJson = json,
+                UpdatedAtUtc = question.UpdatedAtUtc
             });
         else
         {
