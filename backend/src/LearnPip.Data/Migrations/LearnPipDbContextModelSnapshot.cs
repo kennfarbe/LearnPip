@@ -22,6 +22,30 @@ namespace LearnPip.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("LearnPip.Data.Domain.AdministrationAuditEvent", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<string>("Action").IsRequired().HasMaxLength(80).HasColumnType("character varying(80)");
+                    b.Property<Guid?>("ActorAccountId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<string>("NewValue").HasMaxLength(1000).HasColumnType("character varying(1000)");
+                    b.Property<string>("PreviousValue").HasMaxLength(1000).HasColumnType("character varying(1000)");
+                    b.Property<string>("Target").IsRequired().HasMaxLength(160).HasColumnType("character varying(160)");
+                    b.HasKey("Id");
+                    b.HasIndex("ActorAccountId");
+                    b.HasIndex("CreatedAtUtc");
+                    b.ToTable("AdministrationAuditEvents");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.SystemSetting", b =>
+                {
+                    b.Property<string>("Key").HasMaxLength(80).HasColumnType("character varying(80)");
+                    b.Property<DateTimeOffset>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<string>("Value").IsRequired().HasMaxLength(1000).HasColumnType("character varying(1000)");
+                    b.HasKey("Key");
+                    b.ToTable("SystemSettings");
+                });
+
             modelBuilder.Entity("LearnPip.Data.Domain.Account", b =>
                 {
                     b.Property<Guid>("Id")
@@ -548,6 +572,14 @@ namespace LearnPip.Data.Migrations
                     b.HasIndex("AccountId", "StartedAtUtc");
 
                     b.ToTable("StudySessions");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.AdministrationAuditEvent", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany()
+                        .HasForeignKey("ActorAccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("LearnPip.Data.Domain.AccountRole", b =>
