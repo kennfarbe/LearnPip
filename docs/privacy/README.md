@@ -17,9 +17,9 @@ Fristen sind Vorschläge für das Produktdesign, keine bereits beschlossene Rech
 
 | Datenart | Zweck | Speicherort | Vorgesehene Aufbewahrung und Löschung |
 | --- | --- | --- | --- |
-| Zugang und Kontoeinstellungen | Zugang wiederherstellen und Einstellungen speichern | PostgreSQL; Identitätsanbieter nur bei gewählter Anmeldung | Bis zur Kontolöschung; Sicherungskopien laufen nach einer noch festzulegenden Frist aus. **OFFEN:** konkrete Frist und Kontowiederherstellung ohne E-Mail. |
+| Zugang und Kontoeinstellungen | Zugang wiederherstellen und Einstellungen speichern | PostgreSQL; Identitätsanbieter nur bei gewählter Anmeldung | Inaktive Konten werden nach 90 Tagen deaktiviert und nach weiteren 90 Tagen gelöscht; lokale Sicherungskopien laufen nach 30 Tagen aus. Wiederherstellung ohne E-Mail ist mit dem einmaligen Wiederherstellungsgeheimnis möglich. |
 | Fragen, Antworten und Erklärungen | Persönliche Lerninhalte bereitstellen | PostgreSQL | Bis die Person sie löscht oder das Konto gelöscht wird. Änderungen sollen nachvollziehbare Versionen nur so lange behalten, wie die Lernfunktion sie benötigt. **OFFEN:** genaue Versionsfrist. |
-| Fotos und andere Medien | Bildfragen und Inhalte anzeigen | Privater Objektspeicher; Datenbank speichert nur Metadaten und eine nicht erratbare Referenz | Zusammen mit dem zugehörigen Inhalt löschen; keine öffentliche URL und keine dauerhafte Freigabe durch bloßes Hochladen. **OFFEN:** Sicherungskopien und Löschfrist. |
+| Fotos und andere Medien | Bildfragen und Inhalte anzeigen | Private `MediaBlobs` in PostgreSQL | Zusammen mit dem zugehörigen Konto löschen; keine öffentliche URL. Lokale Datenbanksicherungen laufen nach 30 Tagen aus. |
 | Lernversuche und Fortschritt | Wiederholung und Fortschrittsanzeige | PostgreSQL | Bis die Person Verlauf oder Konto löscht. Export muss vor Löschung verfügbar sein. **OFFEN:** ob gelöschte Verläufe anonymisiert aufbewahrt werden dürfen. |
 | Gruppenmitgliedschaften und Rollen | Zugriff auf ausdrücklich freigegebene Gruppeninhalte | PostgreSQL | Bis Austritt, Entfernung oder Gruppenlöschung; Gruppenfreigaben enden mit dem Zugriff. **OFFEN:** Aufbewahrung bei Gruppenende. Gruppen sind nicht Teil des MVP. |
 | Technische Sicherheitsereignisse | Missbrauch erkennen und Dienst schützen | Begrenzte Betriebsprotokolle | Kürzeste notwendige Frist, danach löschen oder aggregieren. **OFFEN:** konkrete Frist und Zugriffskreis. |
@@ -56,7 +56,7 @@ Gepunktete Verbindungen sind nicht Bestandteil des MVP. Beim MVP bleiben Fotos i
 - Die betroffene Person soll ihre Kontodaten, eigenen Lerninhalte und Lernverläufe in einem maschinenlesbaren Export herunterladen können.
 - Löschung muss abhängige Datensätze und Mediendateien berücksichtigen, einschließlich Vorschaubildern und Suchindizes, sofern sie eingeführt werden.
 - Geteilte Inhalte dürfen nach Austritt oder Widerruf nicht weiter über Gruppenberechtigungen erreichbar sein. Bereits von anderen exportierte Kopien lassen sich technisch nicht zurückholen; dieser Umstand muss vor einer Freigabe verständlich erklärt werden.
-- Wiederherstellung aus Sicherungen ist nur für den Betrieb vorgesehen. Ein später gelöschtes Konto darf nicht dauerhaft durch eine Sicherung wieder sichtbar werden. **OFFEN:** konkretes Ablaufverfahren und maximale Zeit bis zur endgültigen Entfernung aus Sicherungen.
+- Wiederherstellung aus Sicherungen ist nur für den Betrieb vorgesehen. Vor Freigabe der API läuft der Kontolebenszyklus einmalig erneut; lokale Dumps werden nach 30 Tagen entfernt. Externe Kopien müssen dieselbe Frist einhalten.
 - Aufbewahrungspflichten, die einer sofortigen Löschung entgegenstehen könnten, müssen vor dem Betrieb fachlich und rechtlich geprüft werden.
 
 ## Minderjährige und Sorgeberechtigte

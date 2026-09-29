@@ -19,7 +19,7 @@ flowchart LR
         web["Web · Angular 22, Nginx"]
         api["API · ASP.NET Core / .NET 10"]
         db[("PostgreSQL 18 · persistente Daten")]
-        worker["Worker · .NET 10, Grundgerüst"]
+        worker["Worker · .NET 10, Kontolebenszyklus"]
         migrate["Migration · einmaliger API-Aufruf"]
     end
 
@@ -29,6 +29,8 @@ flowchart LR
     web -.->|"JavaScript ruft API über Proxy auf"| proxy
     api -->|"EF Core / Npgsql · TCP"| db
     migrate -->|"Schemaänderungen · TCP"| db
+    worker -->|"Inaktivitätsprüfung · TCP"| db
+    worker -->|"Warnungen · SMTP"| smtp
     api <-->|"OIDC · HTTPS"| oidc
     api -->|"Anmeldecode · SMTP"| smtp
 ```
@@ -39,14 +41,14 @@ flowchart LR
 | Web (`web`) | Angular-Oberfläche; Nginx liefert die gebauten Dateien aus. | Browser ruft die API über dieselbe Herkunft auf; kein eigener Datenbankzugang. |
 | API (`api`) | Authentifizierung, Berechtigungen, Fragen, Medien, Kataloge, Lernsitzungen und HTTP-Verträge. | Liest und schreibt PostgreSQL; optionale OIDC-/SMTP-Verbindungen. |
 | PostgreSQL (`db`) | Konten, private Inhalte, Medien und Lernverlauf. | Persistentes Volume, produktiv nur im internen Netzwerk. Bilder liegen derzeit als `MediaBlob` in PostgreSQL. |
-| Worker (`worker`) | Separater Hintergrunddienst mit Healthcheck. | Derzeit nur ein startbares Gerüst ohne fachliche Aufgaben oder Datenbankverbindung im Code. |
+| Worker (`worker`) | Prüft täglich Aktivität, versendet Warnungen, deaktiviert und löscht abgelaufene Konten. | Datenbankverbindung und optional SMTP; Heartbeat-Healthcheck. |
 | Migration (`migrate`) | Führt EF-Core-Migrationen vor Inbetriebnahme aus. | Einmaliger Betriebsjob, kein dauerhaft laufender Dienst. |
 
 Die gestrichelte Linie beschreibt den API-Aufruf durch JavaScript im Browser;
 der Webcontainer ruft die API nicht serverseitig auf. In Produktion trennen
-die Compose-Netzwerke `frontend` (Proxy, Web, API) und `private` (API, Worker,
-Migration, Datenbank) die Teile. Der Worker ist im privaten Netzwerk, nutzt
-bislang aber keine Datenbankverbindung. Die Datenbank hat dort keinen
+die Compose-Netzwerke `frontend` (Proxy, Web, API, Worker) und `private` (API, Worker,
+Migration, Datenbank) die Teile. Der Worker nutzt die private Datenbankverbindung
+und ausgehend SMTP über `frontend`. Die Datenbank hat dort keinen
 öffentlichen Port; lokal bindet der Entwicklungsport nur an `127.0.0.1`.
 
 Siehe [Betrieb](../OPERATIONS.md) für Konfiguration und Migrationsablauf sowie

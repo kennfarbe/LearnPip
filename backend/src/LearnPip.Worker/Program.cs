@@ -1,4 +1,6 @@
+using LearnPip.Data;
 using LearnPip.Worker;
+using Microsoft.EntityFrameworkCore;
 
 if (args is ["--healthcheck"])
 {
@@ -8,8 +10,22 @@ if (args is ["--healthcheck"])
     return;
 }
 
-var builder = Host.CreateApplicationBuilder(args);
+var runOnce = args is ["--run-once"];
+var builder = Host.CreateApplicationBuilder(runOnce ? [] : args);
+builder.Configuration.AddKeyPerFile("/run/secrets", optional: true);
+var connectionString = builder.Configuration.GetConnectionString("LearnPip")
+    ?? throw new InvalidOperationException("ConnectionStrings:LearnPip must be configured.");
+builder.Services.AddDbContext<LearnPipDbContext>(options => options.UseNpgsql(connectionString));
+builder.Services.AddScoped<AccountLifecycleService>();
+builder.Services.AddSingleton<IInactivityNoticeSender, SmtpInactivityNoticeSender>();
 builder.Services.AddHostedService<Worker>();
 
 var host = builder.Build();
+if (runOnce)
+{
+    await using var scope = host.Services.CreateAsyncScope();
+    await scope.ServiceProvider.GetRequiredService<AccountLifecycleService>()
+        .RunOnceAsync(DateTimeOffset.UtcNow);
+    return;
+}
 host.Run();

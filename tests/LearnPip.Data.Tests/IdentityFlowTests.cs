@@ -92,6 +92,27 @@ public sealed class IdentityFlowTests
                 await db.SaveChangesAsync();
             }
 
+            var oldActivity = DateTimeOffset.UtcNow.AddDays(-40);
+            await using (var db = new LearnPipDbContext(options))
+            {
+                await db.Accounts.Where(x => x.Id == created.AccountId)
+                    .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.LastActivityAtUtc, oldActivity));
+            }
+            Assert.Equal(HttpStatusCode.NotFound,
+                (await first.GetAsync($"/api/v1/questions/{Guid.NewGuid()}")).StatusCode);
+            await using (var db = new LearnPipDbContext(options))
+            {
+                Assert.Equal(oldActivity.ToUnixTimeSeconds(),
+                    (await db.Accounts.SingleAsync(x => x.Id == created.AccountId))
+                    .LastActivityAtUtc.ToUnixTimeSeconds());
+            }
+            Assert.Equal(HttpStatusCode.OK, (await first.GetAsync("/api/v1/auth/me")).StatusCode);
+            await using (var db = new LearnPipDbContext(options))
+            {
+                Assert.True((await db.Accounts.SingleAsync(x => x.Id == created.AccountId))
+                    .LastActivityAtUtc > oldActivity);
+            }
+
             Assert.Equal(HttpStatusCode.Unauthorized,
                 (await anonymous.PostAsJsonAsync("/api/v1/auth/recovery",
                     new RecoveryRequest("a-group-code-is-not-a-login"))).StatusCode);

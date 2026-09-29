@@ -60,6 +60,14 @@ namespace LearnPip.Data.Migrations
                     b.Property<DateTimeOffset?>("DeletedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTimeOffset?>("DisabledAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("LastActivityAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
                     b.Property<string>("DisplayName")
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
@@ -71,7 +79,22 @@ namespace LearnPip.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("LastActivityAtUtc");
+
                     b.ToTable("Accounts");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.AccountInactivityWarning", b =>
+                {
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<int>("PhaseDays").HasColumnType("integer");
+                    b.Property<DateTimeOffset>("ActivityAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset>("ClaimedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset?>("SentAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<string>("DeliveryStatus").IsRequired().HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+                    b.HasKey("AccountId", "PhaseDays", "ActivityAtUtc");
+                    b.ToTable("AccountInactivityWarnings");
                 });
 
 
@@ -714,6 +737,13 @@ namespace LearnPip.Data.Migrations
                     b.Navigation("RoleDefinition");
                 });
 
+
+            modelBuilder.Entity("LearnPip.Data.Domain.AccountInactivityWarning", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
+                });
 
             modelBuilder.Entity("LearnPip.Data.Domain.AccountSession", b =>
                 {

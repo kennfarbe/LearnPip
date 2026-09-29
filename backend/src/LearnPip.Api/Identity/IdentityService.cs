@@ -95,11 +95,24 @@ public sealed class IdentityService(
         }
 
         var hash = SessionAuthentication.Hash(secret);
-        return await dbContext.RecoveryCredentials.AsNoTracking()
+        var accountId = await dbContext.RecoveryCredentials.AsNoTracking()
             .Where(credential => credential.SecretHash == hash &&
                                  credential.Account.DeletedAtUtc == null)
             .Select(credential => (Guid?)credential.AccountId)
             .SingleOrDefaultAsync(cancellationToken);
+        if (accountId.HasValue) await ReactivateAsync(accountId.Value, cancellationToken);
+        return accountId;
+    }
+
+    private Task<int> ReactivateAsync(Guid accountId, CancellationToken cancellationToken)
+    {
+        var now = DateTimeOffset.UtcNow;
+        return dbContext.Accounts.Where(account => account.Id == accountId &&
+                account.DeletedAtUtc == null)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(account => account.DisabledAtUtc, (DateTimeOffset?)null)
+                .SetProperty(account => account.LastActivityAtUtc, now)
+                .SetProperty(account => account.UpdatedAtUtc, now), cancellationToken);
     }
 
     public async Task<string> RotateRecoveryAsync(Guid accountId, CancellationToken cancellationToken)
@@ -276,6 +289,7 @@ public sealed class IdentityService(
         try
         {
             await dbContext.SaveChangesAsync(cancellationToken);
+            await ReactivateAsync(resolved, cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
         catch (DbUpdateException exception) when
@@ -313,6 +327,7 @@ public sealed class IdentityService(
                 throw new IdentityConflictException();
             }
 
+            await ReactivateAsync(identity.AccountId, cancellationToken);
             return identity.AccountId;
         }
 

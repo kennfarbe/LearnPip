@@ -4,9 +4,17 @@ import { PrivateMedia } from './private-media';
 import { QuestionEditor } from './question-editor';
 import { LearningSession } from './learning-session';
 import { LearningProgress } from './learning-progress';
+import { AccountActivity } from './account-activity';
 
 @Component({
-  imports: [RouterOutlet, PrivateMedia, QuestionEditor, LearningSession, LearningProgress],
+  imports: [
+    RouterOutlet,
+    PrivateMedia,
+    QuestionEditor,
+    LearningSession,
+    LearningProgress,
+    AccountActivity,
+  ],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',

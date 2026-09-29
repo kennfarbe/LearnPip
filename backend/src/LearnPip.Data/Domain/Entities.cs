@@ -7,6 +7,8 @@ public sealed class Account
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? DeletedAtUtc { get; set; }
+    public DateTimeOffset LastActivityAtUtc { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? DisabledAtUtc { get; set; }
     public ICollection<ExternalIdentity> ExternalIdentities { get; set; } = [];
     public ICollection<Question> Questions { get; set; } = [];
     public ICollection<StudySession> StudySessions { get; set; } = [];

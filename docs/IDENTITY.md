@@ -7,7 +7,7 @@ LearnPip unterstützt ein Konto ohne E-Mail-Adresse. Die erste Antwort von `POST
 | `POST /api/v1/auth/pseudonymous` | Neues Konto, einmaliges Wiederherstellungsgeheimnis und Sitzung |
 | `POST /api/v1/auth/recovery` | Neues Sitzungstoken mit dem langen Geheimnis |
 | `POST /api/v1/auth/recovery/rotate` | Neues Geheimnis und Widerruf älterer Sitzungen |
-| `GET /api/v1/auth/me` | Aktives Konto anzeigen |
+| `GET /api/v1/auth/me` | Konto, letzte Aktivität und Deaktivierungszeit anzeigen |
 | `POST /api/v1/auth/logout`, `POST /api/v1/auth/logout-all` | Aktuelle oder alle Sitzungen widerrufen |
 | `POST /api/v1/auth/email/start`, `/complete` | Einmaligen E-Mail-Code für Anmeldung oder neues Konto verwenden |
 | `POST /api/v1/auth/email/link/start`, `/complete` | Nach aktiver Anmeldung eine E-Mail-Adresse verifizieren und an dasselbe Konto binden |
@@ -33,6 +33,10 @@ Optional kann ein OIDC-Anbieter über `LEARNPIP_OIDC_AUTHORITY` (HTTPS-Issuer), 
 
 Bei einer neuen externen Identität wird ein Konto angelegt. Nach `oidc/link/start` wird die externe Identität nur an das bereits angemeldete Konto gebunden; der geschützte OIDC-State enthält die ID der initiierenden Sitzung, die beim Rücksprung erneut als aktiv geprüft wird. Eine bereits einem anderen Konto zugeordnete Identität wird **nicht** automatisch zusammengeführt. Der Provider-Schlüssel leitet sich aus dem konfigurierten Issuer ab, und der externe `sub` wird nie als LearnPip-Konto-ID oder Rollenclaim übernommen. Die API gibt stattdessen eine lokale, widerrufbare Sitzung aus. Ein Gruppencode ist kein Identitätsnachweis und wird von keinem Login-Endpunkt akzeptiert.
 
+## Kontoinaktivität
+
+Erfolgreiche authentifizierte API-Anfragen, auch Lesezugriffe, aktualisieren `LastActivityAtUtc`. Fehlgeschlagene Anfragen, öffentliche Seiten und Worker-Läufe zählen nicht. Die Kontoseite zeigt den letzten Aktivitätszeitpunkt und gegebenenfalls die Deaktivierung. Der tägliche Worker prüft die gespeicherte Aktivität unmittelbar vor jeder Aktion erneut. Nach 60, 76 und 87 Tagen sendet er jeweils höchstens eine Warnung per E-Mail, sofern eine verifizierte E-Mail-Adresse vorhanden und SMTP eingerichtet ist. Nach 90 Tagen ohne Aktivität deaktiviert er das Konto und widerruft Sitzungen. Eine erfolgreiche Anmeldung mit Wiederherstellungsgeheimnis, E-Mail-Code oder OIDC reaktiviert es. Nach weiteren 90 Tagen ohne Reaktivierung löscht er das Konto samt persönlichen Inhalten und Medien endgültig. Moderations- und Administrationskonten sind ausgenommen. Fehlgeschlagene oder mangels Mailkonfiguration ausgelassene Warnungen werden für diese Inaktivitätsphase nicht erneut versendet.
+
 ## Betrieb und Datenpflege
 
-Die Migration `IdentityPaths` legt Wiederherstellungs-, Sitzungs- und E-Mail-Code-Tabellen an. Für Backup/Restore gelten die Schritte in [DATABASE.md](DATABASE.md); die Tabellen enthalten sensible Anmelde-Metadaten. Abgelaufene Sitzungen und Codes sollten regelmäßig gelöscht werden, nachdem die gewünschte Aufbewahrungsfrist festgelegt wurde. Eine zukünftige Hintergrundbereinigung und ein produktiver Test mit dem gewählten OIDC- und SMTP-Anbieter sind vor öffentlichem Betrieb erforderlich.
+Die Migrationen legen Wiederherstellungs-, Sitzungs-, E-Mail-Code- und Inaktivitätswarnungs-Tabellen an. Für Backup/Restore gelten die Schritte in [DATABASE.md](DATABASE.md); die Tabellen enthalten sensible Anmelde-Metadaten. Ein produktiver Test mit dem gewählten OIDC- und SMTP-Anbieter ist vor öffentlichem Betrieb erforderlich.
