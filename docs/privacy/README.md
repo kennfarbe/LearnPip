@@ -19,7 +19,7 @@ Fristen sind Vorschläge für das Produktdesign, keine bereits beschlossene Rech
 | --- | --- | --- | --- |
 | Zugang und Kontoeinstellungen | Zugang wiederherstellen und Einstellungen speichern | PostgreSQL; Identitätsanbieter nur bei gewählter Anmeldung | Inaktive Konten werden nach 90 Tagen deaktiviert und nach weiteren 90 Tagen gelöscht; lokale Sicherungskopien laufen nach 30 Tagen aus. Wiederherstellung ohne E-Mail ist mit dem einmaligen Wiederherstellungsgeheimnis möglich. |
 | Fragen, Antworten und Erklärungen | Persönliche Lerninhalte bereitstellen | PostgreSQL | Bis die Person sie löscht oder das Konto gelöscht wird. Änderungen sollen nachvollziehbare Versionen nur so lange behalten, wie die Lernfunktion sie benötigt. **OFFEN:** genaue Versionsfrist. |
-| Fotos und andere Medien | Bildfragen und Inhalte anzeigen | Private `MediaBlobs` in PostgreSQL | Zusammen mit dem zugehörigen Konto löschen; keine öffentliche URL. Lokale Datenbanksicherungen laufen nach 30 Tagen aus. |
+| Fotos und andere Medien | Bildfragen und Inhalte anzeigen | Private `MediaBlobs` in PostgreSQL | Zusammen mit dem zugehörigen Konto löschen; ein eigener öffentlicher Leseendpunkt liefert nur Bilder, die eine genehmigte öffentliche Fassung referenziert. Lokale Datenbanksicherungen laufen nach 30 Tagen aus. |
 | Lernversuche und Fortschritt | Wiederholung und Fortschrittsanzeige | PostgreSQL | Bis die Person Verlauf oder Konto löscht. Export muss vor Löschung verfügbar sein. **OFFEN:** ob gelöschte Verläufe anonymisiert aufbewahrt werden dürfen. |
 | Gruppenmitgliedschaften und Rollen | Zugriff auf ausdrücklich freigegebene Gruppeninhalte | PostgreSQL | Bis Austritt, Entfernung oder Gruppenlöschung; Gruppenfreigaben enden mit dem Zugriff. **OFFEN:** Aufbewahrung bei Gruppenende. Gruppen sind nicht Teil des MVP. |
 | Technische Sicherheitsereignisse | Missbrauch erkennen und Dienst schützen | Begrenzte Betriebsprotokolle | Kürzeste notwendige Frist, danach löschen oder aggregieren. **OFFEN:** konkrete Frist und Zugriffskreis. |
@@ -71,7 +71,7 @@ LearnPip kann für schulische Lerninhalte und damit auch für Minderjährige ver
 - Eine Gruppenfreigabe ist auf die ausgewählte Gruppe begrenzt und muss widerrufbar sein, soweit keine Kopie bereits außerhalb von LearnPip erstellt wurde.
 - Eine Veröffentlichung in einem öffentlichen Fragenpool erfordert eine separate Bestätigung der Sichtbarkeit und eine eigene Inhaltslizenz. Die Person muss angeben können, dass sie die erforderlichen Rechte besitzt.
 - Eine Freigabe darf keine privaten Fotos oder Inhalte anderer Personen einschließen, ohne dass die nötigen Rechte und Einwilligungen geprüft wurden.
-- **OFFEN:** konkrete öffentliche Inhaltslizenz, Moderationsprozess, Rechteklärung bei Minderjährigen und Verfahren für Beanstandungen.
+- Für öffentliche Einreichungen stehen `CC BY 4.0`, `CC BY-SA 4.0` und `CC0 1.0` als bewusste Inhaltslizenzwahl bereit. Urheber, Herkunft und Rechtebestätigungen werden für die einzelne Fassung erfasst; Moderatorinnen prüfen Korrektheit, Bildrechte, persönliche Daten und Dubletten vor der Freigabe. Einreichungen Minderjähriger bleiben technisch in einem gesonderten Sperrstatus. **OFFEN:** Verfahren für Sorgeberechtigte und Beanstandungen.
 
 ## Offene Entscheidungen vor öffentlichem Betrieb
 

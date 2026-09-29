@@ -73,6 +73,7 @@ public sealed class QuestionVersion
     public string Language { get; set; } = "de";
     public string Source { get; set; } = string.Empty;
     public string License { get; set; } = string.Empty;
+    public string AuthorAttribution { get; set; } = string.Empty;
     public DateTimeOffset PublishedAtUtc { get; set; } = DateTimeOffset.UtcNow;
     public ICollection<QuestionContentBlock> Blocks { get; set; } = [];
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
@@ -239,6 +240,45 @@ public sealed class GroupVersionShare
     public StudyGroup StudyGroup { get; set; } = null!;
     public QuestionVersion QuestionVersion { get; set; } = null!;
     public PrivateCatalog PrivateCatalog { get; set; } = null!;
+}
+
+public sealed class PublicSubmission
+{
+    public Guid QuestionVersionId { get; set; }
+    public Guid AccountId { get; set; }
+    public string Status { get; set; } = "pending";
+    public string LicenseChoice { get; set; } = string.Empty;
+    public string AuthorAttribution { get; set; } = string.Empty;
+    public string AgeDeclaration { get; set; } = string.Empty;
+    public bool RightsConfirmed { get; set; }
+    public bool ImageRightsConfirmed { get; set; }
+    public DateTimeOffset SubmittedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? ReviewedAtUtc { get; set; }
+    public Guid? ReviewedByAccountId { get; set; }
+    public string? ReviewNote { get; set; }
+    public QuestionVersion QuestionVersion { get; set; } = null!;
+}
+
+public sealed class PublicSubmissionPreview
+{
+    public Guid QuestionVersionId { get; set; }
+    public Guid AccountId { get; set; }
+    public string TokenHash { get; set; } = string.Empty;
+    public DateTimeOffset ExpiresAtUtc { get; set; }
+}
+
+public sealed class PublicSubmissionReview
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid QuestionVersionId { get; set; }
+    public Guid ModeratorAccountId { get; set; }
+    public string Decision { get; set; } = string.Empty;
+    public bool CorrectnessChecked { get; set; }
+    public bool ImageRightsChecked { get; set; }
+    public bool PersonalDataChecked { get; set; }
+    public bool DuplicateChecked { get; set; }
+    public string Note { get; set; } = string.Empty;
+    public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 }
 
 public sealed class MediaBlob

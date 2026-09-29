@@ -156,6 +156,17 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
         await db.GroupVersionShares.Where(item => item.QuestionVersion.Question.OwnerAccountId == id ||
             item.PrivateCatalog.OwnerAccountId == id || item.StudyGroup.OwnerAccountId == id)
             .ExecuteDeleteAsync(cancellationToken);
+        await db.PublicSubmissionReviews.Where(item => item.ModeratorAccountId == id ||
+            db.QuestionVersions.Any(version => version.Id == item.QuestionVersionId &&
+                version.Question.OwnerAccountId == id)).ExecuteDeleteAsync(cancellationToken);
+        await db.PublicSubmissionPreviews.Where(item => item.AccountId == id ||
+            db.QuestionVersions.Any(version => version.Id == item.QuestionVersionId &&
+                version.Question.OwnerAccountId == id)).ExecuteDeleteAsync(cancellationToken);
+        await db.PublicSubmissions.Where(item => item.ReviewedByAccountId == id &&
+            item.AccountId != id).ExecuteUpdateAsync(setters => setters
+                .SetProperty(item => item.ReviewedByAccountId, (Guid?)null), cancellationToken);
+        await db.PublicSubmissions.Where(item => item.AccountId == id ||
+            item.QuestionVersion.Question.OwnerAccountId == id).ExecuteDeleteAsync(cancellationToken);
         await db.GroupMemberships.Where(item => item.AccountId == id ||
             item.StudyGroup.OwnerAccountId == id).ExecuteDeleteAsync(cancellationToken);
         await db.StudyAttemptSelections.Where(item => item.StudyAttempt.StudySession.AccountId == id ||

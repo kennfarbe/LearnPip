@@ -42,6 +42,7 @@ builder.Services.AddProblemDetails(options =>
 builder.Services.AddScoped<IdentityService>();
 builder.Services.AddScoped<AdministrationService>();
 builder.Services.AddScoped<GroupService>();
+builder.Services.AddScoped<PublicSubmissionService>();
 builder.Services.AddScoped<SessionService>();
 builder.Services.AddScoped<IPrivateMediaStore, PostgresPrivateMediaStore>();
 builder.Services.AddSingleton<IEmailCodeSender, SmtpEmailCodeSender>();
@@ -132,6 +133,7 @@ app.MapV1Endpoints();
 app.MapAuthEndpoints();
 app.MapMediaEndpoints();
 app.MapQuestionEndpoints();
+app.MapPublicSubmissionEndpoints();
 app.MapLearningSessionEndpoints();
 app.MapReviewEndpoints();
 app.MapProgressEndpoints();

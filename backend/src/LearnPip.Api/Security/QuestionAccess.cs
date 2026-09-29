@@ -18,7 +18,9 @@ public static class QuestionAccess
 
     public static IQueryable<QuestionVersion> ReadableVersions(LearnPipDbContext db, Guid accountId) =>
         db.QuestionVersions.Where(version => version.Question.DeletedAtUtc == null &&
-            (version.Question.OwnerAccountId == accountId || version.Visibility == "public" ||
+            (version.Question.OwnerAccountId == accountId ||
+             version.Visibility == "public" && db.PublicSubmissions.Any(submission =>
+                 submission.QuestionVersionId == version.Id && submission.Status == "approved") ||
              db.GroupVersionShares.Any(share => share.QuestionVersionId == version.Id &&
                  share.StudyGroup.DeletedAtUtc == null &&
                  (share.StudyGroup.OwnerAccountId == accountId ||
@@ -33,5 +35,7 @@ public static class QuestionAccess
 
     public static IQueryable<QuestionVersion> PublicVersions(LearnPipDbContext db) =>
         db.QuestionVersions.Where(version => version.Visibility == "public" &&
+            db.PublicSubmissions.Any(submission => submission.QuestionVersionId == version.Id &&
+                submission.Status == "approved") &&
             version.Question.DeletedAtUtc == null);
 }

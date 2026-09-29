@@ -18,7 +18,8 @@ public sealed record ContentBlockOutput(string Kind, string? Text, Guid? MediaId
 public sealed record AnswerOutput(Guid Id, bool IsCorrect, IReadOnlyList<ContentBlockOutput> Blocks);
 public sealed record PublishedQuestionVersion(
     Guid Id, int Version, string SelectionMode, string Subject, string Topic, string Language,
-    string Source, string License, DateTimeOffset PublishedAtUtc, string Visibility,
+    string Source, string License, string AuthorAttribution,
+    DateTimeOffset PublishedAtUtc, string Visibility,
     IReadOnlyList<ContentBlockOutput> Prompt, IReadOnlyList<ContentBlockOutput> Explanation,
     IReadOnlyList<AnswerOutput> Answers);
 public sealed record GradeRequest(Guid VersionId, IReadOnlyList<Guid> SelectedOptionIds);
@@ -198,13 +199,25 @@ public static class QuestionEndpoints
         LearnPipDbContext db, ClaimsPrincipal user, CancellationToken cancellationToken)
     {
         if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
-        if (input.Visibility is not ("private" or "public")) return Results.BadRequest();
-        var changed = await db.QuestionVersions.Where(version => version.QuestionId == id &&
-                version.VersionNumber == number && version.Question.OwnerAccountId == accountId &&
-                version.Question.DeletedAtUtc == null)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(version => version.Visibility,
-                input.Visibility), cancellationToken);
-        return changed == 1 ? Results.NoContent() : Results.NotFound();
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        var version = await db.QuestionVersions.FromSqlInterpolated(
+                $"SELECT * FROM \"QuestionVersions\" WHERE \"QuestionId\" = {id} AND \"VersionNumber\" = {number} FOR UPDATE")
+            .SingleOrDefaultAsync(cancellationToken);
+        if (version == null || !await db.Questions.AnyAsync(question => question.Id == id &&
+                question.OwnerAccountId == accountId && question.DeletedAtUtc == null,
+                cancellationToken)) return Results.NotFound();
+        if (input.Visibility != "private") return Results.Conflict(new
+        {
+            error = "Public visibility requires an approved submission."
+        });
+        version.Visibility = "private";
+        var submission = await db.PublicSubmissions.SingleOrDefaultAsync(item =>
+            item.QuestionVersionId == version.Id, cancellationToken);
+        if (submission != null && submission.Status is "approved" or "pending" or "minor_hold")
+            submission.Status = "withdrawn";
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return Results.NoContent();
     }
 
     internal static async Task<PublishedQuestionVersion?> LoadVersion(LearnPipDbContext db,
@@ -222,6 +235,7 @@ public static class QuestionEndpoints
                     block.MediaAsset?.AltText)).ToArray();
         return new PublishedQuestionVersion(version.Id, version.VersionNumber, version.SelectionMode,
             version.Subject, version.Topic, version.Language, version.Source, version.License,
+            version.AuthorAttribution,
             version.PublishedAtUtc, version.Visibility,
             Convert(version.Blocks.Where(block => block.Section == "prompt")),
             Convert(version.Blocks.Where(block => block.Section == "explanation")),

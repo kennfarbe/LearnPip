@@ -37,7 +37,19 @@ Der Gruppencode ist kein persönliches Anmeldegeheimnis. Der Server speichert se
 
 ## Fassungsrechte (LP-20)
 
-Jede veröffentlichte Fassung beginnt im Zustand `private`. Der Eigentümer kann mit `PUT /api/v1/questions/{id}/versions/{number}/visibility` und `{"visibility":"public"}` genau diese Fassung öffentlich lesbar machen oder sie mit `"private"` zurückziehen. Moderations- und Adminrollen können private Inhalte dadurch nicht stellvertretend öffnen. Die anonymen Endpunkte `GET /api/v1/public/questions`, `GET /api/v1/public/questions/{id}/versions/{number}` und `GET /api/v1/public/media/{id}/content` liefern nur ausdrücklich öffentliche Fassungen und Bilder, die in genau diesen Fassungen als Inhaltsblock referenziert sind. Unverknüpfte oder nur in einer privaten Fassung referenzierte Medien bleiben privat. Die Antwort enthält für veröffentlichte Fassungen das Feld `visibility`.
+Jede veröffentlichte Fassung beginnt im Zustand `private`. `PUT /api/v1/questions/{id}/versions/{number}/visibility` erlaubt dem Eigentümer nur `{"visibility":"private"}` zum Zurückziehen. Eine öffentliche Freigabe erfordert die unten beschriebene Moderation. Die anonymen Endpunkte `GET /api/v1/public/questions`, `GET /api/v1/public/questions/{id}/versions/{number}` und `GET /api/v1/public/media/{id}/content` liefern nur genehmigte Fassungen und Bilder, die in genau diesen Fassungen als Inhaltsblock referenziert sind. Unverknüpfte oder nur in einer privaten Fassung referenzierte Medien bleiben privat. Die Antwort enthält `visibility`, `license`, `source` und `authorAttribution` je Fassung.
+
+## Öffentliche Einreichung und Moderation (LP-21)
+
+| Endpunkt | Zweck |
+| --- | --- |
+| `GET /api/v1/questions/{id}/versions/{number}/submission-preview` | Eigentümer erhält private Inhaltsvorschau samt einmaligem, 15 Minuten gültigem Vorschautoken. |
+| `POST /api/v1/questions/{id}/versions/{number}/submission` | Reicht genau diese Fassung mit Vorschautoken, Wahl aus `CC BY 4.0`, `CC BY-SA 4.0`, `CC0 1.0`, Urheberangabe, Rechtebestätigung, Bildrechtebestätigung und Alterserklärung ein. Antwort `pending` oder `minor_hold`; keine Veröffentlichung. |
+| `GET /api/v1/questions/{id}/versions/{number}/submission` | Eigentümer sieht Status und Moderationsnotiz. |
+| `GET /api/v1/moderation/submissions/`, `GET /{versionId}`, `GET /{versionId}/media/{mediaId}` | Nur Moderator/Admin: Warteschlange und private, auf diese Einreichung begrenzte Text- und Bildvorschau. |
+| `POST /api/v1/moderation/submissions/{versionId}/decision` | Nur Moderator/Admin: `approve`, `reject` oder `changes_requested` mit dokumentierten Prüfschritten für Korrektheit, Bildrechte, persönliche Daten und Dubletten. Freigabe benötigt alle vier Bestätigungen; eigene Einreichungen können nicht selbst geprüft werden. |
+
+Einreichungen mit Alterserklärung `minor` bleiben in `minor_hold`; Freigabe ist bis zu einem gesondert gestalteten Verfahren technisch gesperrt. Moderatorinnen können sie ablehnen oder zur Überarbeitung zurückgeben. Die Migration setzt bisher direkt öffentlich geschaltete Fassungen auf `private`, weil ihnen die Moderationsentscheidung fehlt. Für bereits betriebene Instanzen ist diese Änderung vor dem Upgrade einzuplanen.
 
 Der Integrationstest verwendet eine temporäre PostgreSQL-Datenbank und eine ausschließlich im Testprojekt definierte Authentifizierung. Er prüft HTTP 401/404, Eigentümerzugriff, Gruppenfreigabe, das Verbergen des Speicherschlüssels, Paging-Validierung, Systemrollen und das generierte OpenAPI-Dokument. Der Test-Header ist nicht Teil der produktiven API.
 
