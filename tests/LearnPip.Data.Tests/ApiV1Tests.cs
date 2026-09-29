@@ -190,7 +190,8 @@ public sealed class ApiV1Tests
             upload.Add(imageContent, "file", "photo.jpg");
             upload.Add(new StringContent("Grünes Quadrat"), "altText");
             var uploadResponse = await ownerClient.PostAsync("/api/v1/media/", upload);
-            Assert.Equal(HttpStatusCode.Created, uploadResponse.StatusCode);
+            Assert.True(uploadResponse.StatusCode == HttpStatusCode.Created,
+                await uploadResponse.Content.ReadAsStringAsync());
             var uploaded = await uploadResponse.Content.ReadFromJsonAsync<ApiResponse<MediaDetails>>();
             var uploadedId = uploaded!.Data.Id;
             Assert.Equal("Grünes Quadrat", uploaded.Data.AltText);

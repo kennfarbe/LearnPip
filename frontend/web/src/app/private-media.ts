@@ -9,21 +9,42 @@ interface MediaResponse {
   template: `
     <section class="media-panel" aria-labelledby="media-title">
       <h2 id="media-title">Private Bilder</h2>
-      <p>Fotos und Zeichnungen bleiben in deinem Konto. Melde dich an, bevor du ein Bild hochlädst.</p>
+      <p>
+        Fotos und Zeichnungen bleiben in deinem Konto. Melde dich an, bevor du ein Bild hochlädst.
+      </p>
       <form (submit)="upload($event)">
         <label for="media-file">Bild (JPEG oder PNG, maximal 5 MiB)</label>
-        <input id="media-file" type="file" accept="image/jpeg,image/png" (change)="selectFile($event)" required />
+        <input
+          id="media-file"
+          type="file"
+          accept="image/jpeg,image/png"
+          (change)="selectFile($event)"
+          required
+        />
         <label for="media-description">Bildbeschreibung</label>
-        <input id="media-description" type="text" maxlength="300" required
-          [value]="description()" (input)="description.set(asInput($event).value)" />
-        <button type="submit" [disabled]="uploading()">{{ uploading() ? 'Wird hochgeladen …' : 'Privat hochladen' }}</button>
+        <input
+          id="media-description"
+          type="text"
+          maxlength="300"
+          required
+          [value]="description()"
+          (input)="description.set(asInput($event).value)"
+        />
+        <button type="submit" [disabled]="uploading()">
+          {{ uploading() ? 'Wird hochgeladen …' : 'Privat hochladen' }}
+        </button>
       </form>
       @if (message()) {
         <p role="status">{{ message() }}</p>
       }
       @if (imageUrl()) {
         <figure>
-          <button type="button" class="image-button" (click)="openViewer()" aria-label="Bild vergrößern">
+          <button
+            type="button"
+            class="image-button"
+            (click)="openViewer()"
+            aria-label="Bild vergrößern"
+          >
             <img [src]="imageUrl()" [alt]="imageAlt()" />
           </button>
           <figcaption>{{ imageAlt() }}</figcaption>
@@ -39,15 +60,52 @@ interface MediaResponse {
     </section>
   `,
   styles: `
-    .media-panel { margin-top: 2.5rem; padding: 1.5rem; border: 1px solid #dfe9df; border-radius: .9rem; background: #fff; }
-    form { display: grid; gap: .7rem; max-width: 32rem; }
-    input { padding: .65rem; }
-    button { width: fit-content; padding: .65rem 1rem; cursor: pointer; }
-    .image-button { display: block; padding: 0; border: 0; background: none; }
-    figure { margin: 1.5rem 0; }
-    figure img { max-width: min(100%, 25rem); max-height: 16rem; object-fit: contain; }
-    dialog { max-width: 95vw; max-height: 95vh; border: 0; border-radius: .75rem; }
-    dialog img { display: block; max-width: 85vw; max-height: 75vh; object-fit: contain; }
+    .media-panel {
+      margin-top: 2.5rem;
+      padding: 1.5rem;
+      border: 1px solid #dfe9df;
+      border-radius: 0.9rem;
+      background: #fff;
+    }
+    form {
+      display: grid;
+      gap: 0.7rem;
+      max-width: 32rem;
+    }
+    input {
+      padding: 0.65rem;
+    }
+    button {
+      width: fit-content;
+      padding: 0.65rem 1rem;
+      cursor: pointer;
+    }
+    .image-button {
+      display: block;
+      padding: 0;
+      border: 0;
+      background: none;
+    }
+    figure {
+      margin: 1.5rem 0;
+    }
+    figure img {
+      max-width: min(100%, 25rem);
+      max-height: 16rem;
+      object-fit: contain;
+    }
+    dialog {
+      max-width: 95vw;
+      max-height: 95vh;
+      border: 0;
+      border-radius: 0.75rem;
+    }
+    dialog img {
+      display: block;
+      max-width: 85vw;
+      max-height: 75vh;
+      object-fit: contain;
+    }
   `,
 })
 export class PrivateMedia {
@@ -77,9 +135,17 @@ export class PrivateMedia {
       const form = new FormData();
       form.append('file', this.file);
       form.append('altText', this.description().trim());
-      const response = await fetch('/api/v1/media/', { method: 'POST', body: form, credentials: 'same-origin' });
+      const response = await fetch('/api/v1/media/', {
+        method: 'POST',
+        body: form,
+        credentials: 'same-origin',
+      });
       if (!response.ok) {
-        this.message.set(response.status === 401 ? 'Bitte zuerst anmelden.' : 'Das Bild konnte nicht hochgeladen werden.');
+        this.message.set(
+          response.status === 401
+            ? 'Bitte zuerst anmelden.'
+            : 'Das Bild konnte nicht hochgeladen werden.',
+        );
         return;
       }
       const media = (await response.json()) as MediaResponse;
@@ -104,7 +170,10 @@ export class PrivateMedia {
 
   async remove(): Promise<void> {
     if (!this.id) return;
-    const response = await fetch(`/api/v1/media/${this.id}`, { method: 'DELETE', credentials: 'same-origin' });
+    const response = await fetch(`/api/v1/media/${this.id}`, {
+      method: 'DELETE',
+      credentials: 'same-origin',
+    });
     if (!response.ok) {
       this.message.set('Das Bild konnte nicht gelöscht werden.');
       return;
