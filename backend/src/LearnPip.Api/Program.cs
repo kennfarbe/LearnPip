@@ -134,6 +134,7 @@ app.MapAuthEndpoints();
 app.MapMediaEndpoints();
 app.MapQuestionEndpoints();
 app.MapPublicSubmissionEndpoints();
+app.MapCommunityFeedbackEndpoints();
 app.MapLearningSessionEndpoints();
 app.MapReviewEndpoints();
 app.MapProgressEndpoints();

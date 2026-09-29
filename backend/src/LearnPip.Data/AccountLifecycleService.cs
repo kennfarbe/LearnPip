@@ -167,6 +167,15 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
                 .SetProperty(item => item.ReviewedByAccountId, (Guid?)null), cancellationToken);
         await db.PublicSubmissions.Where(item => item.AccountId == id ||
             item.QuestionVersion.Question.OwnerAccountId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.QuestionModerationEvents.Where(item => item.ModeratorAccountId == id ||
+            db.QuestionVersions.Any(version => version.Id == item.QuestionVersionId &&
+                version.Question.OwnerAccountId == id)).ExecuteDeleteAsync(cancellationToken);
+        await db.QuestionReports.Where(item => item.AccountId == id ||
+            item.QuestionVersion.Question.OwnerAccountId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.QuestionComments.Where(item => item.AccountId == id ||
+            item.QuestionVersion.Question.OwnerAccountId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.QuestionHelpfulVotes.Where(item => item.AccountId == id ||
+            item.QuestionVersion.Question.OwnerAccountId == id).ExecuteDeleteAsync(cancellationToken);
         await db.GroupMemberships.Where(item => item.AccountId == id ||
             item.StudyGroup.OwnerAccountId == id).ExecuteDeleteAsync(cancellationToken);
         await db.StudyAttemptSelections.Where(item => item.StudyAttempt.StudySession.AccountId == id ||
