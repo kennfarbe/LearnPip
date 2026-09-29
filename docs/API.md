@@ -124,3 +124,35 @@ Erklärung. Bei Einzelantwort ist genau eine Auswahl zulässig.
 `POST /api/v1/learning/sessions/{id}/skip` geht ohne Bewertung zur nächsten
 Frage. Übersprungene Fragen erzeugen keinen `StudyAttempt`. Beantwortete oder
 übersprungene Fragen können innerhalb der Sitzung nicht wiederholt werden.
+
+## Adaptiver Wiederholungsplan (LP-16)
+
+`GET /api/v1/learning/review` liefert pro **Lerninhalt** die zugeordneten
+Frage-IDs, sichere Antwortserie, Fälligkeit, Anzahl Antworten, Rateversuche
+und Erklärungsabrufe. Die Zielquote ist `masteredContents / totalContents`:
+Ein Inhalt gilt nach drei aufeinanderfolgenden sicheren Antworten als
+beherrscht. Varianten desselben Inhalts erhöhen den Nenner nicht.
+
+Jede eigene Frage erhält zunächst einen eigenen Lerninhalt. Mit
+`PUT /api/v1/learning/questions/{id}/content` und `{ "contentId": "uuid" }`
+können eigene Fragevarianten einem vorhandenen eigenen Inhalt zugeordnet
+werden. Die Planung wird anschließend aus den bisherigen Versuchen neu
+berechnet. Eine Sitzung wählt höchstens eine Variante je Inhalt und bevorzugt
+fällige sowie persönlich markierte Inhalte. Antwortoptionen bleiben gemischt.
+
+`POST /api/v1/learning/sessions/{id}/answer` nimmt zusätzlich das optionale
+`wasGuessed` an. Die Rückmeldung enthält `attemptId` und `contentId`.
+`POST /api/v1/learning/sessions/{id}/explanation` mit
+`{ "attemptId": "uuid" }` erfasst den erstmaligen Abruf der ausführlichen
+Erklärung zum eigenen Versuch. Ohne hinterlegte Erklärung ist er nicht
+möglich. Ein richtiges sicheres Ergebnis verlängert die Frist zunächst um
+1, dann 3, 7 und ab der vierten sicheren Antwort um 14 Tage. Falsch,
+geraten oder ein späterer Erklärungsabruf setzt die sichere Serie zurück und
+setzt die nächste Wiederholung auf einen Tag nach diesem Ereignis. Der
+Zustand wird chronologisch aus gespeicherten Ereignissen rekonstruiert;
+übersprungene Fragen ändern ihn nicht.
+
+`PUT/DELETE /api/v1/learning/contents/{id}/often-for-me` pflegt die
+persönliche Merkliste. Sie beeinflusst nur die Auswahlpriorität, weder die
+berechnete Fälligkeit noch die Zielquote. Die API gibt ausschließlich eigene
+Inhalte und Versuche zurück.

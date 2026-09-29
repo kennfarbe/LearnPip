@@ -106,6 +106,7 @@ app.MapAuthEndpoints();
 app.MapMediaEndpoints();
 app.MapQuestionEndpoints();
 app.MapLearningSessionEndpoints();
+app.MapReviewEndpoints();
 app.MapCatalogEditorEndpoints();
 app.MapAdministrationEndpoints();
 

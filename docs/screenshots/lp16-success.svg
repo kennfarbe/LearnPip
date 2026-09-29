@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="520" viewBox="0 0 860 520">
+  <rect width="860" height="520" fill="#f5f8f3"/>
+  <rect x="32" y="26" width="796" height="468" rx="16" fill="#f8fbf7" stroke="#dfe9df" stroke-width="2"/>
+  <text x="60" y="76" font-family="DejaVu Sans,sans-serif" font-size="28" font-weight="bold" fill="#1d3a32">Kurz lernen</text>
+  <text x="60" y="107" font-family="DejaVu Sans,sans-serif" font-size="15" fill="#52635c">Übe mit deinen veröffentlichten privaten Fragen.</text>
+  <rect x="60" y="128" width="740" height="57" rx="10" fill="#e4f3e7"/>
+  <text x="78" y="153" font-family="DejaVu Sans,sans-serif" font-size="16" font-weight="bold" fill="#205d45">Lernstand: 1 von 2 Lerninhalten sicher</text>
+  <text x="78" y="174" font-family="DejaVu Sans,sans-serif" font-size="13" fill="#345146">1 auf deiner persönlichen Merkliste</text>
+  <text x="60" y="216" font-family="DejaVu Sans,sans-serif" font-size="15" fill="#3c6252">1 von 3 bearbeitet · 1 beantwortet · 0 übersprungen</text>
+  <rect x="60" y="233" width="740" height="227" rx="13" fill="#ffffff" stroke="#dfe9df" stroke-width="2"/>
+  <circle cx="91" cy="270" r="15" fill="#d7f0d5"/>
+  <path d="M84 270l5 5 10-11" fill="none" stroke="#205d45" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="118" y="279" font-family="DejaVu Sans,sans-serif" font-size="22" font-weight="bold" fill="#1d3a32">Richtig beantwortet</text>
+  <text x="81" y="313" font-family="DejaVu Sans,sans-serif" font-size="15" font-weight="bold" fill="#205d45">Sicher beherrscht · Nächste Wiederholung: 06.10.2026</text>
+  <rect x="81" y="326" width="190" height="34" rx="7" fill="#fff" stroke="#205d45"/>
+  <text x="95" y="349" font-family="DejaVu Sans,sans-serif" font-size="13" font-weight="bold" fill="#205d45">Öfter für mich merken</text>
+  <text x="81" y="390" font-family="DejaVu Sans,sans-serif" font-size="15" fill="#1d3a32">Richtige Antwort:</text>
+  <rect x="229" y="370" width="156" height="31" rx="7" fill="#e4f3e7"/>
+  <text x="242" y="391" font-family="DejaVu Sans,sans-serif" font-size="14" fill="#1d3a32">Chlorophyll</text>
+  <rect x="81" y="411" width="204" height="34" rx="7" fill="#fff" stroke="#205d45"/>
+  <text x="96" y="434" font-family="DejaVu Sans,sans-serif" font-size="13" font-weight="bold" fill="#205d45">Ausführliche Erklärung</text>
+  <rect x="696" y="411" width="85" height="34" rx="7" fill="#205d45"/>
+  <text x="716" y="434" font-family="DejaVu Sans,sans-serif" font-size="14" font-weight="bold" fill="#fff">Weiter</text>
+</svg>
