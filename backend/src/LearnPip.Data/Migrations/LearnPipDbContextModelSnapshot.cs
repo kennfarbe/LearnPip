@@ -274,6 +274,9 @@ namespace LearnPip.Data.Migrations
                     b.Property<int>("Version").HasColumnType("integer");
                     b.Property<Guid>("CatalogEditionId").HasColumnType("uuid");
                     b.Property<string>("PartsJson").IsRequired().HasColumnType("text");
+                    b.Property<string>("ScheduleJson").IsRequired().HasColumnType("text");
+                    b.Property<string>("RulesSourceUrl").HasColumnType("text");
+                    b.Property<DateOnly?>("RulesCheckedOn").HasColumnType("date");
                     b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
                     b.HasKey("Id");
                     b.HasIndex("CatalogEditionId");

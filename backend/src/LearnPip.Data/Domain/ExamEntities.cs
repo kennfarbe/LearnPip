@@ -24,6 +24,9 @@ public sealed class ExamProfileVersion
     public Guid CatalogEditionId { get; set; }
     public OfficialCatalogEdition CatalogEdition { get; set; } = null!;
     public string PartsJson { get; set; } = string.Empty;
+    public string ScheduleJson { get; set; } = "[]";
+    public string? RulesSourceUrl { get; set; }
+    public DateOnly? RulesCheckedOn { get; set; }
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 }
 
