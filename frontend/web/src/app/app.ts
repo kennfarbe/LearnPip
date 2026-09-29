@@ -11,6 +11,7 @@ import { CommunityFeedback } from './community-feedback';
 import { ExamPlan } from './exam-plan';
 import { ExamProfiles } from './exam-profiles';
 import { AiAssistant } from './ai-assistant';
+import { PhotoDraft } from './photo-draft';
 
 @Component({
   imports: [
@@ -26,6 +27,7 @@ import { AiAssistant } from './ai-assistant';
     ExamPlan,
     ExamProfiles,
     AiAssistant,
+    PhotoDraft,
   ],
   selector: 'app-root',
   styleUrl: './app.css',

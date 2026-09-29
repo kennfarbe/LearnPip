@@ -58,6 +58,7 @@ services:
       Ai__LocalModel: ${LEARNPIP_AI_LOCAL_MODEL:-}
       Ai__KeyEncryptionKey: ${LEARNPIP_AI_KEY_ENCRYPTION_KEY:-}
       Ai__MaxInputBytes: ${LEARNPIP_AI_MAX_INPUT_BYTES:-8192}
+      Ai__MaxImageBytes: ${LEARNPIP_AI_MAX_IMAGE_BYTES:-2097152}
       Ai__Quota__operator-cloud: ${LEARNPIP_AI_CLOUD_DAILY_QUOTA:-10}
       Ai__Quota__operator-local: ${LEARNPIP_AI_LOCAL_DAILY_QUOTA:-50}
       Ai__Quota__user-key: ${LEARNPIP_AI_USER_DAILY_QUOTA:-20}
