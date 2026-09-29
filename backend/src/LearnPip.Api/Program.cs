@@ -138,6 +138,7 @@ app.MapCommunityFeedbackEndpoints();
 app.MapLearningSessionEndpoints();
 app.MapReviewEndpoints();
 app.MapProgressEndpoints();
+app.MapExamPlanEndpoints();
 app.MapCatalogEditorEndpoints();
 app.MapGroupEndpoints();
 app.MapAdministrationEndpoints();

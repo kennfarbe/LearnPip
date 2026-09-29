@@ -8,6 +8,7 @@ import { AccountActivity } from './account-activity';
 import { GroupSpace } from './group-space';
 import { ModerationQueue } from './moderation-queue';
 import { CommunityFeedback } from './community-feedback';
+import { ExamPlan } from './exam-plan';
 
 @Component({
   imports: [
@@ -20,6 +21,7 @@ import { CommunityFeedback } from './community-feedback';
     GroupSpace,
     ModerationQueue,
     CommunityFeedback,
+    ExamPlan,
   ],
   selector: 'app-root',
   styleUrl: './app.css',
