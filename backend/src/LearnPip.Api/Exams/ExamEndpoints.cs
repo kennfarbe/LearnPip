@@ -8,15 +8,19 @@ using Microsoft.EntityFrameworkCore;
 namespace LearnPip.Api.Exams;
 
 public sealed record CatalogQuestion(string Code, string PartCode, string Prompt,
-    IReadOnlyList<string> Answers, int CorrectIndex);
+    IReadOnlyList<string> Answers, int CorrectIndex, string Kind = "original",
+    string? BaseCode = null);
 public sealed record CatalogImportInput(string Code, string Title, string Revision,
     string SourceUrl, string License, string Attribution, DateOnly ChangedOn,
     bool RightsConfirmed, IReadOnlyList<CatalogQuestion> Questions);
 public sealed record ProfilePart(string Code, string Title, string CatalogPartCode,
-    int QuestionCount, int TimeLimitMinutes, int RequiredCorrect, string? CreditCode);
+    int QuestionCount, int TimeLimitMinutes, int RequiredCorrect, string? CreditCode,
+    bool AllowVariants = false, bool ShuffleAnswers = true);
 public sealed record ProfileInput(string Code, string Title, string AmateurClass,
     Guid CatalogEditionId, IReadOnlyList<ProfilePart> Parts);
-public sealed record StartSimulationInput(Guid ProfileVersionId);
+public sealed record StartSimulationInput(Guid ProfileVersionId, string QuestionMode = "original");
+public sealed record StartPowerTestInput(Guid ProfileVersionId, string QuestionMode = "original",
+    int StageSize = 25);
 public sealed record AnswerSimulationInput(int SelectedIndex);
 public sealed record CreditInput(string Code);
 public sealed record SnapshotPart(ProfilePart Rule, bool Credited,
@@ -26,7 +30,56 @@ public sealed record PartResult(string Code, int Correct, int Total, bool Passed
 public sealed record SimulationView(Guid Id, Guid ProfileVersionId, int ProfileVersion,
     string ProfileCode, string CatalogRevision, DateTimeOffset StartedAtUtc,
     DateTimeOffset? CompletedAtUtc, string? CurrentPartCode, DateTimeOffset? DeadlineAtUtc,
-    IReadOnlyList<object> Questions, IReadOnlyList<PartResult> Parts, bool? Passed);
+    IReadOnlyList<object> Questions, IReadOnlyList<PartResult> Parts, bool? Passed,
+    IReadOnlyDictionary<string, int> SelectedAnswers);
+public sealed record PowerSnapshot(string QuestionMode, int StageSize,
+    IReadOnlyList<SnapshotPart> Parts);
+public sealed record PowerMistake(string Code, string PartCode, string Prompt,
+    string? SelectedAnswer, string CorrectAnswer);
+public sealed record PowerPartResult(string Code, int Correct, int Total);
+public sealed record PowerView(Guid Id, Guid ProfileVersionId, string ProfileCode,
+    string CatalogRevision, string QuestionMode, int Stage, int Stages,
+    DateTimeOffset? CompletedAtUtc, IReadOnlyList<object> Questions,
+    IReadOnlyDictionary<string, int> SelectedAnswers,
+    IReadOnlyList<PowerPartResult> Parts, IReadOnlyList<PowerMistake> Mistakes);
+
+public static class ExamQuestionSelection
+{
+    public static IReadOnlyList<CatalogQuestion> Select(IReadOnlyList<CatalogQuestion> catalog,
+        ProfilePart rule, string mode, int? count, Random random)
+    {
+        if (mode is not ("original" or "variant" or "mixed") ||
+            mode != "original" && !rule.AllowVariants) throw new ArgumentException("Question mode unavailable.");
+        var groups = catalog.Where(question => question.PartCode == rule.CatalogPartCode)
+            .GroupBy(question => question.BaseCode ?? question.Code).ToArray();
+        var candidates = groups.Select(group =>
+        {
+            var originals = group.Where(question => question.Kind == "original").ToArray();
+            var variants = group.Where(question => question.Kind == "variant").ToArray();
+            var pool = mode switch
+            {
+                "original" => originals,
+                "variant" => variants,
+                _ => variants.Length > 0 && random.Next(2) == 0 ? variants : originals
+            };
+            return pool.Length == 0 ? null : pool[random.Next(pool.Length)];
+        }).Where(question => question != null).Cast<CatalogQuestion>()
+            .OrderBy(_ => random.Next()).ToArray();
+        if (count is > 0 && candidates.Length < count)
+            throw new ArgumentException("Too few questions for this mode.");
+        return candidates.Take(count ?? candidates.Length).Select(question =>
+        {
+            if (!rule.ShuffleAnswers) return question;
+            var order = Enumerable.Range(0, question.Answers.Count).OrderBy(_ => random.Next())
+                .ToArray();
+            return question with
+            {
+                Answers = order.Select(index => question.Answers[index]).ToArray(),
+                CorrectIndex = Array.IndexOf(order, question.CorrectIndex)
+            };
+        }).ToArray();
+    }
+}
 
 public static class ExamScoring
 {
@@ -65,6 +118,11 @@ public static class ExamEndpoints
         exams.MapGet("/simulations/{id:guid}", ReadSimulation);
         exams.MapPut("/simulations/{id:guid}/answers/{questionCode}", Answer);
         exams.MapPost("/simulations/{id:guid}/parts/{partCode}/finish", FinishPart);
+        exams.MapPost("/power-tests", StartPower);
+        exams.MapGet("/power-tests", PowerHistory);
+        exams.MapGet("/power-tests/{id:guid}", ReadPower);
+        exams.MapPut("/power-tests/{id:guid}/answers/{questionCode}", AnswerPower);
+        exams.MapPost("/power-tests/{id:guid}/stages/finish", FinishPowerStage);
 
         var admin = app.MapGroup("/api/v1/exams/admin")
             .RequireAuthorization(ApiPolicies.Admin).WithTags("Exam administration");
@@ -128,7 +186,12 @@ public static class ExamEndpoints
                 !Valid(item.Code, 80) || !Valid(item.PartCode, 32) ||
                 !Valid(item.Prompt, 12000) || item.Answers is not { Count: >= 2 and <= 6 } ||
                 item.Answers.Any(answer => !Valid(answer, 4000)) ||
-                item.CorrectIndex < 0 || item.CorrectIndex >= item.Answers.Count))
+                item.CorrectIndex < 0 || item.CorrectIndex >= item.Answers.Count ||
+                item.Kind is not ("original" or "variant") ||
+                item.Kind == "original" && item.BaseCode != null ||
+                item.Kind == "variant" && (!Valid(item.BaseCode, 80) ||
+                    !input.Questions.Any(original => original.Code == item.BaseCode &&
+                        original.Kind == "original" && original.PartCode == item.PartCode))))
             return Invalid("catalog", "Provide a source, compatible reuse license and valid unique questions.");
         if (await db.OfficialCatalogEditions.AnyAsync(item => item.Code == input.Code &&
             item.Revision == input.Revision, ct)) return Results.Conflict();
@@ -166,7 +229,8 @@ public static class ExamEndpoints
                 !Valid(part.CatalogPartCode, 32) || part.QuestionCount is < 1 or > 100 ||
                 part.TimeLimitMinutes is < 1 or > 240 ||
                 part.RequiredCorrect < 1 || part.RequiredCorrect > part.QuestionCount ||
-                part.CreditCode != null && !Credits.Contains(part.CreditCode)))
+                part.CreditCode != null && !Credits.Contains(part.CreditCode) ||
+                input.AmateurClass != "" && !part.ShuffleAnswers))
             return Invalid("profile", "Provide unique sections with valid counts, limits and pass rules.");
         if (input.AmateurClass != "" && (input.Parts.Count != 3 ||
             input.Parts.Select(part => part.CreditCode).ToHashSet().SetEquals(
@@ -177,7 +241,8 @@ public static class ExamEndpoints
         if (edition == null) return Results.NotFound();
         var questions = Parse<CatalogQuestion>(edition.QuestionsJson);
         if (input.Parts.Any(part => questions.Count(question =>
-                question.PartCode == part.CatalogPartCode) < part.QuestionCount))
+                question.PartCode == part.CatalogPartCode && question.Kind == "original") <
+                part.QuestionCount))
             return Invalid("parts", "The catalog edition has too few questions for a section.");
         var version = (await db.ExamProfileVersions.Where(item => item.Code == input.Code)
             .Select(item => (int?)item.Version).MaxAsync(ct) ?? 0) + 1;
@@ -240,16 +305,20 @@ public static class ExamEndpoints
         var profile = await db.ExamProfileVersions.AsNoTracking().Include(item => item.CatalogEdition)
             .SingleOrDefaultAsync(item => item.Id == input.ProfileVersionId, ct);
         if (profile == null) return Results.NotFound();
+        if (!ValidMode(input.QuestionMode, Parse<ProfilePart>(profile.PartsJson)))
+            return Invalid("questionMode", "This profile does not support the selected question mode.");
         var credits = (await db.AccountExamCredits.AsNoTracking()
             .Where(item => item.AccountId == accountId).Select(item => item.Code)
             .ToListAsync(ct)).ToHashSet();
         var catalog = Parse<CatalogQuestion>(profile.CatalogEdition.QuestionsJson);
+        if (!HasEnough(catalog, Parse<ProfilePart>(profile.PartsJson), input.QuestionMode, false))
+            return Invalid("questionMode", "The catalog has too few eligible questions.");
         var parts = Parse<ProfilePart>(profile.PartsJson).Select(rule =>
         {
             var credited = rule.CreditCode != null && credits.Contains(rule.CreditCode);
-            return new SnapshotPart(rule, credited, credited ? [] : catalog
-                .Where(question => question.PartCode == rule.CatalogPartCode)
-                .OrderBy(_ => Random.Shared.Next()).Take(rule.QuestionCount).ToArray());
+            return new SnapshotPart(rule, credited, credited ? [] :
+                ExamQuestionSelection.Select(catalog, rule, input.QuestionMode,
+                    rule.QuestionCount, Random.Shared));
         }).ToArray();
         var now = DateTimeOffset.UtcNow;
         var initialResults = parts.Where(part => part.Credited).Select(part =>
@@ -277,7 +346,8 @@ public static class ExamEndpoints
     {
         if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
         var rows = await db.ExamSimulations.AsNoTracking()
-            .Where(item => item.AccountId == accountId).OrderByDescending(item => item.StartedAtUtc)
+            .Where(item => item.AccountId == accountId && item.SnapshotJson.StartsWith("["))
+            .OrderByDescending(item => item.StartedAtUtc)
             .Take(50).Select(item => new
             {
                 item.Id,
@@ -296,6 +366,7 @@ public static class ExamEndpoints
             .Include(item => item.ProfileVersion).ThenInclude(item => item.CatalogEdition)
             .SingleOrDefaultAsync(item => item.Id == id && item.AccountId == accountId, ct);
         if (simulation == null) return Results.NotFound();
+        if (!simulation.SnapshotJson.StartsWith('[')) return Results.NotFound();
         return Results.Ok(new ApiResponse<SimulationView>(View(simulation, simulation.ProfileVersion,
             Parse<SnapshotPart>(simulation.SnapshotJson))));
     }
@@ -307,6 +378,7 @@ public static class ExamEndpoints
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var simulation = await Locked(db, id, accountId, ct);
         if (simulation == null) return Results.NotFound();
+        if (!simulation.SnapshotJson.StartsWith('[')) return Results.NotFound();
         var parts = Parse<SnapshotPart>(simulation.SnapshotJson);
         if (simulation.CompletedAtUtc != null || simulation.CurrentPartIndex >= parts.Count)
             return Results.Conflict();
@@ -332,6 +404,7 @@ public static class ExamEndpoints
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var simulation = await Locked(db, id, accountId, ct);
         if (simulation == null) return Results.NotFound();
+        if (!simulation.SnapshotJson.StartsWith('[')) return Results.NotFound();
         var parts = Parse<SnapshotPart>(simulation.SnapshotJson);
         if (simulation.CompletedAtUtc != null || simulation.CurrentPartIndex >= parts.Count)
             return Results.Conflict();
@@ -352,6 +425,153 @@ public static class ExamEndpoints
         var profile = await db.ExamProfileVersions.AsNoTracking().Include(item => item.CatalogEdition)
             .SingleAsync(item => item.Id == simulation.ProfileVersionId, ct);
         return Results.Ok(new ApiResponse<SimulationView>(View(simulation, profile, parts)));
+    }
+
+    private static bool ValidMode(string mode, IReadOnlyList<ProfilePart> parts) =>
+        mode == "original" || mode is "variant" or "mixed" &&
+        parts.All(part => part.AllowVariants);
+
+    private static bool HasEnough(IReadOnlyList<CatalogQuestion> catalog,
+        IReadOnlyList<ProfilePart> parts, string mode, bool all) => parts.All(part =>
+        catalog.Where(question => question.PartCode == part.CatalogPartCode &&
+            (mode == "variant" ? question.Kind == "variant" : question.Kind == "original"))
+            .Select(question => question.BaseCode ?? question.Code).Distinct().Count() >=
+            (all ? 1 : part.QuestionCount));
+
+    private static Dictionary<string, int> Answers(ExamSimulation run) =>
+        JsonSerializer.Deserialize<Dictionary<string, int>>(run.AnswersJson, Json)!;
+
+    private static IReadOnlyList<CatalogQuestion> PowerQuestions(PowerSnapshot snapshot) =>
+        snapshot.Parts.SelectMany(part => part.Questions).ToArray();
+
+    private static async Task<IResult> StartPower(StartPowerTestInput input, LearnPipDbContext db,
+        ClaimsPrincipal user, CancellationToken ct)
+    {
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        var profile = await db.ExamProfileVersions.AsNoTracking().Include(item => item.CatalogEdition)
+            .SingleOrDefaultAsync(item => item.Id == input.ProfileVersionId, ct);
+        if (profile == null) return Results.NotFound();
+        var rules = Parse<ProfilePart>(profile.PartsJson);
+        var catalog = Parse<CatalogQuestion>(profile.CatalogEdition.QuestionsJson);
+        if (input.StageSize is < 1 or > 100 || !ValidMode(input.QuestionMode, rules) ||
+            !HasEnough(catalog, rules, input.QuestionMode, true))
+            return Invalid("powerTest", "Choose an available question mode and stage size (1–100).");
+        var snapshot = new PowerSnapshot(input.QuestionMode, input.StageSize, rules.Select(rule =>
+            new SnapshotPart(rule, false, ExamQuestionSelection.Select(catalog, rule,
+                input.QuestionMode, null, Random.Shared))).ToArray());
+        var run = new ExamSimulation
+        {
+            AccountId = accountId,
+            ProfileVersionId = profile.Id,
+            SnapshotJson = JsonSerializer.Serialize(snapshot, Json),
+            CurrentPartIndex = 0
+        };
+        db.ExamSimulations.Add(run);
+        await db.SaveChangesAsync(ct);
+        return Results.Created($"/api/v1/exams/power-tests/{run.Id}",
+            new ApiResponse<PowerView>(PowerViewFor(run, profile, snapshot)));
+    }
+
+    private static async Task<IResult> PowerHistory(LearnPipDbContext db, ClaimsPrincipal user,
+        CancellationToken ct)
+    {
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        var rows = await db.ExamSimulations.AsNoTracking()
+            .Where(item => item.AccountId == accountId && item.SnapshotJson.StartsWith("{"))
+            .OrderByDescending(item => item.StartedAtUtc).Take(50)
+            .Select(item => new
+            {
+                item.Id,
+                item.ProfileVersionId,
+                item.StartedAtUtc,
+                item.CompletedAtUtc
+            }).ToListAsync(ct);
+        return Results.Ok(new ApiResponse<object>(rows));
+    }
+
+    private static async Task<IResult> ReadPower(Guid id, LearnPipDbContext db,
+        ClaimsPrincipal user, CancellationToken ct)
+    {
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        var run = await db.ExamSimulations.AsNoTracking().Include(item => item.ProfileVersion)
+            .ThenInclude(item => item.CatalogEdition)
+            .SingleOrDefaultAsync(item => item.Id == id && item.AccountId == accountId, ct);
+        if (run == null || !run.SnapshotJson.StartsWith('{')) return Results.NotFound();
+        return Results.Ok(new ApiResponse<PowerView>(PowerViewFor(run, run.ProfileVersion,
+            JsonSerializer.Deserialize<PowerSnapshot>(run.SnapshotJson, Json)!)));
+    }
+
+    private static async Task<IResult> AnswerPower(Guid id, string questionCode,
+        AnswerSimulationInput input, LearnPipDbContext db, ClaimsPrincipal user,
+        CancellationToken ct)
+    {
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        var run = await Locked(db, id, accountId, ct);
+        if (run == null || !run.SnapshotJson.StartsWith('{')) return Results.NotFound();
+        if (run.CompletedAtUtc != null) return Results.Conflict();
+        var snapshot = JsonSerializer.Deserialize<PowerSnapshot>(run.SnapshotJson, Json)!;
+        var question = PowerQuestions(snapshot).Skip(run.CurrentPartIndex * snapshot.StageSize)
+            .Take(snapshot.StageSize).SingleOrDefault(item => item.Code == questionCode);
+        if (question == null) return Results.NotFound();
+        if (input.SelectedIndex < 0 || input.SelectedIndex >= question.Answers.Count)
+            return Invalid("selectedIndex", "Choose one of this question's answer indices.");
+        var answers = Answers(run);
+        answers[questionCode] = input.SelectedIndex;
+        run.AnswersJson = JsonSerializer.Serialize(answers, Json);
+        await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> FinishPowerStage(Guid id, LearnPipDbContext db,
+        ClaimsPrincipal user, CancellationToken ct)
+    {
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        var run = await Locked(db, id, accountId, ct);
+        if (run == null || !run.SnapshotJson.StartsWith('{')) return Results.NotFound();
+        if (run.CompletedAtUtc != null) return Results.Conflict();
+        var snapshot = JsonSerializer.Deserialize<PowerSnapshot>(run.SnapshotJson, Json)!;
+        run.CurrentPartIndex++;
+        if (run.CurrentPartIndex * snapshot.StageSize >= PowerQuestions(snapshot).Count)
+            run.CompletedAtUtc = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+        var profile = await db.ExamProfileVersions.AsNoTracking().Include(item => item.CatalogEdition)
+            .SingleAsync(item => item.Id == run.ProfileVersionId, ct);
+        return Results.Ok(new ApiResponse<PowerView>(PowerViewFor(run, profile, snapshot)));
+    }
+
+    private static PowerView PowerViewFor(ExamSimulation run, ExamProfileVersion profile,
+        PowerSnapshot snapshot)
+    {
+        var all = PowerQuestions(snapshot);
+        var answers = Answers(run);
+        var current = run.CompletedAtUtc == null ? all.Skip(run.CurrentPartIndex * snapshot.StageSize)
+            .Take(snapshot.StageSize).ToArray() : [];
+        PowerMistake[] mistakes = run.CompletedAtUtc == null ? [] : snapshot.Parts.SelectMany(part =>
+            part.Questions.Where(question => !answers.TryGetValue(question.Code, out var index) ||
+                index != question.CorrectIndex).Select(question => new PowerMistake(question.Code,
+                    part.Rule.Code, question.Prompt,
+                    answers.TryGetValue(question.Code, out var selected) ?
+                        question.Answers[selected] : null,
+                    question.Answers[question.CorrectIndex]))).ToArray();
+        PowerPartResult[] results = run.CompletedAtUtc == null ? [] : snapshot.Parts.Select(part =>
+            new PowerPartResult(part.Rule.Code, part.Questions.Count(question =>
+                answers.TryGetValue(question.Code, out var selected) &&
+                selected == question.CorrectIndex), part.Questions.Count)).ToArray();
+        return new PowerView(run.Id, profile.Id, profile.Code, profile.CatalogEdition.Revision,
+            snapshot.QuestionMode, run.CurrentPartIndex + 1,
+            (all.Count + snapshot.StageSize - 1) / snapshot.StageSize, run.CompletedAtUtc,
+            current.Select(question => (object)new
+            {
+                question.Code,
+                question.Prompt,
+                question.Answers
+            }).ToArray(), current.Where(question => answers.ContainsKey(question.Code))
+                .ToDictionary(question => question.Code, question => answers[question.Code]),
+            results, mistakes);
     }
 
     private static Task<ExamSimulation?> Locked(LearnPipDbContext db, Guid id, Guid accountId,
@@ -375,7 +595,10 @@ public static class ExamEndpoints
             active?.Rule.Code, active == null ? null :
                 simulation.PartStartedAtUtc.AddMinutes(active.Rule.TimeLimitMinutes),
             visible, results, simulation.CompletedAtUtc == null ? null :
-                ExamScoring.Passed(parts, results));
+                ExamScoring.Passed(parts, results), active == null ?
+                new Dictionary<string, int>() : Answers(simulation).Where(pair =>
+                    active.Questions.Any(question => question.Code == pair.Key))
+                    .ToDictionary(pair => pair.Key, pair => pair.Value));
     }
 
     private static List<T> Parse<T>(string json) => JsonSerializer.Deserialize<List<T>>(json, Json)!;

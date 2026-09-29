@@ -7,6 +7,7 @@ interface Part {
   questionCount: number;
   timeLimitMinutes: number;
   requiredCorrect: number;
+  allowVariants: boolean;
 }
 interface Profile {
   id: string;
@@ -42,6 +43,31 @@ interface Simulation {
   parts: PartResult[];
   passed: boolean | null;
   completedAtUtc: string | null;
+  selectedAnswers: Record<string, number>;
+}
+interface RunSummary {
+  id: string;
+  profileVersionId: string;
+  completedAtUtc: string | null;
+}
+interface PowerTest {
+  id: string;
+  profileCode: string;
+  catalogRevision: string;
+  questionMode: string;
+  stage: number;
+  stages: number;
+  completedAtUtc: string | null;
+  questions: Question[];
+  selectedAnswers: Record<string, number>;
+  parts: { code: string; correct: number; total: number }[];
+  mistakes: {
+    code: string;
+    partCode: string;
+    prompt: string;
+    selectedAnswer: string | null;
+    correctAnswer: string;
+  }[];
 }
 interface Catalog {
   id: string;
@@ -85,7 +111,26 @@ interface Catalog {
           }
         </ul>
       }
+      <label
+        >Fragen
+        <select [(ngModel)]="questionMode">
+          <option value="original">Originalfragen</option>
+          @if (selectedProfile()?.parts?.every((part) => part.allowVariants)) {
+            <option value="variant">Varianten</option>
+            <option value="mixed">Gemischt</option>
+          }
+        </select>
+      </label>
       <button type="button" (click)="start()" [disabled]="!profileId">Simulation starten</button>
+      <p>
+        Die Zeit läuft je Fachteil ab Start auch nach Schließen der Seite weiter. Offene Läufe
+        können fortgesetzt werden.
+      </p>
+      @for (run of simulationHistory(); track run.id) {
+        @if (!run.completedAtUtc) {
+          <button type="button" (click)="resumeSimulation(run.id)">Simulation fortsetzen</button>
+        }
+      }
       @if (simulation(); as run) {
         <h3>Simulation {{ run.profileCode }} · Profilversion {{ run.profileVersion }}</h3>
         <p>Katalogfassung {{ run.catalogRevision }}</p>
@@ -131,6 +176,60 @@ interface Catalog {
             </li>
           }
         </ul>
+      }
+      <h2>Powertest</h2>
+      <p>
+        Alle Fragen des gewählten Profils in Etappen ohne Zeitlimit. Die Fehleranalyse erscheint
+        nach der letzten Etappe.
+      </p>
+      <label
+        >Fragen pro Etappe
+        <input type="number" min="1" max="100" [(ngModel)]="stageSize" />
+      </label>
+      <button type="button" (click)="startPower()" [disabled]="!profileId">
+        Powertest starten
+      </button>
+      @for (run of powerHistory(); track run.id) {
+        @if (!run.completedAtUtc) {
+          <button type="button" (click)="resumePower(run.id)">Powertest fortsetzen</button>
+        }
+      }
+      @if (powerTest(); as run) {
+        <h3>{{ run.profileCode }} · Etappe {{ run.stage }} von {{ run.stages }}</h3>
+        <p>Katalogfassung {{ run.catalogRevision }} · {{ run.questionMode }}</p>
+        @if (!run.completedAtUtc) {
+          @for (question of run.questions; track question.code) {
+            <fieldset>
+              <legend>{{ question.code }} · {{ question.prompt }}</legend>
+              @for (answer of question.answers; track $index) {
+                <label
+                  ><input
+                    type="radio"
+                    [name]="'power-' + question.code"
+                    [checked]="powerChoices[question.code] === $index"
+                    (change)="choosePower(question.code, $index)"
+                  />{{ answer }}</label
+                >
+              }
+            </fieldset>
+          }
+          <button type="button" (click)="finishPower()">Etappe abgeben</button>
+        } @else {
+          <h4>Auswertung je Fachteil</h4>
+          @for (part of run.parts; track part.code) {
+            <p>{{ part.code }}: {{ part.correct }} / {{ part.total }} richtig</p>
+          }
+          <h4>Fehleranalyse</h4>
+          @for (mistake of run.mistakes; track mistake.code) {
+            <p>
+              {{ mistake.partCode }} · {{ mistake.code }}: {{ mistake.prompt }}<br />
+              Gewählt: {{ mistake.selectedAnswer ?? 'keine Antwort' }} · Richtig:
+              {{ mistake.correctAnswer }}
+            </p>
+          } @empty {
+            <p>Alle Fragen richtig beantwortet.</p>
+          }
+        }
       }
       <h3>Bereits bestandene Fachbereiche (Selbstauskunft)</h3>
       @for (code of creditCodes; track code) {
@@ -212,11 +311,17 @@ export class ExamProfiles implements OnInit {
   readonly catalogs = signal<Catalog[]>([]);
   readonly credits = signal<string[]>([]);
   readonly simulation = signal<Simulation | null>(null);
+  readonly simulationHistory = signal<RunSummary[]>([]);
+  readonly powerHistory = signal<RunSummary[]>([]);
+  readonly powerTest = signal<PowerTest | null>(null);
   readonly admin = signal(false);
   readonly message = signal('');
   readonly creditCodes = ['B', 'V', 'T-N', 'T-E', 'T-A'];
   profileId = '';
+  questionMode = 'original';
+  stageSize = 25;
   choices: Record<string, number> = {};
+  powerChoices: Record<string, number> = {};
   catalogJson = '';
   profileJson = '';
 
@@ -227,11 +332,13 @@ export class ExamProfiles implements OnInit {
     return this.profiles().find((item) => item.id === this.profileId);
   }
   async reload(): Promise<void> {
-    const [profiles, catalogs, credits, admin] = await Promise.all([
+    const [profiles, catalogs, credits, admin, simulations, powerTests] = await Promise.all([
       fetch('/api/v1/exams/profiles'),
       fetch('/api/v1/exams/catalogs'),
       fetch('/api/v1/exams/credits'),
       fetch('/api/v1/exams/admin/'),
+      fetch('/api/v1/exams/simulations'),
+      fetch('/api/v1/exams/power-tests'),
     ]);
     if (profiles.ok) this.profiles.set(((await profiles.json()) as { data: Profile[] }).data);
     if (catalogs.ok) this.catalogs.set(((await catalogs.json()) as { data: Catalog[] }).data);
@@ -240,6 +347,10 @@ export class ExamProfiles implements OnInit {
         ((await credits.json()) as { data: { code: string }[] }).data.map((item) => item.code),
       );
     this.admin.set(admin.ok);
+    if (simulations.ok)
+      this.simulationHistory.set(((await simulations.json()) as { data: RunSummary[] }).data);
+    if (powerTests.ok)
+      this.powerHistory.set(((await powerTests.json()) as { data: RunSummary[] }).data);
   }
   private async post(path: string, body: object): Promise<Response> {
     return fetch(path, {
@@ -251,10 +362,12 @@ export class ExamProfiles implements OnInit {
   async start(): Promise<void> {
     const response = await this.post('/api/v1/exams/simulations', {
       profileVersionId: this.profileId,
+      questionMode: this.questionMode,
     });
     if (response.ok) {
       this.simulation.set(((await response.json()) as { data: Simulation }).data);
-      this.choices = {};
+      this.choices = this.simulation()!.selectedAnswers;
+      await this.reload();
     } else this.message.set(`Simulation konnte nicht gestartet werden (${response.status}).`);
   }
   async choose(code: string, index: number): Promise<void> {
@@ -280,8 +393,63 @@ export class ExamProfiles implements OnInit {
     );
     if (response.ok) {
       this.simulation.set(((await response.json()) as { data: Simulation }).data);
-      this.choices = {};
+      this.choices = this.simulation()!.selectedAnswers;
+      await this.reload();
     } else this.message.set(`Fachteil konnte nicht abgeschlossen werden (${response.status}).`);
+  }
+  async resumeSimulation(id: string): Promise<void> {
+    const response = await fetch(`/api/v1/exams/simulations/${id}`);
+    if (response.ok) {
+      const run = ((await response.json()) as { data: Simulation }).data;
+      this.simulation.set(run);
+      this.choices = run.selectedAnswers;
+    }
+  }
+  async startPower(): Promise<void> {
+    const response = await this.post('/api/v1/exams/power-tests', {
+      profileVersionId: this.profileId,
+      questionMode: this.questionMode,
+      stageSize: this.stageSize,
+    });
+    if (response.ok) {
+      const run = ((await response.json()) as { data: PowerTest }).data;
+      this.powerTest.set(run);
+      this.powerChoices = run.selectedAnswers;
+      await this.reload();
+    } else this.message.set(`Powertest konnte nicht gestartet werden (${response.status}).`);
+  }
+  async resumePower(id: string): Promise<void> {
+    const response = await fetch(`/api/v1/exams/power-tests/${id}`);
+    if (response.ok) {
+      const run = ((await response.json()) as { data: PowerTest }).data;
+      this.powerTest.set(run);
+      this.powerChoices = run.selectedAnswers;
+    }
+  }
+  async choosePower(code: string, index: number): Promise<void> {
+    const run = this.powerTest();
+    if (!run) return;
+    const response = await fetch(
+      `/api/v1/exams/power-tests/${run.id}/answers/${encodeURIComponent(code)}`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ selectedIndex: index }),
+      },
+    );
+    if (response.ok) this.powerChoices[code] = index;
+    else this.message.set(`Antwort konnte nicht gespeichert werden (${response.status}).`);
+  }
+  async finishPower(): Promise<void> {
+    const run = this.powerTest();
+    if (!run) return;
+    const response = await this.post(`/api/v1/exams/power-tests/${run.id}/stages/finish`, {});
+    if (response.ok) {
+      const next = ((await response.json()) as { data: PowerTest }).data;
+      this.powerTest.set(next);
+      this.powerChoices = next.selectedAnswers;
+      await this.reload();
+    } else this.message.set(`Etappe konnte nicht abgeschlossen werden (${response.status}).`);
   }
   async toggleCredit(code: string): Promise<void> {
     const enabled = this.credits().includes(code);
