@@ -5,6 +5,8 @@ namespace LearnPip.Data;
 
 public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> options) : DbContext(options)
 {
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+    public DbSet<AdministrationAuditEvent> AdministrationAuditEvents => Set<AdministrationAuditEvent>();
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<ExternalIdentity> ExternalIdentities => Set<ExternalIdentity>();
     public DbSet<RoleDefinition> Roles => Set<RoleDefinition>();
@@ -26,6 +28,24 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<SystemSetting>(entity =>
+        {
+            entity.HasKey(x => x.Key);
+            entity.Property(x => x.Key).HasMaxLength(80);
+            entity.Property(x => x.Value).HasMaxLength(1000).IsRequired();
+        });
+        modelBuilder.Entity<AdministrationAuditEvent>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Action).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Target).HasMaxLength(160).IsRequired();
+            entity.Property(x => x.PreviousValue).HasMaxLength(1000);
+            entity.Property(x => x.NewValue).HasMaxLength(1000);
+            entity.HasIndex(x => x.CreatedAtUtc);
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.ActorAccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<Account>(entity =>
         {
             entity.HasKey(x => x.Id);

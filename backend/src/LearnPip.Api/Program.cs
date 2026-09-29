@@ -1,6 +1,7 @@
 using System.Threading.RateLimiting;
 using LearnPip.Api;
 using LearnPip.Api.Identity;
+using LearnPip.Api.Administration;
 using LearnPip.Api.Security;
 using LearnPip.Data;
 using Microsoft.AspNetCore.RateLimiting;
@@ -16,6 +17,7 @@ builder.Services.AddProblemDetails(options =>
         context.ProblemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier);
 
 builder.Services.AddScoped<IdentityService>();
+builder.Services.AddScoped<AdministrationService>();
 builder.Services.AddScoped<SessionService>();
 builder.Services.AddSingleton<IEmailCodeSender, SmtpEmailCodeSender>();
 builder.Services.AddAuthentication(SessionAuthentication.Scheme)
@@ -78,12 +80,23 @@ app.MapGet("/health/ready", async (LearnPipDbContext dbContext, CancellationToke
     .WithName("Readiness");
 app.MapV1Endpoints();
 app.MapAuthEndpoints();
+app.MapAdministrationEndpoints();
 
 if (args.Contains("--migrate", StringComparer.OrdinalIgnoreCase))
 {
     await using var scope = app.Services.CreateAsyncScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<LearnPipDbContext>();
     await dbContext.Database.MigrateAsync();
+    return;
+}
+
+if (args.Contains("--bootstrap-admin", StringComparer.OrdinalIgnoreCase))
+{
+    if (args.Length != 1 ||
+        !Guid.TryParse(builder.Configuration["Authentication:BootstrapAdminAccountId"], out var accountId))
+        throw new InvalidOperationException("Set Authentication__BootstrapAdminAccountId to an existing account UUID and pass only --bootstrap-admin.");
+    await using var scope = app.Services.CreateAsyncScope();
+    await scope.ServiceProvider.GetRequiredService<AdministrationService>().BootstrapAsync(accountId);
     return;
 }
 

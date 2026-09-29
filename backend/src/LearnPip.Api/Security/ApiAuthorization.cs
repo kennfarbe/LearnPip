@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using LearnPip.Data;
+using LearnPip.Api.Identity;
 using LearnPip.Data.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -42,7 +43,7 @@ public static class ApiAuthorization
             options.AddPolicy(ApiPolicies.Moderation, policy =>
                 policy.RequireAuthenticatedUser().AddRequirements(new SystemRoleRequirement("moderator")));
             options.AddPolicy(ApiPolicies.Admin, policy =>
-                policy.RequireAuthenticatedUser().AddRequirements(new SystemRoleRequirement("admin")));
+                policy.RequireAuthenticatedUser().AddRequirements(new SystemRoleRequirement("admin")).AddRequirements(new FreshAdminSessionRequirement()));
         });
         services.AddScoped<IAuthorizationHandler, ResourceAuthorizationHandler>();
         return services;
@@ -54,6 +55,7 @@ public sealed record QuestionReadRequirement : IAuthorizationRequirement;
 public sealed record MediaReadRequirement : IAuthorizationRequirement;
 public sealed record GroupReadRequirement : IAuthorizationRequirement;
 public sealed record SystemRoleRequirement(string Code) : IAuthorizationRequirement;
+public sealed record FreshAdminSessionRequirement : IAuthorizationRequirement;
 
 public sealed class ResourceAuthorizationHandler(LearnPipDbContext dbContext) :
     IAuthorizationHandler
@@ -99,6 +101,14 @@ public sealed class ResourceAuthorizationHandler(LearnPipDbContext dbContext) :
                     (group.OwnerAccountId == accountId ||
                      await dbContext.GroupMemberships.AsNoTracking()
                          .AnyAsync(member => member.StudyGroupId == group.Id && member.AccountId == accountId)):
+                    context.Succeed(requirement);
+                    break;
+                case FreshAdminSessionRequirement when
+                    SessionAuthentication.TryGetSessionId(context.User, out var sessionId) &&
+                    await dbContext.AccountSessions.AsNoTracking().AnyAsync(session =>
+                        session.Id == sessionId && session.AccountId == accountId &&
+                        session.RevokedAtUtc == null && session.ExpiresAtUtc > DateTimeOffset.UtcNow &&
+                        session.CreatedAtUtc >= DateTimeOffset.UtcNow.AddMinutes(-15)):
                     context.Succeed(requirement);
                     break;
                 case SystemRoleRequirement role when
