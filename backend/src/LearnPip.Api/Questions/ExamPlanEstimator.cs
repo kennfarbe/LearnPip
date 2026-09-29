@@ -82,9 +82,9 @@ public static class ExamPlanEstimator
             start, school, breaks, 0.6);
         var neededForTarget = (int)Math.Ceiling(scope * target / 100.0);
         var feasible = scope > 0 && mastered + expected >= neededForTarget && minutes <= cap;
-        var suggestedMinutes = feasible ? null : MinimumMinutes(Math.Max(0, neededForTarget - mastered),
+        int? suggestedMinutes = feasible ? null : MinimumMinutes(Math.Max(0, neededForTarget - mastered),
             scope - mastered, days, cap, start, school, breaks);
-        var suggestedScope = feasible ? null : Math.Min(scope, target == 0 ? scope :
+        int? suggestedScope = feasible ? null : Math.Min(scope, target == 0 ? scope :
             (int)Math.Floor((mastered + expected) * 100.0 / target));
         DateOnly? suggestedDate = null;
         if (!feasible && minutes > 0 && days < 365 &&
