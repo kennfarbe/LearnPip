@@ -129,9 +129,9 @@ public sealed class ApiV1Tests
                     });
                 });
 
-            using (var scope = factory.Services.CreateScope())
+            using (var dbScope = factory.Services.CreateScope())
             {
-                var apiDb = scope.ServiceProvider.GetRequiredService<LearnPipDbContext>();
+                var apiDb = dbScope.ServiceProvider.GetRequiredService<LearnPipDbContext>();
                 Assert.Equal(databaseName, apiDb.Database.GetDbConnection().Database);
             }
 
