@@ -445,6 +445,28 @@ namespace LearnPip.Data.Migrations
                     b.ToTable("QuestionObjectives");
                 });
 
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionContentBlock", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<Guid?>("QuestionVersionId").HasColumnType("uuid");
+                    b.Property<Guid?>("AnswerOptionId").HasColumnType("uuid");
+                    b.Property<string>("Section").IsRequired().HasMaxLength(16).HasColumnType("character varying(16)");
+                    b.Property<int>("SortOrder").HasColumnType("integer");
+                    b.Property<string>("Kind").IsRequired().HasMaxLength(16).HasColumnType("character varying(16)");
+                    b.Property<string>("Text").HasMaxLength(4000).HasColumnType("character varying(4000)");
+                    b.Property<Guid?>("MediaAssetId").HasColumnType("uuid");
+                    b.HasKey("Id");
+                    b.HasIndex("QuestionVersionId", "Section", "SortOrder").IsUnique()
+                        .HasFilter("\"QuestionVersionId\" IS NOT NULL");
+                    b.HasIndex("AnswerOptionId", "SortOrder").IsUnique()
+                        .HasFilter("\"AnswerOptionId\" IS NOT NULL");
+                    b.HasIndex("MediaAssetId");
+                    b.ToTable("QuestionContentBlocks", t =>
+                        t.HasCheckConstraint("CK_QuestionContentBlocks_Owner",
+                            "(\"QuestionVersionId\" IS NOT NULL AND \"AnswerOptionId\" IS NULL) OR " +
+                            "(\"QuestionVersionId\" IS NULL AND \"AnswerOptionId\" IS NOT NULL)"));
+                });
+
             modelBuilder.Entity("LearnPip.Data.Domain.QuestionVersion", b =>
                 {
                     b.Property<Guid>("Id")
@@ -471,6 +493,14 @@ namespace LearnPip.Data.Migrations
 
                     b.Property<int>("VersionNumber")
                         .HasColumnType("integer");
+
+                    b.Property<string>("SelectionMode").IsRequired().HasMaxLength(16).HasColumnType("character varying(16)");
+                    b.Property<string>("Subject").IsRequired().HasMaxLength(120).HasColumnType("character varying(120)");
+                    b.Property<string>("Topic").IsRequired().HasMaxLength(120).HasColumnType("character varying(120)");
+                    b.Property<string>("Language").IsRequired().HasMaxLength(35).HasColumnType("character varying(35)");
+                    b.Property<string>("Source").IsRequired().HasMaxLength(500).HasColumnType("character varying(500)");
+                    b.Property<string>("License").IsRequired().HasMaxLength(120).HasColumnType("character varying(120)");
+                    b.Property<DateTimeOffset>("PublishedAtUtc").HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -509,6 +539,15 @@ namespace LearnPip.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Roles");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.StudyAttemptSelection", b =>
+                {
+                    b.Property<Guid>("StudyAttemptId").HasColumnType("uuid");
+                    b.Property<Guid>("AnswerOptionId").HasColumnType("uuid");
+                    b.HasKey("StudyAttemptId", "AnswerOptionId");
+                    b.HasIndex("AnswerOptionId");
+                    b.ToTable("StudyAttemptSelections");
                 });
 
             modelBuilder.Entity("LearnPip.Data.Domain.StudyAttempt", b =>
@@ -786,6 +825,19 @@ namespace LearnPip.Data.Migrations
                     b.Navigation("Question");
                 });
 
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionContentBlock", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.QuestionVersion", "QuestionVersion")
+                        .WithMany("Blocks").HasForeignKey("QuestionVersionId").OnDelete(DeleteBehavior.Restrict);
+                    b.HasOne("LearnPip.Data.Domain.AnswerOption", "AnswerOption")
+                        .WithMany("Blocks").HasForeignKey("AnswerOptionId").OnDelete(DeleteBehavior.Restrict);
+                    b.HasOne("LearnPip.Data.Domain.MediaAsset", "MediaAsset")
+                        .WithMany().HasForeignKey("MediaAssetId").OnDelete(DeleteBehavior.Restrict);
+                    b.Navigation("QuestionVersion");
+                    b.Navigation("AnswerOption");
+                    b.Navigation("MediaAsset");
+                });
+
             modelBuilder.Entity("LearnPip.Data.Domain.QuestionVersion", b =>
                 {
                     b.HasOne("LearnPip.Data.Domain.Account", "CreatedBy")
@@ -803,6 +855,18 @@ namespace LearnPip.Data.Migrations
                     b.Navigation("CreatedBy");
 
                     b.Navigation("Question");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.StudyAttemptSelection", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.StudyAttempt", "StudyAttempt")
+                        .WithMany("Selections").HasForeignKey("StudyAttemptId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
+                    b.HasOne("LearnPip.Data.Domain.AnswerOption", "AnswerOption")
+                        .WithMany().HasForeignKey("AnswerOptionId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.Navigation("StudyAttempt");
+                    b.Navigation("AnswerOption");
                 });
 
             modelBuilder.Entity("LearnPip.Data.Domain.StudyAttempt", b =>
@@ -863,8 +927,19 @@ namespace LearnPip.Data.Migrations
                     b.Navigation("Versions");
                 });
 
+            modelBuilder.Entity("LearnPip.Data.Domain.AnswerOption", b =>
+                {
+                    b.Navigation("Blocks");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.StudyAttempt", b =>
+                {
+                    b.Navigation("Selections");
+                });
+
             modelBuilder.Entity("LearnPip.Data.Domain.QuestionVersion", b =>
                 {
+                    b.Navigation("Blocks");
                     b.Navigation("AnswerOptions");
 
                     b.Navigation("MediaAssets");

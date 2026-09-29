@@ -14,10 +14,12 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
     public DbSet<Question> Questions => Set<Question>();
     public DbSet<QuestionVersion> QuestionVersions => Set<QuestionVersion>();
     public DbSet<AnswerOption> AnswerOptions => Set<AnswerOption>();
+    public DbSet<QuestionContentBlock> QuestionContentBlocks => Set<QuestionContentBlock>();
     public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
     public DbSet<MediaBlob> MediaBlobs => Set<MediaBlob>();
     public DbSet<StudySession> StudySessions => Set<StudySession>();
     public DbSet<StudyAttempt> StudyAttempts => Set<StudyAttempt>();
+    public DbSet<StudyAttemptSelection> StudyAttemptSelections => Set<StudyAttemptSelection>();
     public DbSet<ExamObjective> ExamObjectives => Set<ExamObjective>();
     public DbSet<QuestionObjective> QuestionObjectives => Set<QuestionObjective>();
     public DbSet<StudyGroup> StudyGroups => Set<StudyGroup>();
@@ -129,6 +131,12 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Prompt).HasMaxLength(12000).IsRequired();
             entity.Property(x => x.Explanation).HasMaxLength(12000);
+            entity.Property(x => x.SelectionMode).HasMaxLength(16).IsRequired();
+            entity.Property(x => x.Subject).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.Topic).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.Language).HasMaxLength(35).IsRequired();
+            entity.Property(x => x.Source).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.License).HasMaxLength(120).IsRequired();
             entity.HasIndex(x => new { x.QuestionId, x.VersionNumber }).IsUnique();
             entity.HasOne(x => x.Question).WithMany(x => x.Versions)
                 .HasForeignKey(x => x.QuestionId).OnDelete(DeleteBehavior.Restrict);
@@ -143,6 +151,27 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
             entity.HasIndex(x => new { x.QuestionVersionId, x.SortOrder }).IsUnique();
             entity.HasOne(x => x.QuestionVersion).WithMany(x => x.AnswerOptions)
                 .HasForeignKey(x => x.QuestionVersionId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<QuestionContentBlock>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Section).HasMaxLength(16).IsRequired();
+            entity.Property(x => x.Kind).HasMaxLength(16).IsRequired();
+            entity.Property(x => x.Text).HasMaxLength(4000);
+            entity.HasIndex(x => new { x.QuestionVersionId, x.Section, x.SortOrder })
+                .IsUnique().HasFilter("\"QuestionVersionId\" IS NOT NULL");
+            entity.HasIndex(x => new { x.AnswerOptionId, x.SortOrder })
+                .IsUnique().HasFilter("\"AnswerOptionId\" IS NOT NULL");
+            entity.HasOne(x => x.QuestionVersion).WithMany(x => x.Blocks)
+                .HasForeignKey(x => x.QuestionVersionId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.AnswerOption).WithMany(x => x.Blocks)
+                .HasForeignKey(x => x.AnswerOptionId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.MediaAsset).WithMany()
+                .HasForeignKey(x => x.MediaAssetId).OnDelete(DeleteBehavior.Restrict);
+            entity.ToTable(table => table.HasCheckConstraint("CK_QuestionContentBlocks_Owner",
+                "(\"QuestionVersionId\" IS NOT NULL AND \"AnswerOptionId\" IS NULL) OR " +
+                "(\"QuestionVersionId\" IS NULL AND \"AnswerOptionId\" IS NOT NULL)"));
         });
 
         modelBuilder.Entity<MediaAsset>(entity =>
@@ -183,6 +212,15 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
                 .HasForeignKey(x => x.StudySessionId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(x => x.QuestionVersion).WithMany().HasForeignKey(x => x.QuestionVersionId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<StudyAttemptSelection>(entity =>
+        {
+            entity.HasKey(x => new { x.StudyAttemptId, x.AnswerOptionId });
+            entity.HasOne(x => x.StudyAttempt).WithMany(x => x.Selections)
+                .HasForeignKey(x => x.StudyAttemptId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.AnswerOption).WithMany()
+                .HasForeignKey(x => x.AnswerOptionId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<ExamObjective>(entity =>

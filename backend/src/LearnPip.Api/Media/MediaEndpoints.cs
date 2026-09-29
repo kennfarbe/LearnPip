@@ -85,6 +85,8 @@ public static class MediaEndpoints
     {
         var asset = await AuthorizedAsset(id, db, authorization, user, cancellationToken);
         if (asset == null) return Results.NotFound();
+        if (await db.QuestionContentBlocks.AnyAsync(block => block.MediaAssetId == id,
+                cancellationToken)) return Results.Conflict(new { error = "image_in_published_question" });
         store.Remove(asset);
         await db.SaveChangesAsync(cancellationToken);
         return Results.NoContent();

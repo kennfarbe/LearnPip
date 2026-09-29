@@ -59,6 +59,14 @@ public sealed class QuestionVersion
     public int VersionNumber { get; set; }
     public string Prompt { get; set; } = string.Empty;
     public string? Explanation { get; set; }
+    public string SelectionMode { get; set; } = "single";
+    public string Subject { get; set; } = string.Empty;
+    public string Topic { get; set; } = string.Empty;
+    public string Language { get; set; } = "de";
+    public string Source { get; set; } = string.Empty;
+    public string License { get; set; } = string.Empty;
+    public DateTimeOffset PublishedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+    public ICollection<QuestionContentBlock> Blocks { get; set; } = [];
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
     public Question Question { get; set; } = null!;
     public Account CreatedBy { get; set; } = null!;
@@ -74,6 +82,22 @@ public sealed class AnswerOption
     public bool IsCorrect { get; set; }
     public int SortOrder { get; set; }
     public QuestionVersion QuestionVersion { get; set; } = null!;
+    public ICollection<QuestionContentBlock> Blocks { get; set; } = [];
+}
+
+public sealed class QuestionContentBlock
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid? QuestionVersionId { get; set; }
+    public Guid? AnswerOptionId { get; set; }
+    public string Section { get; set; } = string.Empty;
+    public int SortOrder { get; set; }
+    public string Kind { get; set; } = string.Empty;
+    public string? Text { get; set; }
+    public Guid? MediaAssetId { get; set; }
+    public QuestionVersion? QuestionVersion { get; set; }
+    public AnswerOption? AnswerOption { get; set; }
+    public MediaAsset? MediaAsset { get; set; }
 }
 
 public sealed class MediaAsset
@@ -110,6 +134,15 @@ public sealed class StudyAttempt
     public DateTimeOffset AnsweredAtUtc { get; set; } = DateTimeOffset.UtcNow;
     public StudySession StudySession { get; set; } = null!;
     public QuestionVersion QuestionVersion { get; set; } = null!;
+    public ICollection<StudyAttemptSelection> Selections { get; set; } = [];
+}
+
+public sealed class StudyAttemptSelection
+{
+    public Guid StudyAttemptId { get; set; }
+    public Guid AnswerOptionId { get; set; }
+    public StudyAttempt StudyAttempt { get; set; } = null!;
+    public AnswerOption AnswerOption { get; set; } = null!;
 }
 
 public sealed class ExamObjective

@@ -68,3 +68,13 @@ Die Tabelle `MediaBlobs` speichert sanitisierte JPEG-/PNG-Bytes zu genau einem
 Die API liefert Bytes nur nach Besitzerprüfung aus; beim Löschen des Assets entfernt
 der Fremdschlüssel mit `ON DELETE CASCADE` die Bytes in derselben Transaktion.
 Datenbanksicherungen enthalten damit auch alle privaten Bilder.
+
+## Fragefassungen (LP-13)
+
+`QuestionVersions` enthalten Auswahlmodus, Fach, Thema, Sprache, Herkunft, Lizenz
+und Veröffentlichungszeitpunkt. `QuestionContentBlocks` ordnen Text und private
+Bildreferenzen in Frage, Erklärung und jede Antwort ein. Veröffentlichungen fügen
+eine neue Versionsnummer hinzu und bearbeiten keine alte Fassung.
+`StudyAttemptSelections` speichert jede gewählte Antwort-ID pro Versuch zusätzlich
+zum Korrektheitswert und der Version. Eine spätere Lösungsänderung verändert damit
+weder die ursprüngliche Lösung noch die damalige Auswahl oder Bewertung.

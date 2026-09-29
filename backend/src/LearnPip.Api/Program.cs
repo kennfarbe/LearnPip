@@ -3,6 +3,7 @@ using LearnPip.Api;
 using LearnPip.Api.Administration;
 using LearnPip.Api.Identity;
 using LearnPip.Api.Media;
+using LearnPip.Api.Questions;
 using LearnPip.Api.Security;
 using LearnPip.Data;
 using Microsoft.AspNetCore.RateLimiting;
@@ -103,6 +104,7 @@ app.MapGet("/health/ready", async (LearnPipDbContext dbContext, CancellationToke
 app.MapV1Endpoints();
 app.MapAuthEndpoints();
 app.MapMediaEndpoints();
+app.MapQuestionEndpoints();
 app.MapAdministrationEndpoints();
 
 if (args.Contains("--migrate", StringComparer.OrdinalIgnoreCase))
