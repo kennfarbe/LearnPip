@@ -51,7 +51,7 @@ public static class AiPolicy
 
     private static bool LocalUri(Uri uri)
     {
-        if (uri.Scheme is not (Uri.UriSchemeHttps or Uri.UriSchemeHttp)) return false;
+        if (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp) return false;
         if (uri.Host is "localhost" or "127.0.0.1" or "::1") return true;
         if (!uri.Host.Contains('.') && uri.Host.All(character =>
                 char.IsAsciiLetterOrDigit(character) || character == '-')) return true;
