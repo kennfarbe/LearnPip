@@ -1,0 +1,154 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.page-shell {
+  width: min(100% - 2rem, 68rem);
+  margin: 0 auto;
+  padding: 1.5rem 0 2rem;
+}
+
+.site-header,
+.brand,
+.site-footer {
+  display: flex;
+  align-items: center;
+}
+
+.site-header {
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e6e9e3;
+}
+
+.brand {
+  gap: 0.65rem;
+  color: #1d3a32;
+  font-size: 1.2rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.brand-mark {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 0.7rem;
+  background: #d7f0d5;
+  color: #205d45;
+}
+
+.phase-label,
+.eyebrow,
+.step-number {
+  color: #39785e;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero {
+  max-width: 49rem;
+  padding: clamp(3rem, 8vw, 6.5rem) 0 3.5rem;
+}
+
+.eyebrow {
+  margin: 0 0 1rem;
+}
+
+h1 {
+  max-width: 12ch;
+  margin: 0;
+  color: #1d3a32;
+  font-size: clamp(2.7rem, 7vw, 5.2rem);
+  font-weight: 720;
+  letter-spacing: -0.055em;
+  line-height: 0.98;
+}
+
+.intro {
+  max-width: 42rem;
+  margin: 1.5rem 0 0;
+  color: #52635c;
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  line-height: 1.7;
+}
+
+.status-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 1.6rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #dfe9df;
+  border-radius: 0.7rem;
+  background: #fff;
+  color: #345146;
+  font-size: 0.92rem;
+}
+
+.status-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: #d3913c;
+}
+
+.next-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.next-steps article {
+  min-height: 10rem;
+  padding: 1.25rem;
+  border: 1px solid #e6e9e3;
+  border-radius: 0.9rem;
+  background: #fff;
+}
+
+.step-number {
+  font-size: 0.72rem;
+}
+
+h2 {
+  margin: 1.15rem 0 0.45rem;
+  color: #1d3a32;
+  font-size: 1.1rem;
+}
+
+.next-steps p {
+  margin: 0;
+  color: #65746e;
+  line-height: 1.55;
+}
+
+.site-footer {
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e6e9e3;
+  color: #718078;
+  font-size: 0.82rem;
+}
+
+@media (max-width: 42rem) {
+  .next-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .next-steps article {
+    min-height: 0;
+  }
+
+  .site-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

@@ -5,7 +5,7 @@
 
 LearnPip ist ein geplantes Open-Source-Projekt für kurze, regelmäßige Lerneinheiten. Lernende sollen eigene Fragen erstellen, in kleinen Schritten üben und ihren Fortschritt nachvollziehen können. Der Quellcode und die Entwicklung finden öffentlich in diesem Repository statt.
 
-> **Projektstatus:** Konzept- und Aufbauphase. Dieses Repository enthält derzeit noch keine lauffähige Anwendung. Die hier beschriebenen Funktionen sind Ziele, keine bereits verfügbaren Produktfunktionen.
+> **Projektstatus:** Konzept- und Aufbauphase. Das Repository enthält inzwischen ein startbares technisches Grundgerüst, aber noch keine nutzbare Lernfunktion. Die hier beschriebenen Produktfunktionen sind Ziele, keine bereits verfügbaren Funktionen.
 
 ## Für wen ist LearnPip gedacht?
 
@@ -42,13 +42,11 @@ Die folgenden Bereiche sind für spätere Ausbaustufen geplant; aktuell gibt es 
 
 Die Code-Lizenz erteilt keine Rechte an hochgeladenen Aufgaben, Antworten, Erklärungen, Fotos oder anderen Nutzerinhalten. Öffentliche Inhalte benötigen eine gesonderte, verständliche Freigabe und Lizenzentscheidung.
 
-Die geplanten Datenarten, Datenflüsse, Sichtbarkeiten und offenen Datenschutzentscheidungen sind im [Datenschutz- und Inhaltskonzept](docs/privacy/README.md) dokumentiert. Es beschreibt Zielregeln für die spätere Umsetzung; es ist keine Datenschutzerklärung für einen bereits betriebenen Dienst.
-
 ## Technischer Ansatz
 
 Geplant ist ein gemeinsames Repository mit getrennten Projekten und Docker-Images für eine ASP.NET-Core-API auf .NET 10, einen Hintergrunddienst und ein Angular-Webfrontend. PostgreSQL soll die Daten speichern. Die Anmeldung soll OpenID Connect für externe Identitätsanbieter unterstützen; weitere Zugangswege für die persönliche Nutzung sind vorgesehen. Eine versionierte API soll später auch von einer mobilen App genutzt werden können.
 
-Der technische Aufbau wird in den zugehörigen Issues konkretisiert; derzeit ist noch keiner dieser Dienste implementiert.
+Der technische Aufbau und die ersten Architekturentscheidungen stehen in den [ADRs](docs/architecture/README.md). Den lokalen Stack kannst du mit der [Entwicklungsanleitung](docs/DEVELOPMENT.md) starten. Das Grundgerüst enthält noch keine Lern-, Anmelde- oder Inhaltsverwaltung.
 
 ## Roadmap
 
