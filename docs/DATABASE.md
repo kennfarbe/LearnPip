@@ -80,6 +80,15 @@ einmalig gemischte Reihenfolge der Frageversionen und Antwortoptionen sowie den
 Status `pending`, `answered` oder `skipped`. Bisherige Einzelversuche ohne Plan
 bleiben gültig. Ein übersprungener Eintrag hat keinen `StudyAttempt`.
 
+`LearningContents` bündelt eigene Fragevarianten über `Questions.LearningContentId`.
+Die Migration legt für vorhandene Fragen zunächst je einen Inhalt an.
+`FrequentLearningContents` speichert die persönliche Markierung getrennt vom
+Lernstand. `StudyAttempts.WasGuessed` und `ExplanationViewedAtUtc` halten
+Unsicherheit und den erstmaligen Erklärungsabruf fest. Der Wiederholungszustand
+wird aus den zeitlich sortierten Versuchen und Erklärungsereignissen berechnet,
+nicht als veränderliche Quote gespeichert. Dadurch zählen mehrere Varianten
+bei der Zielquote als ein Lerninhalt.
+
 `StudyAttemptSelections` speichert jede gewählte Antwort-ID pro Versuch zusätzlich
 zum Korrektheitswert und der Version. Eine spätere Lösungsänderung verändert damit
 weder die ursprüngliche Lösung noch die damalige Auswahl oder Bewertung.

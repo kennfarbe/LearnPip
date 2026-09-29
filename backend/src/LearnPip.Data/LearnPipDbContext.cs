@@ -14,6 +14,8 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
     public DbSet<PrivateCatalog> PrivateCatalogs => Set<PrivateCatalog>();
     public DbSet<QuestionDraft> QuestionDrafts => Set<QuestionDraft>();
     public DbSet<Question> Questions => Set<Question>();
+    public DbSet<LearningContent> LearningContents => Set<LearningContent>();
+    public DbSet<FrequentLearningContent> FrequentLearningContents => Set<FrequentLearningContent>();
     public DbSet<QuestionVersion> QuestionVersions => Set<QuestionVersion>();
     public DbSet<AnswerOption> AnswerOptions => Set<AnswerOption>();
     public DbSet<QuestionContentBlock> QuestionContentBlocks => Set<QuestionContentBlock>();
@@ -135,6 +137,24 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
                 .HasForeignKey<QuestionDraft>(x => x.QuestionId).OnDelete(DeleteBehavior.Cascade);
         });
 
+        modelBuilder.Entity<LearningContent>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Title).HasMaxLength(120).IsRequired();
+            entity.HasIndex(x => x.OwnerAccountId);
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.OwnerAccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<FrequentLearningContent>(entity =>
+        {
+            entity.HasKey(x => new { x.AccountId, x.LearningContentId });
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.AccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.LearningContent).WithMany()
+                .HasForeignKey(x => x.LearningContentId).OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<Question>(entity =>
         {
             entity.HasKey(x => x.Id);
@@ -143,6 +163,8 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
             entity.Property(x => x.UpdatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.HasOne(x => x.Owner).WithMany(x => x.Questions)
                 .HasForeignKey(x => x.OwnerAccountId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.LearningContent).WithMany(x => x.Questions)
+                .HasForeignKey(x => x.LearningContentId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.PrivateCatalog).WithMany(x => x.Questions)
                 .HasForeignKey(x => x.PrivateCatalogId).OnDelete(DeleteBehavior.SetNull);
         });

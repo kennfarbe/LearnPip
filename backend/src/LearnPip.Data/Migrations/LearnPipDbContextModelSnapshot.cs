@@ -413,6 +413,27 @@ namespace LearnPip.Data.Migrations
                     b.ToTable("PrivateCatalogs");
                 });
 
+            modelBuilder.Entity("LearnPip.Data.Domain.LearningContent", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<Guid>("OwnerAccountId").HasColumnType("uuid");
+                    b.Property<string>("Title").IsRequired().HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+                    b.HasKey("Id");
+                    b.HasIndex("OwnerAccountId");
+                    b.ToTable("LearningContents");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.FrequentLearningContent", b =>
+                {
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<Guid>("LearningContentId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("AccountId", "LearningContentId");
+                    b.HasIndex("LearningContentId");
+                    b.ToTable("FrequentLearningContents");
+                });
+
             modelBuilder.Entity("LearnPip.Data.Domain.QuestionDraft", b =>
                 {
                     b.Property<Guid>("QuestionId").HasColumnType("uuid");
@@ -439,6 +460,8 @@ namespace LearnPip.Data.Migrations
 
                     b.Property<Guid?>("PrivateCatalogId").HasColumnType("uuid");
 
+                    b.Property<Guid?>("LearningContentId").HasColumnType("uuid");
+
                     b.Property<Guid>("OwnerAccountId")
                         .HasColumnType("uuid");
 
@@ -452,6 +475,8 @@ namespace LearnPip.Data.Migrations
                     b.HasIndex("OwnerAccountId", "UpdatedAtUtc");
 
                     b.HasIndex("PrivateCatalogId");
+
+                    b.HasIndex("LearningContentId");
 
                     b.ToTable("Questions");
                 });
@@ -587,6 +612,12 @@ namespace LearnPip.Data.Migrations
 
                     b.Property<bool>("IsCorrect")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("WasGuessed")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("ExplanationViewedAtUtc")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("QuestionVersionId")
                         .HasColumnType("uuid");
@@ -832,6 +863,24 @@ namespace LearnPip.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict).IsRequired();
                 });
 
+            modelBuilder.Entity("LearnPip.Data.Domain.LearningContent", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("OwnerAccountId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.FrequentLearningContent", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
+                    b.HasOne("LearnPip.Data.Domain.LearningContent", "LearningContent")
+                        .WithMany().HasForeignKey("LearningContentId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
+                    b.Navigation("LearningContent");
+                });
+
             modelBuilder.Entity("LearnPip.Data.Domain.QuestionDraft", b =>
                 {
                     b.HasOne("LearnPip.Data.Domain.Question", "Question")
@@ -851,8 +900,12 @@ namespace LearnPip.Data.Migrations
                     b.HasOne("LearnPip.Data.Domain.PrivateCatalog", "PrivateCatalog")
                         .WithMany("Questions").HasForeignKey("PrivateCatalogId")
                         .OnDelete(DeleteBehavior.SetNull);
+                    b.HasOne("LearnPip.Data.Domain.LearningContent", "LearningContent")
+                        .WithMany("Questions").HasForeignKey("LearningContentId")
+                        .OnDelete(DeleteBehavior.Restrict);
                     b.Navigation("Owner");
                     b.Navigation("PrivateCatalog");
+                    b.Navigation("LearningContent");
                 });
 
             modelBuilder.Entity("LearnPip.Data.Domain.QuestionObjective", b =>
@@ -972,6 +1025,11 @@ namespace LearnPip.Data.Migrations
                 });
 
             modelBuilder.Entity("LearnPip.Data.Domain.PrivateCatalog", b =>
+                {
+                    b.Navigation("Questions");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.LearningContent", b =>
                 {
                     b.Navigation("Questions");
                 });

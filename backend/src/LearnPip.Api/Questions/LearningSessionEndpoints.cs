@@ -9,13 +9,15 @@ using Microsoft.EntityFrameworkCore;
 namespace LearnPip.Api.Questions;
 
 public sealed record StartLearningRequest(Guid? CatalogId, int Count = 5);
-public sealed record LearningAnswerRequest(IReadOnlyList<Guid> SelectedOptionIds);
+public sealed record LearningAnswerRequest(IReadOnlyList<Guid> SelectedOptionIds, bool WasGuessed = false);
+public sealed record ExplanationViewRequest(Guid AttemptId);
 public sealed record LearningOption(Guid Id, IReadOnlyList<ContentBlockOutput> Blocks);
 public sealed record LearningQuestion(Guid QuestionId, Guid VersionId, string SelectionMode,
     IReadOnlyList<ContentBlockOutput> Prompt, IReadOnlyList<LearningOption> Answers);
 public sealed record LearningSessionView(Guid Id, int Total, int Answered, int Skipped,
     bool Completed, LearningQuestion? Current);
-public sealed record LearningFeedback(bool IsCorrect, IReadOnlyList<Guid> CorrectOptionIds,
+public sealed record LearningFeedback(Guid AttemptId, Guid ContentId, bool IsCorrect,
+    IReadOnlyList<Guid> CorrectOptionIds,
     IReadOnlyList<ContentBlockOutput> Explanation, string? ShortExplanation);
 
 internal sealed record LearningPlanItem(Guid QuestionId, Guid VersionId, Guid[] OptionIds, string State);
@@ -30,6 +32,7 @@ public static class LearningSessionEndpoints
         sessions.MapGet("/{id:guid}", Read);
         sessions.MapPost("/{id:guid}/answer", Answer);
         sessions.MapPost("/{id:guid}/skip", Skip);
+        sessions.MapPost("/{id:guid}/explanation", ExplanationViewed);
         return app;
     }
 
@@ -42,26 +45,30 @@ public static class LearningSessionEndpoints
                 item.Id == request.CatalogId && item.OwnerAccountId == accountId, cancellationToken))
             return Results.NotFound();
 
-        // Fetch the latest published version of each owned question. Drafts cannot enter a session.
-        var candidates = await db.Questions.AsNoTracking()
-            .Where(question => question.OwnerAccountId == accountId && question.DeletedAtUtc == null &&
-                (!request.CatalogId.HasValue || question.PrivateCatalogId == request.CatalogId))
-            .Select(question => new
-            {
-                QuestionId = question.Id,
-                VersionId = question.Versions.OrderByDescending(version => version.VersionNumber)
-                    .Select(version => (Guid?)version.Id).FirstOrDefault()
-            })
-            .Where(item => item.VersionId != null).ToListAsync(cancellationToken);
+        // One variant per learning content. Randomness only breaks scheduling ties and shuffles answers.
+        var (overview, available) = await ReviewEndpoints.LoadWithCandidates(db, accountId,
+            cancellationToken);
+        var candidates = available.Where(item => !request.CatalogId.HasValue ||
+            item.CatalogId == request.CatalogId).GroupBy(item => item.ContentId)
+            .Select(group => group.ToList()).ToList();
         Shuffle(candidates);
+        var now = DateTimeOffset.UtcNow;
+        candidates = candidates.OrderBy(group =>
+                overview.Contents.Single(item => item.Id == group[0].ContentId).DueAtUtc > now ? 1 : 0)
+            .ThenByDescending(group => overview.Contents.Single(item =>
+                item.Id == group[0].ContentId).OftenForMe)
+            .ThenBy(group => overview.Contents.Single(item =>
+                item.Id == group[0].ContentId).DueAtUtc ?? DateTimeOffset.MinValue)
+            .ToList();
         var plan = new List<LearningPlanItem>();
-        foreach (var candidate in candidates.Take(request.Count))
+        foreach (var variants in candidates.Take(request.Count))
         {
+            var candidate = variants[RandomNumberGenerator.GetInt32(variants.Count)];
             var optionIds = await db.AnswerOptions.AsNoTracking()
                 .Where(option => option.QuestionVersionId == candidate.VersionId)
                 .Select(option => option.Id).ToListAsync(cancellationToken);
             Shuffle(optionIds);
-            plan.Add(new LearningPlanItem(candidate.QuestionId, candidate.VersionId!.Value,
+            plan.Add(new LearningPlanItem(candidate.QuestionId, candidate.VersionId,
                 optionIds.ToArray(), "pending"));
         }
         if (plan.Count == 0) return Results.Conflict(new { message = "No published questions available." });
@@ -110,7 +117,8 @@ public static class LearningSessionEndpoints
         {
             StudySessionId = session.Id,
             QuestionVersionId = current.VersionId,
-            IsCorrect = isCorrect
+            IsCorrect = isCorrect,
+            WasGuessed = request.WasGuessed
         };
         db.StudyAttempts.Add(attempt);
         foreach (var optionId in selected)
@@ -124,8 +132,27 @@ public static class LearningSessionEndpoints
         await transaction.CommitAsync(cancellationToken);
         var shortText = version.Explanation.FirstOrDefault(block => block.Kind == "text")?.Text;
         var shortExplanation = shortText is { Length: > 160 } ? shortText[..160] + "…" : shortText;
-        return Results.Ok(new ApiResponse<LearningFeedback>(new LearningFeedback(isCorrect,
-            correct, version.Explanation, shortExplanation)));
+        var contentId = await db.Questions.Where(question => question.Id == current.QuestionId)
+            .Select(question => question.LearningContentId ?? question.Id)
+            .SingleAsync(cancellationToken);
+        return Results.Ok(new ApiResponse<LearningFeedback>(new LearningFeedback(attempt.Id,
+            contentId, isCorrect, correct, version.Explanation, shortExplanation)));
+    }
+
+    private static async Task<IResult> ExplanationViewed(Guid id, ExplanationViewRequest request,
+        LearnPipDbContext db, ClaimsPrincipal user, CancellationToken cancellationToken)
+    {
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        var attempt = await db.StudyAttempts.SingleOrDefaultAsync(item => item.Id == request.AttemptId &&
+            item.StudySessionId == id && item.StudySession.AccountId == accountId &&
+            item.QuestionVersion.Explanation != null, cancellationToken);
+        if (attempt == null) return Results.NotFound();
+        if (attempt.ExplanationViewedAtUtc == null)
+        {
+            attempt.ExplanationViewedAtUtc = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        return Results.NoContent();
     }
 
     private static async Task<IResult> Skip(Guid id, LearnPipDbContext db, ClaimsPrincipal user,

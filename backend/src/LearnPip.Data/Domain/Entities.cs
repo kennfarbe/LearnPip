@@ -44,6 +44,8 @@ public sealed class Question
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid OwnerAccountId { get; set; }
+    public Guid? LearningContentId { get; set; }
+    public LearningContent? LearningContent { get; set; }
     public Guid? PrivateCatalogId { get; set; }
     public PrivateCatalog? PrivateCatalog { get; set; }
     public QuestionDraft? Draft { get; set; }
@@ -135,6 +137,8 @@ public sealed class StudyAttempt
     public Guid StudySessionId { get; set; }
     public Guid QuestionVersionId { get; set; }
     public bool IsCorrect { get; set; }
+    public bool WasGuessed { get; set; }
+    public DateTimeOffset? ExplanationViewedAtUtc { get; set; }
     public DateTimeOffset AnsweredAtUtc { get; set; } = DateTimeOffset.UtcNow;
     public StudySession StudySession { get; set; } = null!;
     public QuestionVersion QuestionVersion { get; set; } = null!;

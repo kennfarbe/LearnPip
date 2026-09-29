@@ -362,6 +362,41 @@ public sealed class ApiV1Tests
                     .Select(option => option.Id).ToArray()));
             Assert.True((await correctLearning.Content
                 .ReadFromJsonAsync<ApiResponse<LearningFeedback>>())!.Data.IsCorrect);
+            var correctFeedback = (await correctLearning.Content
+                .ReadFromJsonAsync<ApiResponse<LearningFeedback>>())!.Data;
+            var beforeMark = (await ownerClient.GetFromJsonAsync<ApiResponse<ReviewOverview>>(
+                "/api/v1/learning/review"))!.Data;
+            Assert.Contains(beforeMark.Contents, item => item.Id == correctFeedback.ContentId &&
+                item.Answers == 2);
+            Assert.Equal(HttpStatusCode.NotFound,
+                (await strangerClient.PutAsync($"/api/v1/learning/contents/{correctFeedback.ContentId}/often-for-me",
+                    null)).StatusCode);
+            Assert.Equal(HttpStatusCode.NoContent,
+                (await ownerClient.PutAsync($"/api/v1/learning/contents/{correctFeedback.ContentId}/often-for-me",
+                    null)).StatusCode);
+            var afterMark = (await ownerClient.GetFromJsonAsync<ApiResponse<ReviewOverview>>(
+                "/api/v1/learning/review"))!.Data;
+            Assert.Equal(beforeMark.MasteredContents, afterMark.MasteredContents);
+            Assert.Equal(beforeMark.TotalContents, afterMark.TotalContents);
+            Assert.Equal(1, afterMark.OftenForMeCount);
+            Assert.Equal(HttpStatusCode.NoContent,
+                (await ownerClient.PostAsJsonAsync(
+                    $"/api/v1/learning/sessions/{correctSession.Id}/explanation",
+                    new ExplanationViewRequest(correctFeedback.AttemptId))).StatusCode);
+            var explained = (await ownerClient.GetFromJsonAsync<ApiResponse<ReviewOverview>>(
+                "/api/v1/learning/review"))!.Data;
+            Assert.Equal(1, explained.Contents.Single(item => item.Id == correctFeedback.ContentId)
+                .ExplanationsViewed);
+
+            Assert.Equal(HttpStatusCode.NoContent,
+                (await ownerClient.PutAsJsonAsync(
+                    $"/api/v1/learning/questions/{createdQuestionId}/content",
+                    new ContentAssignment(correctFeedback.ContentId))).StatusCode);
+            var grouped = (await ownerClient.GetFromJsonAsync<ApiResponse<ReviewOverview>>(
+                "/api/v1/learning/review"))!.Data;
+            Assert.Equal(afterMark.TotalContents - 1, grouped.TotalContents);
+            Assert.Equal(2, grouped.Contents.Single(item => item.Id == correctFeedback.ContentId)
+                .QuestionIds.Count);
 
             var mixedStart = await ownerClient.PostAsJsonAsync("/api/v1/learning/sessions/",
                 new StartLearningRequest(null, 10));

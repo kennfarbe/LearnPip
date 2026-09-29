@@ -148,6 +148,13 @@ public static class CatalogEditorEndpoints
         if (json == null) return Results.BadRequest();
         if (!await OwnsCatalog(db, input.CatalogId, accountId, cancellationToken)) return Results.NotFound();
         var question = new Question { OwnerAccountId = accountId, PrivateCatalogId = input.CatalogId };
+        var content = new LearningContent
+        {
+            Id = question.Id,
+            OwnerAccountId = accountId,
+            Title = string.IsNullOrWhiteSpace(input.Content.Topic) ? "Lerninhalt" : input.Content.Topic.Trim()[..Math.Min(120, input.Content.Topic.Trim().Length)]
+        };
+        question.LearningContent = content;
         var draft = new QuestionDraft { QuestionId = question.Id, PayloadJson = json };
         db.Questions.Add(question);
         db.QuestionDrafts.Add(draft);
