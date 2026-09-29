@@ -634,6 +634,106 @@ namespace LearnPip.Data.Migrations
                     b.ToTable("PublicSubmissionReviews");
                 });
 
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionReport", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<Guid>("QuestionVersionId").HasColumnType("uuid");
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<string>("Reason").IsRequired().HasMaxLength(32).HasColumnType("character varying(32)");
+                    b.Property<string>("Details").IsRequired().HasMaxLength(2000).HasColumnType("character varying(2000)");
+                    b.Property<string>("Status").IsRequired().HasMaxLength(16).HasColumnType("character varying(16)");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset?>("ClosedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("Id");
+                    b.HasIndex("AccountId");
+                    b.HasIndex("QuestionVersionId");
+                    b.HasIndex("Status", "QuestionVersionId");
+                    b.ToTable("QuestionReports");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionComment", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<Guid>("QuestionVersionId").HasColumnType("uuid");
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<string>("Text").IsRequired().HasMaxLength(2000).HasColumnType("character varying(2000)");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset?>("RemovedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("Id");
+                    b.HasIndex("AccountId");
+                    b.HasIndex("QuestionVersionId", "CreatedAtUtc");
+                    b.ToTable("QuestionComments");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionHelpfulVote", b =>
+                {
+                    b.Property<Guid>("QuestionVersionId").HasColumnType("uuid");
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<bool>("Helpful").HasColumnType("boolean");
+                    b.Property<DateTimeOffset>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("QuestionVersionId", "AccountId");
+                    b.HasIndex("AccountId");
+                    b.ToTable("QuestionHelpfulVotes");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionModerationEvent", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<Guid>("QuestionVersionId").HasColumnType("uuid");
+                    b.Property<Guid>("ModeratorAccountId").HasColumnType("uuid");
+                    b.Property<string>("Action").IsRequired().HasMaxLength(32).HasColumnType("character varying(32)");
+                    b.Property<string>("Note").IsRequired().HasMaxLength(1000).HasColumnType("character varying(1000)");
+                    b.Property<Guid?>("ReplacementVersionId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("Id");
+                    b.HasIndex("ModeratorAccountId");
+                    b.HasIndex("QuestionVersionId", "CreatedAtUtc");
+                    b.ToTable("QuestionModerationEvents");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionReport", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.QuestionVersion", "QuestionVersion")
+                        .WithMany().HasForeignKey("QuestionVersionId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.Navigation("QuestionVersion");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionComment", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.QuestionVersion", "QuestionVersion")
+                        .WithMany().HasForeignKey("QuestionVersionId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.Navigation("QuestionVersion");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionHelpfulVote", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.QuestionVersion", "QuestionVersion")
+                        .WithMany().HasForeignKey("QuestionVersionId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.Navigation("QuestionVersion");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionModerationEvent", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.QuestionVersion", null)
+                        .WithMany().HasForeignKey("QuestionVersionId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("ModeratorAccountId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                });
+
             modelBuilder.Entity("LearnPip.Data.Domain.QuestionVersion", b =>
                 {
                     b.Property<Guid>("Id")
