@@ -308,7 +308,7 @@ public sealed class ApiV1Tests
             {
                 var share = await db.GroupQuestionShares.SingleAsync();
                 share.RevokedAtUtc = DateTimeOffset.UtcNow;
-                var media = await db.MediaAssets.SingleAsync();
+                var media = await db.MediaAssets.SingleAsync(item => item.Id == mediaId);
                 media.DeletedAtUtc = DateTimeOffset.UtcNow;
                 await db.SaveChangesAsync();
             }
