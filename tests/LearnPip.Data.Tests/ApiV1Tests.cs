@@ -12,8 +12,9 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Npgsql;
@@ -112,12 +113,12 @@ public sealed class ApiV1Tests
             using var factory = new WebApplicationFactory<Program>()
                 .WithWebHostBuilder(webBuilder =>
                 {
-                    webBuilder.ConfigureAppConfiguration((_, configuration) =>
-                        configuration.AddInMemoryCollection(new Dictionary<string, string?>
-                        {
-                            ["ConnectionStrings:LearnPip"] = connection.ConnectionString
-                        }));
                     webBuilder.ConfigureTestServices(services =>
+                    {
+                        services.RemoveAll<DbContextOptions<LearnPipDbContext>>();
+                        services.RemoveAll<IDbContextOptionsConfiguration<LearnPipDbContext>>();
+                        services.AddDbContext<LearnPipDbContext>(options =>
+                            options.UseNpgsql(connection.ConnectionString));
                         services.AddAuthentication(options =>
                         {
                             options.DefaultAuthenticateScheme = TestAuthenticationHandler.Scheme;
@@ -125,7 +126,14 @@ public sealed class ApiV1Tests
                             options.DefaultForbidScheme = TestAuthenticationHandler.Scheme;
                         }).AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(
                             TestAuthenticationHandler.Scheme, _ => { }));
+                    });
                 });
+
+            using (var scope = factory.Services.CreateScope())
+            {
+                var apiDb = scope.ServiceProvider.GetRequiredService<LearnPipDbContext>();
+                Assert.Equal(databaseName, apiDb.Database.GetDbConnection().Database);
+            }
 
             using var anonymous = factory.CreateClient();
             Assert.Equal(HttpStatusCode.Unauthorized,
