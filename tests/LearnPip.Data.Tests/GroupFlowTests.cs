@@ -130,6 +130,15 @@ public sealed class GroupFlowTests
                 "/api/v1/groups/join", new JoinInput(revoked.Code))).StatusCode);
 
             Assert.Equal(HttpStatusCode.NoContent, (await ownerClient.DeleteAsync(
+                $"/api/v1/groups/{group.Id}/catalogs/{catalog.Id}")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await memberClient.GetAsync(
+                $"/api/v1/questions/{questionId}/versions/1")).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await memberClient.GetAsync(
+                $"/api/v1/groups/{group.Id}/members")).StatusCode);
+            Assert.Equal(HttpStatusCode.NoContent, (await ownerClient.PutAsync(
+                $"/api/v1/groups/{group.Id}/catalogs/{catalog.Id}", null)).StatusCode);
+
+            Assert.Equal(HttpStatusCode.NoContent, (await ownerClient.DeleteAsync(
                 $"/api/v1/groups/{group.Id}/members/{member.AccountId}")).StatusCode);
             Assert.Equal(HttpStatusCode.NotFound, (await memberClient.GetAsync(
                 $"/api/v1/groups/{group.Id}/questions")).StatusCode);

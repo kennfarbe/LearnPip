@@ -102,8 +102,12 @@ public static class GroupEndpoints
         var members = await db.GroupMemberships.AsNoTracking()
             .Where(member => member.StudyGroupId == id)
             .OrderBy(member => member.JoinedAtUtc)
-            .Select(member => new { member.AccountId, Role = member.RoleDefinition.Code,
-                member.JoinedAtUtc })
+            .Select(member => new
+            {
+                member.AccountId,
+                Role = member.RoleDefinition.Code,
+                member.JoinedAtUtc
+            })
             .ToListAsync(cancellationToken);
         return Results.Ok(new ApiResponse<object>(members));
     }
