@@ -39,6 +39,17 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__LearnPip: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Authentication__EmailCodeKey: ${LEARNPIP_EMAIL_CODE_KEY:-}
+      Authentication__PublicOrigin: ${LEARNPIP_PUBLIC_ORIGIN:-}
+      Mail__Host: ${LEARNPIP_MAIL_HOST:-}
+      Mail__Port: ${LEARNPIP_MAIL_PORT:-587}
+      Mail__From: ${LEARNPIP_MAIL_FROM:-}
+      Mail__Username: ${LEARNPIP_MAIL_USERNAME:-}
+      Mail__Password: ${LEARNPIP_MAIL_PASSWORD:-}
+      Oidc__Authority: ${LEARNPIP_OIDC_AUTHORITY:-}
+      Oidc__ClientId: ${LEARNPIP_OIDC_CLIENT_ID:-}
+      Oidc__ClientSecret: ${LEARNPIP_OIDC_CLIENT_SECRET:-}
+      Oidc__PostLoginPath: ${LEARNPIP_OIDC_POST_LOGIN_PATH:-/}
     depends_on:
       migrate:
         condition: service_completed_successfully
