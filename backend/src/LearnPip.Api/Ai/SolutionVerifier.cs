@@ -57,8 +57,8 @@ public static class SolutionVerifier
         value = 0;
         if (string.IsNullOrWhiteSpace(text)) return false;
         var formula = text.Trim().Replace('×', '*').Replace('÷', '/').Replace('−', '-');
-        if (formula.EndsWith("=?", StringComparison.Ordinal)) formula = formula[..^2];
-        else if (formula.EndsWith('=') || formula.EndsWith('?')) formula = formula[..^1];
+        if (formula.EndsWith('?')) formula = formula[..^1].TrimEnd();
+        if (formula.EndsWith('=')) formula = formula[..^1].TrimEnd();
         return TryExpression(formula, out value);
     }
 
