@@ -360,10 +360,9 @@ public sealed class ApiV1Tests
                 $"/api/v1/learning/sessions/{correctSession.Id}/answer",
                 new LearningAnswerRequest(correctVersion.Answers.Where(option => option.IsCorrect)
                     .Select(option => option.Id).ToArray()));
-            Assert.True((await correctLearning.Content
-                .ReadFromJsonAsync<ApiResponse<LearningFeedback>>())!.Data.IsCorrect);
             var correctFeedback = (await correctLearning.Content
                 .ReadFromJsonAsync<ApiResponse<LearningFeedback>>())!.Data;
+            Assert.True(correctFeedback.IsCorrect);
             var beforeMark = (await ownerClient.GetFromJsonAsync<ApiResponse<ReviewOverview>>(
                 "/api/v1/learning/review"))!.Data;
             Assert.Contains(beforeMark.Contents, item => item.Id == correctFeedback.ContentId &&
