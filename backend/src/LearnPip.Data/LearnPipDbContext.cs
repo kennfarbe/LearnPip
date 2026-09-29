@@ -30,6 +30,8 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
     public DbSet<StudyGroup> StudyGroups => Set<StudyGroup>();
     public DbSet<GroupMembership> GroupMemberships => Set<GroupMembership>();
     public DbSet<GroupQuestionShare> GroupQuestionShares => Set<GroupQuestionShare>();
+    public DbSet<GroupInvitation> GroupInvitations => Set<GroupInvitation>();
+    public DbSet<GroupCatalogShare> GroupCatalogShares => Set<GroupCatalogShare>();
     public DbSet<RecoveryCredential> RecoveryCredentials => Set<RecoveryCredential>();
     public DbSet<AccountSession> AccountSessions => Set<AccountSession>();
     public DbSet<EmailLoginCode> EmailLoginCodes => Set<EmailLoginCode>();
@@ -325,6 +327,28 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(x => x.Question).WithMany().HasForeignKey(x => x.QuestionId)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.SharedByAccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<GroupInvitation>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.CodeHash).HasMaxLength(64).IsRequired();
+            entity.HasIndex(x => x.CodeHash).IsUnique();
+            entity.HasOne(x => x.StudyGroup).WithMany().HasForeignKey(x => x.StudyGroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.CreatedByAccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<GroupCatalogShare>(entity =>
+        {
+            entity.HasKey(x => new { x.StudyGroupId, x.PrivateCatalogId });
+            entity.HasOne(x => x.StudyGroup).WithMany().HasForeignKey(x => x.StudyGroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.PrivateCatalog).WithMany().HasForeignKey(x => x.PrivateCatalogId)
+                .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne<Account>().WithMany().HasForeignKey(x => x.SharedByAccountId)
                 .OnDelete(DeleteBehavior.Restrict);
         });

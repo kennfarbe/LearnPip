@@ -15,9 +15,10 @@ Der Datenbankstand verwendet PostgreSQL 18 und Entity Framework Core mit dem Npg
 | `MediaAssets` | Private Medienmetadaten mit Besitzer, optionaler Frageversion, nicht öffentlichem Speicherschlüssel, MIME-Typ, Länge und Löschmarkierung. Die Datei selbst liegt später in einem privaten Objektspeicher. |
 | `StudySessions`, `StudyAttempts` | Lernverlauf gehört einem Konto; jeder Versuch verweist auf die konkrete Frageversion, die beantwortet wurde. |
 | `ExamObjectives`, `QuestionObjectives` | Lernziele mit einer n:m-Zuordnung zu Fragen. Ein Lernziel-Code ist eindeutig. |
-| `StudyGroups`, `GroupMemberships`, `GroupQuestionShares` | Späterer Gruppenbereich mit Rollen, Mitgliedschaften und widerrufbaren Freigaben. Diese Tabellen schalten keine Gruppenfunktion frei; es gibt noch keinen Gruppen-Endpunkt. |
+| `StudyGroups`, `GroupMemberships`, `GroupQuestionShares`, `GroupCatalogShares` | Geschlossene Gruppen mit unabhängiger Mitgliedschaft und dynamischen Katalogfreigaben. Ein Katalogzugriff folgt seiner aktuellen Fragenzuordnung und endet bei Aufhebung der Freigabe oder Mitgliedschaft. |
+| `GroupInvitations` | Einladungen mit ausschließlich gehashtem Code, Ablaufzeit, Nutzungsgrenze und Widerruf. |
 
-Die Zuordnung von Rollen und Freigaben ersetzt keine Berechtigungsprüfung in der API. Für Inhalte gilt standardmäßig privat. `PrivateMediaCatalog` liest nur Medien des übergebenen Kontos und blendet gelöschte Medien aus. Es gibt in diesem Grundgerüst keine öffentliche Medienabfrage und keine öffentliche URL. Eine spätere Gruppenabfrage muss Mitgliedschaft und aktive Freigabe prüfen.
+Die API prüft aktives Konto, Mitgliedschaft und Freigabe bei jedem Zugriff. Für Inhalte gilt standardmäßig privat. Eine Einladung ist kein Login und gewährt nach dem Beitritt keine zusätzliche Berechtigung; die gespeicherte Mitgliedschaft bleibt bei Ablauf oder Widerruf des Codes bestehen. Gruppenbilder werden nur bei einer freigegebenen veröffentlichten Frage ausgeliefert; der Eigentümer kann sie verwalten.
 
 ## Migrationen
 

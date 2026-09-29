@@ -86,11 +86,29 @@ public sealed class ResourceAuthorizationHandler(LearnPipDbContext dbContext) :
                          share.RevokedAtUtc == null &&
                          share.StudyGroup.DeletedAtUtc == null &&
                          (share.StudyGroup.OwnerAccountId == accountId ||
+                          share.StudyGroup.Memberships.Any(member => member.AccountId == accountId))) ||
+                     await dbContext.QuestionVersions.AsNoTracking().AnyAsync(version =>
+                         version.QuestionId == question.Id) &&
+                     await dbContext.GroupCatalogShares.AsNoTracking().AnyAsync(share =>
+                         share.PrivateCatalogId == question.PrivateCatalogId &&
+                         share.PrivateCatalog.OwnerAccountId == question.OwnerAccountId &&
+                         share.StudyGroup.DeletedAtUtc == null &&
+                         (share.StudyGroup.OwnerAccountId == accountId ||
                           share.StudyGroup.Memberships.Any(member => member.AccountId == accountId)))):
                     context.Succeed(requirement);
                     break;
                 case MediaReadRequirement when context.Resource is MediaAsset media &&
-                    media.DeletedAtUtc == null && media.OwnerAccountId == accountId &&
+                    media.DeletedAtUtc == null && (media.OwnerAccountId == accountId ||
+                     media.QuestionVersionId != null &&
+                     await dbContext.GroupCatalogShares.AsNoTracking().AnyAsync(share =>
+                         share.PrivateCatalog.OwnerAccountId == media.OwnerAccountId &&
+                         share.StudyGroup.DeletedAtUtc == null &&
+                         dbContext.QuestionVersions.Any(version =>
+                             version.Id == media.QuestionVersionId &&
+                             version.Question.PrivateCatalogId == share.PrivateCatalogId &&
+                             version.Question.DeletedAtUtc == null) &&
+                         (share.StudyGroup.OwnerAccountId == accountId ||
+                          share.StudyGroup.Memberships.Any(member => member.AccountId == accountId)))) &&
                     (media.QuestionVersionId == null ||
                      await dbContext.QuestionVersions.AsNoTracking().AnyAsync(version =>
                          version.Id == media.QuestionVersionId &&

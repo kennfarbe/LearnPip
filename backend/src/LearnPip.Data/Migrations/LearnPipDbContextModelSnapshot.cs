@@ -308,6 +308,37 @@ namespace LearnPip.Data.Migrations
                     b.ToTable("ExternalIdentities");
                 });
 
+            modelBuilder.Entity("LearnPip.Data.Domain.GroupCatalogShare", b =>
+                {
+                    b.Property<Guid>("StudyGroupId").HasColumnType("uuid");
+                    b.Property<Guid>("PrivateCatalogId").HasColumnType("uuid");
+                    b.Property<Guid>("SharedByAccountId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("SharedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("StudyGroupId", "PrivateCatalogId");
+                    b.HasIndex("PrivateCatalogId");
+                    b.HasIndex("SharedByAccountId");
+                    b.ToTable("GroupCatalogShares");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.GroupInvitation", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<string>("CodeHash").IsRequired().HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+                    b.Property<Guid>("CreatedByAccountId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset>("ExpiresAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<int>("MaxUses").HasColumnType("integer");
+                    b.Property<int>("UsedCount").HasColumnType("integer");
+                    b.Property<DateTimeOffset?>("RevokedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<Guid>("StudyGroupId").HasColumnType("uuid");
+                    b.HasKey("Id");
+                    b.HasIndex("CodeHash").IsUnique();
+                    b.HasIndex("CreatedByAccountId");
+                    b.HasIndex("StudyGroupId");
+                    b.ToTable("GroupInvitations");
+                });
+
             modelBuilder.Entity("LearnPip.Data.Domain.GroupMembership", b =>
                 {
                     b.Property<Guid>("StudyGroupId")
@@ -804,6 +835,32 @@ namespace LearnPip.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Account");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.GroupCatalogShare", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.PrivateCatalog", "PrivateCatalog")
+                        .WithMany().HasForeignKey("PrivateCatalogId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("SharedByAccountId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.HasOne("LearnPip.Data.Domain.StudyGroup", "StudyGroup")
+                        .WithMany().HasForeignKey("StudyGroupId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
+                    b.Navigation("PrivateCatalog");
+                    b.Navigation("StudyGroup");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.GroupInvitation", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("CreatedByAccountId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.HasOne("LearnPip.Data.Domain.StudyGroup", "StudyGroup")
+                        .WithMany().HasForeignKey("StudyGroupId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
+                    b.Navigation("StudyGroup");
                 });
 
             modelBuilder.Entity("LearnPip.Data.Domain.GroupMembership", b =>

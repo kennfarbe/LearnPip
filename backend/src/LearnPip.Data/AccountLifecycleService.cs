@@ -148,6 +148,11 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
         await db.GroupQuestionShares.Where(item => item.SharedByAccountId == id ||
             item.Question.OwnerAccountId == id || item.StudyGroup.OwnerAccountId == id)
             .ExecuteDeleteAsync(cancellationToken);
+        await db.GroupInvitations.Where(item => item.CreatedByAccountId == id ||
+            item.StudyGroup.OwnerAccountId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.GroupCatalogShares.Where(item => item.SharedByAccountId == id ||
+            item.PrivateCatalog.OwnerAccountId == id || item.StudyGroup.OwnerAccountId == id)
+            .ExecuteDeleteAsync(cancellationToken);
         await db.GroupMemberships.Where(item => item.AccountId == id ||
             item.StudyGroup.OwnerAccountId == id).ExecuteDeleteAsync(cancellationToken);
         await db.StudyAttemptSelections.Where(item => item.StudyAttempt.StudySession.AccountId == id ||

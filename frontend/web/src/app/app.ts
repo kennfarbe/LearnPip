@@ -5,6 +5,7 @@ import { QuestionEditor } from './question-editor';
 import { LearningSession } from './learning-session';
 import { LearningProgress } from './learning-progress';
 import { AccountActivity } from './account-activity';
+import { GroupSpace } from './group-space';
 
 @Component({
   imports: [
@@ -14,6 +15,7 @@ import { AccountActivity } from './account-activity';
     LearningSession,
     LearningProgress,
     AccountActivity,
+    GroupSpace,
   ],
   selector: 'app-root',
   styleUrl: './app.css',
