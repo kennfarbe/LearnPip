@@ -178,7 +178,13 @@ public sealed class ApiV1Tests
             sourceBitmap.Erase(SKColors.Green);
             using var sourceJpeg = sourceBitmap.Encode(SKEncodedImageFormat.Jpeg, 85);
             var jpeg = sourceJpeg.ToArray();
-            var exif = System.Text.Encoding.ASCII.GetBytes("Exif\0\0GPSDATA-private");
+            byte[] exif =
+            [
+                .. System.Text.Encoding.ASCII.GetBytes("Exif\0\0"),
+                0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                .. System.Text.Encoding.ASCII.GetBytes("GPSDATA-private")
+            ];
             using var withExif = new MemoryStream();
             withExif.Write(jpeg, 0, 2);
             withExif.Write([0xff, 0xe1, (byte)((exif.Length + 2) >> 8), (byte)(exif.Length + 2)]);

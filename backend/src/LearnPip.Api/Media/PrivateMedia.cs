@@ -41,7 +41,7 @@ public static class PrivateImageProcessor
         using var codec = SKCodec.Create(source);
         if (codec == null || codec.Info.Width < 1 || codec.Info.Height < 1 ||
             codec.Info.Width > 4096 || codec.Info.Height > 4096 ||
-            (long)codec.Info.Width * codec.Info.Height > MaxPixels || codec.FrameCount != 1)
+            (long)codec.Info.Width * codec.Info.Height > MaxPixels || codec.FrameCount > 1)
             return null;
         var format = type == "image/jpeg" ? SKEncodedImageFormat.Jpeg : SKEncodedImageFormat.Png;
         if (codec.EncodedFormat != format) return null;
