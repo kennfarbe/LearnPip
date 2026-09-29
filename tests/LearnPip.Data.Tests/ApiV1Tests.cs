@@ -205,7 +205,8 @@ public sealed class ApiV1Tests
                 (await strangerClient.GetAsync($"/api/v1/media/{uploadedId}/content")).StatusCode);
             var contentResponse = await ownerClient.GetAsync($"/api/v1/media/{uploadedId}/content");
             Assert.Equal(HttpStatusCode.OK, contentResponse.StatusCode);
-            Assert.Equal("private, no-store", contentResponse.Headers.CacheControl?.ToString());
+            Assert.True(contentResponse.Headers.CacheControl?.Private);
+            Assert.True(contentResponse.Headers.CacheControl?.NoStore);
             Assert.DoesNotContain("GPSDATA-private", System.Text.Encoding.Latin1.GetString(
                 await contentResponse.Content.ReadAsByteArrayAsync()));
             using var invalidUpload = new MultipartFormDataContent();
