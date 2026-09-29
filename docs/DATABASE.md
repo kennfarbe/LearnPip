@@ -15,10 +15,10 @@ Der Datenbankstand verwendet PostgreSQL 18 und Entity Framework Core mit dem Npg
 | `MediaAssets` | Private Medienmetadaten mit Besitzer, optionaler Frageversion, nicht öffentlichem Speicherschlüssel, MIME-Typ, Länge und Löschmarkierung. Die Datei selbst liegt später in einem privaten Objektspeicher. |
 | `StudySessions`, `StudyAttempts` | Lernverlauf gehört einem Konto; jeder Versuch verweist auf die konkrete Frageversion, die beantwortet wurde. |
 | `ExamObjectives`, `QuestionObjectives` | Lernziele mit einer n:m-Zuordnung zu Fragen. Ein Lernziel-Code ist eindeutig. |
-| `StudyGroups`, `GroupMemberships`, `GroupQuestionShares`, `GroupCatalogShares` | Geschlossene Gruppen mit unabhängiger Mitgliedschaft und dynamischen Katalogfreigaben. Ein Katalogzugriff folgt seiner aktuellen Fragenzuordnung und endet bei Aufhebung der Freigabe oder Mitgliedschaft. |
+| `StudyGroups`, `GroupMemberships`, `GroupQuestionShares`, `GroupCatalogShares`, `GroupVersionShares` | Geschlossene Gruppen mit unabhängiger Mitgliedschaft und auf konkrete Fassungen beschränkten Katalogfreigaben. Neue Fassungen werden nicht automatisch sichtbar. |
 | `GroupInvitations` | Einladungen mit ausschließlich gehashtem Code, Ablaufzeit, Nutzungsgrenze und Widerruf. |
 
-Die API prüft aktives Konto, Mitgliedschaft und Freigabe bei jedem Zugriff. Für Inhalte gilt standardmäßig privat. Eine Einladung ist kein Login und gewährt nach dem Beitritt keine zusätzliche Berechtigung; die gespeicherte Mitgliedschaft bleibt bei Ablauf oder Widerruf des Codes bestehen. Gruppenbilder werden nur bei einer freigegebenen veröffentlichten Frage ausgeliefert; der Eigentümer kann sie verwalten.
+Die API prüft aktives Konto, Mitgliedschaft und Freigabe bei jedem Zugriff. Für Inhalte gilt standardmäßig privat; `QuestionVersions.Visibility` wird erst durch den Eigentümer für eine konkrete Fassung auf `public` gesetzt. Eine Einladung ist kein Login und gewährt nach dem Beitritt keine zusätzliche Berechtigung; die gespeicherte Mitgliedschaft bleibt bei Ablauf oder Widerruf des Codes bestehen. Gruppen- und öffentliche Bilder werden nur ausgeliefert, wenn ein Inhaltsblock der lesbaren Fassung auf genau dieses Medium verweist; der Eigentümer kann es verwalten.
 
 ## Migrationen
 

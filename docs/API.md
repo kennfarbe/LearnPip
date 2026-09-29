@@ -19,7 +19,7 @@ Antworten mit Daten haben ein `data`-Feld. Listen verwenden `data.items`, `data.
 
 Die API akzeptiert lokal ausgegebene, widerrufbare Bearer-Sitzungen und ein geschütztes Browser-Cookie. Der Server speichert nur Token-Hashes und ordnet jede Anfrage einem vorhandenen, aktiven LearnPip-Konto zu. E-Mail-Codes und OIDC verbinden zusätzliche Identitätswege mit diesem Konto. Ein externer OIDC-`sub` wird nicht als Konto-ID interpretiert; ein frei gesetzter HTTP-Header gewährt keinen Zugriff. Einzelheiten stehen unter [Konten und Identitätswege](IDENTITY.md).
 
-Serverseitige Policies prüfen das aktive Konto, Eigentum, aktive Gruppenmitgliedschaft und aktive Gruppenfreigaben. Eine Katalogfreigabe gibt Mitgliedern Zugriff auf veröffentlichte Fragen und die zugehörigen Bilder; Medienverwaltung bleibt dem Eigentümer vorbehalten. `Moderation` und `Admin` werden aus Systemrollen in der Datenbank geprüft; eine Adminrolle erfüllt auch die Moderationspolicy. Diese Rollen eröffnen keinen generellen Zugriff auf private Fragen oder Fotos.
+Serverseitige Policies prüfen das aktive Konto, Eigentum, aktive Gruppenmitgliedschaft und aktive Fassungsfreigaben. Eine Katalogfreigabe hält die zu diesem Zeitpunkt neuesten veröffentlichten Fassungen fest. Neue Fassungen und spätere Fragen bleiben privat, bis die Leitung den Katalog erneut ausdrücklich freigibt. Gruppenbilder sind nur lesbar, wenn genau die Fassung mit der Bildreferenz freigegeben ist; Medienverwaltung bleibt dem Eigentümer vorbehalten. `Moderation` und `Admin` werden aus Systemrollen in der Datenbank geprüft; eine Adminrolle erfüllt auch die Moderationspolicy. Diese Rollen eröffnen keinen generellen Zugriff auf private Fragen oder Fotos.
 
 ## Geschlossene Gruppen (LP-19)
 
@@ -30,10 +30,14 @@ Serverseitige Policies prüfen das aktive Konto, Eigentum, aktive Gruppenmitglie
 | `DELETE /api/v1/groups/{id}/invitations/{invitationId}` | Leitung widerruft den Code sofort. |
 | `POST /api/v1/groups/join` | Angemeldetes Konto tritt mit gültigem Code bei; Ablauf, Widerruf und Nutzungsgrenze werden unter Datenbanksperre geprüft. |
 | `GET /api/v1/groups/{id}/members`, `DELETE /api/v1/groups/{id}/members/{accountId}` | Mitglieder sehen die Liste; Leitung entfernt Mitglieder, Mitglieder können selbst austreten. |
-| `GET /api/v1/groups/{id}/catalogs`, `PUT/DELETE /api/v1/groups/{id}/catalogs/{catalogId}` | Mitglieder sehen Freigaben; Leitung teilt eigene Kataloge oder hebt die eigene Freigabe auf. |
+| `GET /api/v1/groups/{id}/catalogs`, `PUT/DELETE /api/v1/groups/{id}/catalogs/{catalogId}` | Mitglieder sehen Freigaben; Leitung friert aktuelle Fassungen eigener Kataloge ein (wiederholtes `PUT` ergänzt neue Fassungen) oder hebt die eigene Freigabe auf. |
 | `GET /api/v1/groups/{id}/questions` | Nur Mitglieder und Eigentümer sehen veröffentlichte Fragen freigegebener Kataloge. |
 
 Der Gruppencode ist kein persönliches Anmeldegeheimnis. Der Server speichert seinen SHA-256-Hash; nach dem Beitritt wird der Code für die Mitgliedschaft nicht mehr benötigt. Ablauf und Widerruf sperren nur neue Beitritte. Der Gruppenbeitrag einer entfernten Person ist sofort unzugänglich.
+
+## Fassungsrechte (LP-20)
+
+Jede veröffentlichte Fassung beginnt im Zustand `private`. Der Eigentümer kann mit `PUT /api/v1/questions/{id}/versions/{number}/visibility` und `{"visibility":"public"}` genau diese Fassung öffentlich lesbar machen oder sie mit `"private"` zurückziehen. Moderations- und Adminrollen können private Inhalte dadurch nicht stellvertretend öffnen. Die anonymen Endpunkte `GET /api/v1/public/questions`, `GET /api/v1/public/questions/{id}/versions/{number}` und `GET /api/v1/public/media/{id}/content` liefern nur ausdrücklich öffentliche Fassungen und Bilder, die in genau diesen Fassungen als Inhaltsblock referenziert sind. Unverknüpfte oder nur in einer privaten Fassung referenzierte Medien bleiben privat. Die Antwort enthält für veröffentlichte Fassungen das Feld `visibility`.
 
 Der Integrationstest verwendet eine temporäre PostgreSQL-Datenbank und eine ausschließlich im Testprojekt definierte Authentifizierung. Er prüft HTTP 401/404, Eigentümerzugriff, Gruppenfreigabe, das Verbergen des Speicherschlüssels, Paging-Validierung, Systemrollen und das generierte OpenAPI-Dokument. Der Test-Header ist nicht Teil der produktiven API.
 

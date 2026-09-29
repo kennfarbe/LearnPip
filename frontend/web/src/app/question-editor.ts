@@ -240,6 +240,25 @@ type Api<T> = { data: T };
               {{ latestVersion() ? 'Neue Fassung veröffentlichen' : 'Fassung veröffentlichen' }}
             </button>
           </div>
+          @if (latestVersion()) {
+            <p class="privacy">
+              Fassung {{ latestVersion() }} ist
+              {{ visibility() === 'public' ? 'öffentlich' : 'privat' }}. Eine neue Fassung bleibt
+              immer privat, bis du sie ausdrücklich freigibst.
+            </p>
+            <button
+              type="button"
+              class="secondary"
+              [disabled]="busy()"
+              (click)="setVisibility(visibility() === 'public' ? 'private' : 'public')"
+            >
+              {{
+                visibility() === 'public'
+                  ? 'Öffentliche Freigabe zurücknehmen'
+                  : 'Diese Fassung öffentlich freigeben'
+              }}
+            </button>
+          }
           @if (status()) {
             <p role="status" class="status">{{ status() }}</p>
           }
@@ -254,6 +273,7 @@ export class QuestionEditor implements OnInit {
   readonly drafts = signal<Draft[]>([]);
   readonly questionId = signal('');
   readonly latestVersion = signal(0);
+  readonly visibility = signal<'private' | 'public'>('private');
   readonly status = signal('');
   readonly busy = signal(false);
   newCatalog = '';
@@ -365,6 +385,7 @@ export class QuestionEditor implements OnInit {
   newDraft(): void {
     this.questionId.set('');
     this.latestVersion.set(0);
+    this.visibility.set('private');
     this.catalogId = this.activeCatalog()?.id ?? '';
     this.subject = '';
     this.topic = '';
@@ -383,6 +404,8 @@ export class QuestionEditor implements OnInit {
   editDraft(draft: Draft): void {
     this.questionId.set(draft.questionId);
     this.latestVersion.set(draft.latestVersion);
+    this.visibility.set('private');
+    if (draft.latestVersion) void this.loadVisibility(draft.questionId, draft.latestVersion);
     this.catalogId = draft.catalogId ?? '';
     this.promptImageAlt = '';
     const content = draft.content;
@@ -564,10 +587,51 @@ export class QuestionEditor implements OnInit {
       }
       const version = ((await response.json()) as Api<{ version: number }>).data;
       this.latestVersion.set(version.version);
+      this.visibility.set('private');
       this.status.set(`Fassung ${version.version} veröffentlicht. Die Frage bleibt privat.`);
       await this.refresh();
     } catch {
       this.status.set('Veröffentlichung fehlgeschlagen.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  private async loadVisibility(questionId: string, number: number): Promise<void> {
+    try {
+      const response = await fetch(`/api/v1/questions/${questionId}/versions/${number}`, {
+        credentials: 'same-origin',
+      });
+      if (!response.ok) return;
+      const version = ((await response.json()) as Api<{ visibility: 'private' | 'public' }>).data;
+      if (this.questionId() === questionId && this.latestVersion() === number)
+        this.visibility.set(version.visibility);
+    } catch {
+      /* Continue showing the safe private state. */
+    }
+  }
+
+  async setVisibility(visibility: 'private' | 'public'): Promise<void> {
+    const id = this.questionId();
+    const number = this.latestVersion();
+    if (!id || !number || this.busy()) return;
+    this.busy.set(true);
+    try {
+      const response = await fetch(`/api/v1/questions/${id}/versions/${number}/visibility`, {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visibility }),
+      });
+      if (!response.ok) throw new Error();
+      this.visibility.set(visibility);
+      this.status.set(
+        visibility === 'public'
+          ? 'Diese Fassung ist jetzt öffentlich lesbar.'
+          : 'Die öffentliche Freigabe wurde zurückgenommen.',
+      );
+    } catch {
+      this.status.set('Sichtbarkeit konnte nicht geändert werden.');
     } finally {
       this.busy.set(false);
     }

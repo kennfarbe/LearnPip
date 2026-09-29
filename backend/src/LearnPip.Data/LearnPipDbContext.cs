@@ -32,6 +32,7 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
     public DbSet<GroupQuestionShare> GroupQuestionShares => Set<GroupQuestionShare>();
     public DbSet<GroupInvitation> GroupInvitations => Set<GroupInvitation>();
     public DbSet<GroupCatalogShare> GroupCatalogShares => Set<GroupCatalogShare>();
+    public DbSet<GroupVersionShare> GroupVersionShares => Set<GroupVersionShare>();
     public DbSet<RecoveryCredential> RecoveryCredentials => Set<RecoveryCredential>();
     public DbSet<AccountSession> AccountSessions => Set<AccountSession>();
     public DbSet<EmailLoginCode> EmailLoginCodes => Set<EmailLoginCode>();
@@ -185,6 +186,7 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
         modelBuilder.Entity<QuestionVersion>(entity =>
         {
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Visibility).HasMaxLength(16).IsRequired().HasDefaultValue("private");
             entity.Property(x => x.Prompt).HasMaxLength(12000).IsRequired();
             entity.Property(x => x.Explanation).HasMaxLength(12000);
             entity.Property(x => x.SelectionMode).HasMaxLength(16).IsRequired();
@@ -351,6 +353,17 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne<Account>().WithMany().HasForeignKey(x => x.SharedByAccountId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<GroupVersionShare>(entity =>
+        {
+            entity.HasKey(x => new { x.StudyGroupId, x.QuestionVersionId });
+            entity.HasOne(x => x.StudyGroup).WithMany().HasForeignKey(x => x.StudyGroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.QuestionVersion).WithMany().HasForeignKey(x => x.QuestionVersionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.PrivateCatalog).WithMany().HasForeignKey(x => x.PrivateCatalogId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         base.OnModelCreating(modelBuilder);
