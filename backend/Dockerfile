@@ -1,8 +1,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY backend/src/LearnPip.Api/LearnPip.Api.csproj backend/src/LearnPip.Api/
+COPY backend/src/LearnPip.Data/LearnPip.Data.csproj backend/src/LearnPip.Data/
 RUN dotnet restore backend/src/LearnPip.Api/LearnPip.Api.csproj
 COPY backend/src/LearnPip.Api/ backend/src/LearnPip.Api/
+COPY backend/src/LearnPip.Data/ backend/src/LearnPip.Data/
 RUN dotnet publish backend/src/LearnPip.Api/LearnPip.Api.csproj \
     --configuration Release --no-restore --output /app/publish
 

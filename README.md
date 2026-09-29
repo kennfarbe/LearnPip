@@ -46,7 +46,7 @@ Die Code-Lizenz erteilt keine Rechte an hochgeladenen Aufgaben, Antworten, Erkl�
 
 Geplant ist ein gemeinsames Repository mit getrennten Projekten und Docker-Images für eine ASP.NET-Core-API auf .NET 10, einen Hintergrunddienst und ein Angular-Webfrontend. PostgreSQL soll die Daten speichern. Die Anmeldung soll OpenID Connect für externe Identitätsanbieter unterstützen; weitere Zugangswege für die persönliche Nutzung sind vorgesehen. Eine versionierte API soll später auch von einer mobilen App genutzt werden können.
 
-Der technische Aufbau und die ersten Architekturentscheidungen stehen in den [ADRs](docs/architecture/README.md). Den lokalen Stack kannst du mit der [Entwicklungsanleitung](docs/DEVELOPMENT.md) starten. Das Grundgerüst enthält noch keine Lern-, Anmelde- oder Inhaltsverwaltung.
+Der technische Aufbau und die ersten Architekturentscheidungen stehen in den [ADRs](docs/architecture/README.md). Den lokalen Stack kannst du mit der [Entwicklungsanleitung](docs/DEVELOPMENT.md) starten. Das [Datenmodell und die Wiederherstellung](docs/DATABASE.md) sind ebenfalls dokumentiert. Das Grundgerüst enthält noch keine Lern-, Anmelde- oder Inhaltsverwaltung.
 
 ## Roadmap
 

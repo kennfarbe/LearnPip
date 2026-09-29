@@ -22,8 +22,8 @@ if ! grep -q '^POSTGRES_PASSWORD=.' "$env_file"; then
   else
     printf '\nPOSTGRES_PASSWORD=%s\n' "$password" >> "$env_file"
   fi
-  chmod 600 "$env_file"
 fi
+chmod 600 "$env_file"
 
 docker compose \
   --env-file "$env_file" \
