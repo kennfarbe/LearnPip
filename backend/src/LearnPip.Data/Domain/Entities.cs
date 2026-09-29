@@ -259,6 +259,50 @@ public sealed class PublicSubmission
     public QuestionVersion QuestionVersion { get; set; } = null!;
 }
 
+public sealed class QuestionReport
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid QuestionVersionId { get; set; }
+    public Guid AccountId { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string Details { get; set; } = string.Empty;
+    public string Status { get; set; } = "open";
+    public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? ClosedAtUtc { get; set; }
+    public QuestionVersion QuestionVersion { get; set; } = null!;
+}
+
+public sealed class QuestionComment
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid QuestionVersionId { get; set; }
+    public Guid AccountId { get; set; }
+    public string Text { get; set; } = string.Empty;
+    public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? RemovedAtUtc { get; set; }
+    public QuestionVersion QuestionVersion { get; set; } = null!;
+}
+
+public sealed class QuestionHelpfulVote
+{
+    public Guid QuestionVersionId { get; set; }
+    public Guid AccountId { get; set; }
+    public bool Helpful { get; set; }
+    public DateTimeOffset UpdatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+    public QuestionVersion QuestionVersion { get; set; } = null!;
+}
+
+public sealed class QuestionModerationEvent
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid QuestionVersionId { get; set; }
+    public Guid ModeratorAccountId { get; set; }
+    public string Action { get; set; } = string.Empty;
+    public string Note { get; set; } = string.Empty;
+    public Guid? ReplacementVersionId { get; set; }
+    public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+}
+
 public sealed class PublicSubmissionPreview
 {
     public Guid QuestionVersionId { get; set; }
