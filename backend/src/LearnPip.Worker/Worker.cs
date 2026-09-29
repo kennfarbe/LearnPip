@@ -9,7 +9,9 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             // Background jobs are introduced by later product issues.
-            await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+            await File.WriteAllTextAsync(Path.Combine(Path.GetTempPath(), "learnpip-worker-heartbeat"),
+                DateTimeOffset.UtcNow.ToString("O"), stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
         }
     }
 }
