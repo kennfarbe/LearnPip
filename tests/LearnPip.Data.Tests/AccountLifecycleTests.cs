@@ -44,19 +44,25 @@ public sealed class AccountLifecycleTests
                     new Account { Id = recoverableId, LastActivityAtUtc = lastActivity.AddDays(-30) });
                 db.RecoveryCredentials.Add(new RecoveryCredential
                 {
-                    AccountId = recoverableId, SecretHash = SessionAuthentication.Hash(secret)
+                    AccountId = recoverableId,
+                    SecretHash = SessionAuthentication.Hash(secret)
                 });
                 db.Roles.Add(role);
                 db.AccountRoles.Add(new AccountRole { AccountId = moderatorId, RoleDefinition = role });
                 db.ExternalIdentities.Add(new ExternalIdentity
                 {
-                    AccountId = accountId, Provider = "email", Subject = "old@example.org"
+                    AccountId = accountId,
+                    Provider = "email",
+                    Subject = "old@example.org"
                 });
                 db.Questions.Add(new Question { OwnerAccountId = accountId });
                 db.MediaAssets.Add(new MediaAsset
                 {
-                    Id = mediaId, OwnerAccountId = accountId, StorageKey = $"private/{accountId:N}/{mediaId:N}",
-                    MediaType = "image/png", ByteLength = 3
+                    Id = mediaId,
+                    OwnerAccountId = accountId,
+                    StorageKey = $"private/{accountId:N}/{mediaId:N}",
+                    MediaType = "image/png",
+                    ByteLength = 3
                 });
                 db.MediaBlobs.Add(new MediaBlob { MediaAssetId = mediaId, Data = [1, 2, 3] });
                 await db.SaveChangesAsync();

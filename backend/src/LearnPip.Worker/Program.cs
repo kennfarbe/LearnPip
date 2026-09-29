@@ -1,5 +1,5 @@
-using LearnPip.Worker;
 using LearnPip.Data;
+using LearnPip.Worker;
 using Microsoft.EntityFrameworkCore;
 
 if (args is ["--healthcheck"])

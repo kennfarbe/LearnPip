@@ -80,7 +80,9 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
         // cause a duplicate warning on the next run; delivery is recorded separately.
         var warning = new AccountInactivityWarning
         {
-            AccountId = id, PhaseDays = phase, ActivityAtUtc = account.LastActivityAtUtc,
+            AccountId = id,
+            PhaseDays = phase,
+            ActivityAtUtc = account.LastActivityAtUtc,
             ClaimedAtUtc = now
         };
         db.AccountInactivityWarnings.Add(warning);
