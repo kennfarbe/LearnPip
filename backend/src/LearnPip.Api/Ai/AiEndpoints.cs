@@ -39,6 +39,7 @@ public static class AiEndpoints
         {
             DisclosureVersion = AiPolicy.DisclosureVersion,
             HasUserKey = hasKey,
+            CanConfigureUserKey = AiPolicy.Describe("user-key", config, true).Available,
             Modes = AiPolicy.Modes.Select(mode => new
             {
                 Info = AiPolicy.Describe(mode, config, hasKey),

@@ -112,6 +112,7 @@ interface Mode {
 export class AiAssistant implements OnInit {
   readonly modes = signal<Mode[]>([]);
   readonly hasUserKey = signal(false);
+  readonly canConfigureUserKey = signal(false);
   readonly message = signal('');
   readonly answer = signal('');
   readonly busy = signal(false);
@@ -140,12 +141,7 @@ export class AiAssistant implements OnInit {
     return this.modes().find((item) => item.info.mode === this.mode);
   }
   userKeyEnabled(): boolean {
-    return this.modes().some(
-      (item) =>
-        item.info.mode === 'user-key' &&
-        (item.info.available ||
-          (item.info.needsUserKey && item.info.recipient !== 'Nicht konfiguriert')),
-    );
+    return this.canConfigureUserKey();
   }
   async reload(): Promise<void> {
     const response = await fetch('/api/v1/ai/modes');
@@ -155,12 +151,14 @@ export class AiAssistant implements OnInit {
         data: {
           modes: Mode[];
           hasUserKey: boolean;
+          canConfigureUserKey: boolean;
           disclosureVersion: string;
         };
       }
     ).data;
     this.modes.set(data.modes);
     this.hasUserKey.set(data.hasUserKey);
+    this.canConfigureUserKey.set(data.canConfigureUserKey);
     this.disclosureVersion = data.disclosureVersion;
   }
   async saveKey(): Promise<void> {
