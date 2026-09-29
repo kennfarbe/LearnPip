@@ -27,8 +27,9 @@ Bei einem leeren `Mail__Password` und fehlendem Mail-Host ist der E-Mail-Weg dea
 Für den ersten Administrator ein vorhandenes Konto anmelden und anschließend den lokalen Einmalbefehl aus [Administration](ADMINISTRATION.md) mit dem API-Image und dessen Datenbank-Secret ausführen:
 
 ```sh
+account_id="UUID_DES_VORHANDENEN_KONTOS"
 docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml \
-  run --rm -e Authentication__BootstrapAdminAccountId=<konto-uuid> api --bootstrap-admin
+  run --rm -e "Authentication__BootstrapAdminAccountId=$account_id" api --bootstrap-admin
 ```
 
 Der Produktionsprozess bietet keinen öffentlichen Bootstrap-Endpunkt.
@@ -61,4 +62,4 @@ docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml log
 curl --fail --silent --show-error "https://$(sed -n 's/^LEARNPIP_DOMAIN=//p' deploy/.env.production)/health/ready"
 ```
 
-PostgreSQL, API, Worker, Web und Proxy haben Healthchecks. Die API meldet erst nach erreichbarer Datenbank und erfolgreicher Migration Bereitschaft. Der Worker prüft seinen regelmäßig geschriebenen Heartbeat; Web und Proxy haben interne HTTP-Probes. Bei einem Proxy-Startfehler zuerst DNS und die Erreichbarkeit von 80/443 prüfen. Sicherungen enthalten private Lerninhalte; Zugriffsrechte und externe Aufbewahrung entsprechend festlegen. Der spätere private Mediendateispeicher ist noch nicht implementiert und muss vor produktiven Datei-Uploads gesondert gesichert werden.
+PostgreSQL, API, Worker, Web und Proxy haben Healthchecks. Die API meldet bei erreichbarer Datenbank Bereitschaft; die Migration muss vor dem Anwendungsstart explizit ausgeführt werden. Der Worker prüft seinen regelmäßig geschriebenen Heartbeat; Web und Proxy haben interne HTTP-Probes. Bei einem Proxy-Startfehler zuerst DNS und die Erreichbarkeit von 80/443 prüfen. Sicherungen enthalten private Lerninhalte; Zugriffsrechte und externe Aufbewahrung entsprechend festlegen. Der spätere private Mediendateispeicher ist noch nicht implementiert und muss vor produktiven Datei-Uploads gesondert gesichert werden.
