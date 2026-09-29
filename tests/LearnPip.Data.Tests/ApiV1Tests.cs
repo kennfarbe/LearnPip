@@ -125,7 +125,7 @@ public sealed class ApiV1Tests
                             options.DefaultChallengeScheme = TestAuthenticationHandler.Scheme;
                             options.DefaultForbidScheme = TestAuthenticationHandler.Scheme;
                         }).AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(
-                            TestAuthenticationHandler.Scheme, _ => { }));
+                            TestAuthenticationHandler.Scheme, _ => { });
                     });
                 });
 
