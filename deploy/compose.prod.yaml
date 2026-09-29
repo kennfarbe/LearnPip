@@ -77,8 +77,18 @@ services:
       context: ..
       dockerfile: backend/src/LearnPip.Worker/Dockerfile
     restart: unless-stopped
+    environment:
+      Mail__Host: ${LEARNPIP_MAIL_HOST:-}
+      Mail__Port: ${LEARNPIP_MAIL_PORT:-587}
+      Mail__From: ${LEARNPIP_MAIL_FROM:-}
+      Mail__Username: ${LEARNPIP_MAIL_USERNAME:-}
+      Authentication__PublicOrigin: https://${LEARNPIP_DOMAIN:?Set LEARNPIP_DOMAIN in deploy/.env.production}
+    secrets:
+      - ConnectionStrings__LearnPip
+      - Mail__Password
     networks:
       - private
+      - frontend
     depends_on:
       db:
         condition: service_healthy

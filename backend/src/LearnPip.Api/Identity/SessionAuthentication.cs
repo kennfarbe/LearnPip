@@ -78,7 +78,7 @@ public sealed class SessionAuthenticationHandler(
         var session = await dbContext.AccountSessions.AsNoTracking()
             .Where(item => item.TokenHash == hash &&
                            item.RevokedAtUtc == null && item.ExpiresAtUtc > now &&
-                           item.Account.DeletedAtUtc == null)
+                           item.Account.DeletedAtUtc == null && item.Account.DisabledAtUtc == null)
             .Select(item => new { item.Id, item.AccountId })
             .SingleOrDefaultAsync(Context.RequestAborted);
         if (session == null)

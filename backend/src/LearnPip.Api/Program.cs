@@ -92,6 +92,22 @@ app.Use(async (context, next) =>
 });
 app.UseAuthentication();
 app.UseAuthorization();
+app.Use(async (context, next) =>
+{
+    await next();
+    if (context.Response.StatusCode is < 200 or >= 300 ||
+        !context.Request.Path.StartsWithSegments("/api/v1") ||
+        context.User.Identity?.IsAuthenticated != true ||
+        !AccountIdentity.TryGetAccountId(context.User, out var accountId)) return;
+
+    var db = context.RequestServices.GetRequiredService<LearnPipDbContext>();
+    var now = DateTimeOffset.UtcNow;
+    await db.Accounts.Where(account => account.Id == accountId && account.DeletedAtUtc == null &&
+            account.DisabledAtUtc == null)
+        .ExecuteUpdateAsync(setters => setters
+            .SetProperty(account => account.LastActivityAtUtc, now)
+            .SetProperty(account => account.UpdatedAtUtc, now), context.RequestAborted);
+});
 app.MapOpenApi();
 
 app.MapGet("/health/live", () => Results.Ok(new { status = "live" }))

@@ -153,7 +153,8 @@ public static class AuthEndpoints
 
         var account = await dbContext.Accounts.AsNoTracking()
             .Where(item => item.Id == accountId && item.DeletedAtUtc == null)
-            .Select(item => new AccountInfo(item.Id, item.DisplayName))
+            .Select(item => new AccountInfo(item.Id, item.DisplayName,
+                item.LastActivityAtUtc, item.DisabledAtUtc))
             .SingleAsync(cancellationToken);
         return Results.Ok(new ApiResponse<AccountInfo>(account));
     }
@@ -277,4 +278,5 @@ public sealed record RecoveryRequest(string? Secret);
 public sealed record EmailStartRequest(string? Email);
 public sealed record EmailCompleteRequest(string? Email, string? Code);
 public sealed record NewAccount(Guid AccountId, string RecoverySecret, SessionGrant Session);
-public sealed record AccountInfo(Guid Id, string? DisplayName);
+public sealed record AccountInfo(Guid Id, string? DisplayName,
+    DateTimeOffset LastActivityAtUtc, DateTimeOffset? DisabledAtUtc);

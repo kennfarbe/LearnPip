@@ -1,12 +1,13 @@
 # PostgreSQL-Datenmodell und Sicherung
 
-Der erste Datenbankstand verwendet PostgreSQL 18 und Entity Framework Core mit dem Npgsql-Provider. Primärschlüssel sind UUIDs, die Anwendung erzeugt sie vor dem Speichern. Zeitwerte sind `timestamp with time zone` und werden als UTC-`DateTimeOffset` geführt. Fremdschlüssel verhindern verwaiste Verknüpfungen; Konten und nutzerbezogene Inhalte werden zunächst logisch über `DeletedAtUtc` gelöscht.
+Der Datenbankstand verwendet PostgreSQL 18 und Entity Framework Core mit dem Npgsql-Provider. Primärschlüssel sind UUIDs, die Anwendung erzeugt sie vor dem Speichern. Zeitwerte sind `timestamp with time zone` und werden als UTC-`DateTimeOffset` geführt. Fremdschlüssel verhindern verwaiste Verknüpfungen. Der Inaktivitätsjob entfernt abgelaufene Konten und ihre persönlichen Daten physisch in einer Transaktion.
 
 ## Tabellenübersicht
 
 | Tabelle | Zweck und wichtige Beziehungen |
 | --- | --- |
-| `Accounts` | Konto ohne verpflichtende E-Mail-Adresse; kann externe Identitäten, Rollen, Fragen und Lernsitzungen besitzen. Löschung wird über `DeletedAtUtc` markiert. |
+| `Accounts` | Konto ohne verpflichtende E-Mail-Adresse; `LastActivityAtUtc` und `DisabledAtUtc` steuern Inaktivität. |
+| `AccountInactivityWarnings` | Einmalige Warnungsansprüche je Konto, Phase und Aktivitätszeitpunkt samt Versandstatus. |
 | `ExternalIdentities` | Anbieter und stabiler Subject-Wert einer gewählten Anmeldung; `(Provider, Subject)` ist eindeutig. Ein Konto kann mehrere Anmeldungen verbinden. |
 | `Roles`, `AccountRoles` | Rollenbeschreibung nach Geltungsbereich und Zuordnung von Kontorollen; der Verbundschlüssel verhindert doppelte Zuweisung. |
 | `Questions`, `QuestionVersions` | Frage gehört einem Konto. Jede veröffentlichte Bearbeitung wird als eigene nummerierte Version gespeichert; Frage und Versionsnummer sind eindeutig. |
@@ -57,9 +58,11 @@ docker compose --env-file deploy/.env --file deploy/compose.yaml \
 docker compose --env-file deploy/.env --file deploy/compose.yaml up --detach
 ```
 
-Nach der Wiederherstellung API-Liveness und -Readiness prüfen sowie einen gezielten Lesezugriff im privaten Testkonto durchführen. Für einen echten Betrieb müssen zusätzlich die privaten Mediendateien und die Verschlüsselungs- beziehungsweise Schlüsselverwaltung separat gesichert und gemeinsam mit der Datenbank wiederherstellbar sein. Medien-Objektspeicher ist noch nicht implementiert; diese Sicherungsstrecke ist vor dem ersten produktiven Foto-Upload zu ergänzen und zu testen.
+Vor Freigabe einer wiederhergestellten Instanz den Inaktivitätsjob mit `docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml run --rm worker --run-once` ausführen und danach API-Liveness und -Readiness prüfen. Medienbytes liegen in `MediaBlobs` und sind Teil des PostgreSQL-Dumps. Geheimnisse und Schlüssel müssen zusätzlich gesichert werden.
 
 Sicherungen enthalten private Lerninhalte und sind entsprechend zugriffsbeschränkt aufzubewahren. Passwortdateien, Sicherungen und lokale `.env`-Dateien werden nicht ins Repository eingecheckt.
+
+Der produktive Sicherungsbefehl `scripts/backup-prod.sh` löscht lokale Dumps nach 30 Tagen und ist täglich auf dem Host einzuplanen. Externe Kopien müssen nach derselben Frist entfernt werden. Ein Restore kann bereits gelöschte Daten zurückbringen; der einmalige Löschlauf vor API-Freigabe entfernt nach aktuellem Zeitpunkt erneut fällige Konten. Die Kontolöschung entfernt in einer Transaktion Sitzungen, Identitäten, Warnungen, Lernverlauf, Gruppenbezüge, Fragen, Fassungen, private Medien samt Bytes und das Konto. Scheitert ein Schritt, wird die Transaktion zurückgerollt.
 
 ## Private Bilddaten (LP-12)
 

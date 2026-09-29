@@ -8,6 +8,7 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
     public DbSet<AdministrationAuditEvent> AdministrationAuditEvents => Set<AdministrationAuditEvent>();
     public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<AccountInactivityWarning> AccountInactivityWarnings => Set<AccountInactivityWarning>();
     public DbSet<ExternalIdentity> ExternalIdentities => Set<ExternalIdentity>();
     public DbSet<RoleDefinition> Roles => Set<RoleDefinition>();
     public DbSet<AccountRole> AccountRoles => Set<AccountRole>();
@@ -59,6 +60,16 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
             entity.Property(x => x.DisplayName).HasMaxLength(120);
             entity.Property(x => x.CreatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.Property(x => x.UpdatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(x => x.LastActivityAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.HasIndex(x => x.LastActivityAtUtc);
+        });
+
+        modelBuilder.Entity<AccountInactivityWarning>(entity =>
+        {
+            entity.HasKey(x => new { x.AccountId, x.PhaseDays, x.ActivityAtUtc });
+            entity.Property(x => x.DeliveryStatus).HasMaxLength(16).IsRequired();
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.AccountId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ExternalIdentity>(entity =>

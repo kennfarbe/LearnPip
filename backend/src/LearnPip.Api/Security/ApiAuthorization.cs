@@ -65,7 +65,8 @@ public sealed class ResourceAuthorizationHandler(LearnPipDbContext dbContext) :
         if (context.User.Identity?.IsAuthenticated != true ||
             !AccountIdentity.TryGetAccountId(context.User, out var accountId) ||
             !await dbContext.Accounts.AsNoTracking()
-                .AnyAsync(account => account.Id == accountId && account.DeletedAtUtc == null))
+                .AnyAsync(account => account.Id == accountId && account.DeletedAtUtc == null &&
+                    account.DisabledAtUtc == null))
         {
             return;
         }

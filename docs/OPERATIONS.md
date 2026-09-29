@@ -41,11 +41,7 @@ Der normale Neustart verwendet `docker compose --env-file deploy/.env.production
 Vor einem Upgrade Quellstand und Image-Versionen festlegen, eine Datenbanksicherung außerhalb der VM anlegen und auch `deploy/secrets` sicher aufbewahren:
 
 ```sh
-umask 077
-mkdir -p "$HOME/learnpip-backups"
-backup_file="$HOME/learnpip-backups/learnpip-$(date -u +%Y%m%dT%H%M%SZ).dump"
-docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml \
-  exec -T db sh -c 'pg_dump --format=custom --username "$POSTGRES_USER" "$POSTGRES_DB"' > "$backup_file"
+./scripts/backup-prod.sh
 # Neue Quellversion auschecken; dann:
 docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml build api worker web migrate
 docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml --profile ops run --rm migrate
@@ -53,6 +49,10 @@ docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml up 
 ```
 
 Eine PostgreSQL-Hauptversion nicht allein durch Änderung des Image-Tags aktualisieren: dafür ist ein geplantes Datenbank-Upgrade mit eigener Sicherung/Wiederherstellung nötig. Beim Zurückrollen einer API-Version die Kompatibilität mit dem migrierten Schema prüfen; eine Datenbank-Migration wird nicht automatisch zurückgenommen.
+
+Den Sicherungsbefehl täglich auf dem Host einplanen. Er entfernt lokale Dumps nach 30 Tagen; extern kopierte Dumps müssen dieselbe Frist einhalten. Die Datenbank enthält auch private Medien. Vor der Freigabe einer wiederhergestellten Datenbank zuerst die API anhalten und den Worker einmalig mit `docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml run --rm worker --run-once` ausführen. Dabei werden im Backup enthaltene, inzwischen abgelaufene Konten erneut geprüft und gelöscht. Danach API und Worker starten.
+
+Der Worker prüft Konten täglich; bei Fehlern versucht er es stündlich erneut. Für Warnungen müssen die SMTP-Einstellungen auch am Worker verfügbar sein und ausgehend SMTP erreichbar sein. Ohne verifizierte E-Mail-Adresse oder SMTP entfallen E-Mail-Warnungen; Deaktivierung und Löschung laufen weiterhin. Die Zustellung einer Warnung ist je Phase höchstens einmal versucht; bei SMTP-Fehlern wird kein automatischer erneuter Versand angestoßen.
 
 ## Diagnose
 
