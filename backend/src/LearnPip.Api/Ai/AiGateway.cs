@@ -153,7 +153,10 @@ public sealed class AiGateway : IDisposable
         AllowAutoRedirect = false,
         UseCookies = false,
         UseProxy = false
-    }) { Timeout = TimeSpan.FromSeconds(30) };
+    })
+    {
+        Timeout = TimeSpan.FromSeconds(30)
+    };
 
     public IAiProvider Resolve(string mode, IConfiguration config, string? userKey) =>
         mode == "off" ? new DisabledAiProvider() : new ChatCompletionProvider(
