@@ -2,6 +2,7 @@ using System.Threading.RateLimiting;
 using LearnPip.Api;
 using LearnPip.Api.Administration;
 using LearnPip.Api.Identity;
+using LearnPip.Api.Media;
 using LearnPip.Api.Security;
 using LearnPip.Data;
 using Microsoft.AspNetCore.RateLimiting;
@@ -39,6 +40,7 @@ builder.Services.AddProblemDetails(options =>
 builder.Services.AddScoped<IdentityService>();
 builder.Services.AddScoped<AdministrationService>();
 builder.Services.AddScoped<SessionService>();
+builder.Services.AddScoped<IPrivateMediaStore, PostgresPrivateMediaStore>();
 builder.Services.AddSingleton<IEmailCodeSender, SmtpEmailCodeSender>();
 builder.Services.AddAuthentication(SessionAuthentication.Scheme)
     .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions,
@@ -100,6 +102,7 @@ app.MapGet("/health/ready", async (LearnPipDbContext dbContext, CancellationToke
     .WithName("Readiness");
 app.MapV1Endpoints();
 app.MapAuthEndpoints();
+app.MapMediaEndpoints();
 app.MapAdministrationEndpoints();
 
 if (args.Contains("--migrate", StringComparer.OrdinalIgnoreCase))

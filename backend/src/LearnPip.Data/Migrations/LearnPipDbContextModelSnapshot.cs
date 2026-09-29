@@ -342,11 +342,24 @@ namespace LearnPip.Data.Migrations
                     b.ToTable("GroupQuestionShares");
                 });
 
+            modelBuilder.Entity("LearnPip.Data.Domain.MediaBlob", b =>
+                {
+                    b.Property<Guid>("MediaAssetId").HasColumnType("uuid");
+                    b.Property<byte[]>("Data").IsRequired().HasColumnType("bytea");
+                    b.HasKey("MediaAssetId");
+                    b.ToTable("MediaBlobs");
+                });
+
             modelBuilder.Entity("LearnPip.Data.Domain.MediaAsset", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("AltText")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
 
                     b.Property<long>("ByteLength")
                         .HasColumnType("bigint");
@@ -713,6 +726,16 @@ namespace LearnPip.Data.Migrations
                     b.Navigation("Question");
 
                     b.Navigation("StudyGroup");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.MediaBlob", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.MediaAsset", "MediaAsset")
+                        .WithOne()
+                        .HasForeignKey("LearnPip.Data.Domain.MediaBlob", "MediaAssetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                    b.Navigation("MediaAsset");
                 });
 
             modelBuilder.Entity("LearnPip.Data.Domain.MediaAsset", b =>

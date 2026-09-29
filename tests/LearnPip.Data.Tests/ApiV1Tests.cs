@@ -18,6 +18,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Npgsql;
+using SkiaSharp;
 
 namespace LearnPip.Data.Tests;
 
@@ -172,6 +173,57 @@ public sealed class ApiV1Tests
             var contract = await anonymous.GetStringAsync("/openapi/v1.json");
             Assert.Contains("/api/v1/questions", contract);
             Assert.Contains("/api/v1/media/{id}", contract);
+
+            using var sourceBitmap = new SKBitmap(2, 2);
+            sourceBitmap.Erase(SKColors.Green);
+            using var sourceJpeg = sourceBitmap.Encode(SKEncodedImageFormat.Jpeg, 85);
+            var jpeg = sourceJpeg.ToArray();
+            var exif = System.Text.Encoding.ASCII.GetBytes("Exif\0\0GPSDATA-private");
+            using var withExif = new MemoryStream();
+            withExif.Write(jpeg, 0, 2);
+            withExif.Write([0xff, 0xe1, (byte)((exif.Length + 2) >> 8), (byte)(exif.Length + 2)]);
+            withExif.Write(exif);
+            withExif.Write(jpeg, 2, jpeg.Length - 2);
+            using var upload = new MultipartFormDataContent();
+            var imageContent = new ByteArrayContent(withExif.ToArray());
+            imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+            upload.Add(imageContent, "file", "photo.jpg");
+            upload.Add(new StringContent("Grünes Quadrat"), "altText");
+            var uploadResponse = await ownerClient.PostAsync("/api/v1/media/", upload);
+            Assert.Equal(HttpStatusCode.Created, uploadResponse.StatusCode);
+            var uploaded = await uploadResponse.Content.ReadFromJsonAsync<ApiResponse<MediaDetails>>();
+            var uploadedId = uploaded!.Data.Id;
+            Assert.Equal("Grünes Quadrat", uploaded.Data.AltText);
+            Assert.Equal(HttpStatusCode.NotFound,
+                (await strangerClient.GetAsync($"/api/v1/media/{uploadedId}/content")).StatusCode);
+            var contentResponse = await ownerClient.GetAsync($"/api/v1/media/{uploadedId}/content");
+            Assert.Equal(HttpStatusCode.OK, contentResponse.StatusCode);
+            Assert.Equal("private, no-store", contentResponse.Headers.CacheControl?.ToString());
+            Assert.DoesNotContain("GPSDATA-private", System.Text.Encoding.Latin1.GetString(
+                await contentResponse.Content.ReadAsByteArrayAsync()));
+            using var invalidUpload = new MultipartFormDataContent();
+            var invalidImage = new ByteArrayContent([1, 2, 3, 4]);
+            invalidImage.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+            invalidUpload.Add(invalidImage, "file", "bad.jpg");
+            invalidUpload.Add(new StringContent("Ungültig"), "altText");
+            Assert.Equal(HttpStatusCode.BadRequest,
+                (await ownerClient.PostAsync("/api/v1/media/", invalidUpload)).StatusCode);
+            using var tooLargeUpload = new MultipartFormDataContent();
+            var tooLargeImage = new ByteArrayContent(new byte[5 * 1024 * 1024 + 1]);
+            tooLargeImage.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+            tooLargeUpload.Add(tooLargeImage, "file", "large.jpg");
+            tooLargeUpload.Add(new StringContent("Zu groß"), "altText");
+            Assert.Equal(HttpStatusCode.RequestEntityTooLarge,
+                (await ownerClient.PostAsync("/api/v1/media/", tooLargeUpload)).StatusCode);
+            Assert.Equal(HttpStatusCode.NoContent,
+                (await ownerClient.DeleteAsync($"/api/v1/media/{uploadedId}")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound,
+                (await ownerClient.GetAsync($"/api/v1/media/{uploadedId}/content")).StatusCode);
+            await using (var checkDb = new LearnPipDbContext(options))
+            {
+                Assert.False(await checkDb.MediaAssets.AnyAsync(item => item.Id == uploadedId));
+                Assert.False(await checkDb.MediaBlobs.AnyAsync(item => item.MediaAssetId == uploadedId));
+            }
 
             using var scope = factory.Services.CreateScope();
             var authorization = scope.ServiceProvider.GetRequiredService<IAuthorizationService>();

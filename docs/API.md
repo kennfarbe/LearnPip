@@ -22,3 +22,21 @@ Die API akzeptiert lokal ausgegebene, widerrufbare Bearer-Sitzungen und ein gesc
 Serverseitige Policies prüfen das aktive Konto, Eigentum, aktive Gruppenmitgliedschaft und aktive Gruppenfreigaben. Eine Gruppenfreigabe einer Frage gibt **keinen** Zugriff auf ihre Medien. `Moderation` und `Admin` werden aus Systemrollen in der Datenbank geprüft; eine Adminrolle erfüllt auch die Moderationspolicy. Diese Policies sind für spätere Verwaltungsendpunkte vorbereitet und eröffnen hier keinen generellen Zugriff auf private Fragen oder Fotos. Vor Schreib- und Upload-Endpunkten müssen deren Berechtigungen ebenfalls ausdrücklich festgelegt und getestet werden.
 
 Der Integrationstest verwendet eine temporäre PostgreSQL-Datenbank und eine ausschließlich im Testprojekt definierte Authentifizierung. Er prüft HTTP 401/404, Eigentümerzugriff, Gruppenfreigabe, das Verbergen des Speicherschlüssels, Paging-Validierung, Systemrollen und das generierte OpenAPI-Dokument. Der Test-Header ist nicht Teil der produktiven API.
+
+## Private Bilder (LP-12)
+
+`POST /api/v1/media/` akzeptiert `multipart/form-data` mit `file` (JPEG oder PNG,
+maximal 5 MiB), `altText` (1–300 Zeichen) und optional `questionVersionId` einer
+eigenen, nicht gelöschten Frage. Die angegebene MIME-Art muss zum dekodierten
+Bild passen. Maximal 4096 × 4096 Pixel und 16 Megapixel sind erlaubt. Die API
+dekodiert das Bild und kodiert die Pixel erneut, sodass EXIF-Ortsdaten und andere
+Metadaten nicht gespeichert werden. Das Ergebnis liefert ID, MIME-Art,
+Bildbeschreibung und gespeicherte Bytegröße.
+
+`GET /api/v1/media/{id}` liefert Metadaten; `GET /api/v1/media/{id}/content`
+liefert die Bildbytes nur für das aktive Besitzerkonto mit `Cache-Control:
+private, no-store`. Fehlende und fremde IDs ergeben beide 404.
+`DELETE /api/v1/media/{id}` entfernt Datensatz und Bildbytes. Die PostgreSQL-
+Implementierung speichert Bytes in `MediaBlobs` mit kaskadierender Löschung; die
+Schnittstelle `IPrivateMediaStore` kann später einen privaten Objektspeicher
+anbinden. Die Storage-Key-Werte werden nicht über die API ausgegeben.
