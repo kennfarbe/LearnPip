@@ -109,6 +109,9 @@ public static class MediaEndpoints
             asset.OwnerAccountId != accountId) return Results.NotFound();
         if (await db.QuestionContentBlocks.AnyAsync(block => block.MediaAssetId == id,
                 cancellationToken)) return Results.Conflict(new { error = "image_in_published_question" });
+        if (await db.QuestionDrafts.AnyAsync(draft => draft.Question.OwnerAccountId == accountId &&
+                draft.PayloadJson.Contains(id.ToString()), cancellationToken))
+            return Results.Conflict(new { error = "image_in_private_draft" });
         store.Remove(asset);
         await db.SaveChangesAsync(cancellationToken);
         return Results.NoContent();

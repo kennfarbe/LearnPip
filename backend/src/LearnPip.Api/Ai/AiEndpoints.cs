@@ -22,6 +22,7 @@ public static class AiEndpoints
         ai.MapPut("/user-key", StoreKey);
         ai.MapDelete("/user-key", DeleteKey);
         ai.MapPost("/generate", Generate);
+        ai.MapPost("/photo/extract", PhotoDraftEndpoints.Extract);
         return app;
     }
 
@@ -102,14 +103,8 @@ public static class AiEndpoints
                 return Results.Conflict(new { error = "Stored key unavailable; replace it." });
             }
         }
-        var day = DateOnly.FromDateTime(DateTime.UtcNow);
-        await db.Database.ExecuteSqlInterpolatedAsync(
-            $"INSERT INTO \"AiDailyUsages\" (\"AccountId\", \"Day\", \"Mode\", \"UsedRequests\") VALUES ({accountId}, {day}, {input.Mode}, 0) ON CONFLICT DO NOTHING", ct);
-        var updated = await db.AiDailyUsages.Where(item => item.AccountId == accountId &&
-            item.Day == day && item.Mode == input.Mode && item.UsedRequests < info.DailyQuota)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.UsedRequests,
-                item => item.UsedRequests + 1), ct);
-        if (updated == 0) return Results.StatusCode(StatusCodes.Status429TooManyRequests);
+        if (!await Reserve(db, accountId, input.Mode, info.DailyQuota, ct))
+            return Results.StatusCode(StatusCodes.Status429TooManyRequests);
         try
         {
             var result = await gateway.Resolve(input.Mode, config, userKey)
@@ -123,5 +118,17 @@ public static class AiEndpoints
             return Results.Problem("The selected provider could not process the request.",
                 statusCode: StatusCodes.Status502BadGateway);
         }
+    }
+
+    internal static async Task<bool> Reserve(LearnPipDbContext db, Guid accountId,
+        string mode, int dailyQuota, CancellationToken ct)
+    {
+        var day = DateOnly.FromDateTime(DateTime.UtcNow);
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"INSERT INTO \"AiDailyUsages\" (\"AccountId\", \"Day\", \"Mode\", \"UsedRequests\") VALUES ({accountId}, {day}, {mode}, 0) ON CONFLICT DO NOTHING", ct);
+        return await db.AiDailyUsages.Where(item => item.AccountId == accountId &&
+            item.Day == day && item.Mode == mode && item.UsedRequests < dailyQuota)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.UsedRequests,
+                item => item.UsedRequests + 1), ct) == 1;
     }
 }

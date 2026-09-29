@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 type Block = { kind: 'text' | 'image'; text?: string; mediaId?: string };
@@ -356,7 +356,7 @@ type SubmissionPreview = {
   `,
   styleUrl: './question-editor.css',
 })
-export class QuestionEditor implements OnInit {
+export class QuestionEditor implements OnInit, OnDestroy {
   readonly catalogs = signal<Catalog[]>([]);
   readonly drafts = signal<Draft[]>([]);
   readonly questionId = signal('');
@@ -389,7 +389,20 @@ export class QuestionEditor implements OnInit {
 
   ngOnInit(): void {
     void this.refresh();
+    window.addEventListener('learnpip:photo-draft', this.openPhotoDraft);
   }
+
+  ngOnDestroy(): void {
+    window.removeEventListener('learnpip:photo-draft', this.openPhotoDraft);
+  }
+
+  private readonly openPhotoDraft = (event: Event): void => {
+    const id = (event as CustomEvent<string>).detail;
+    void this.refresh().then(() => {
+      const draft = this.drafts().find((item) => item.questionId === id);
+      if (draft) this.editDraft(draft);
+    });
+  };
 
   activeCatalog(): Catalog | undefined {
     return this.catalogs().find((item) => item.id === this.filterCatalog);

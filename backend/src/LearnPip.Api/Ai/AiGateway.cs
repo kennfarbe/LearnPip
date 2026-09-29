@@ -7,11 +7,12 @@ using System.Text.Json;
 namespace LearnPip.Api.Ai;
 
 public sealed record AiModeInfo(string Mode, bool Available, string Recipient,
-    string DataShared, int DailyQuota, int MaxInputBytes, bool NeedsUserKey);
+    string DataShared, int DailyQuota, int MaxInputBytes, int MaxImageBytes,
+    bool NeedsUserKey);
 
 public static class AiPolicy
 {
-    public const string DisclosureVersion = "ai-text-v1";
+    public const string DisclosureVersion = "ai-photo-v2";
     public static readonly string[] Modes = ["off", "operator-cloud", "operator-local", "user-key"];
 
     public static AiModeInfo Describe(string mode, IConfiguration config, bool hasUserKey)
@@ -37,16 +38,19 @@ public static class AiPolicy
         var max = int.TryParse(config["Ai:MaxInputBytes"], out var configuredMax) ?
             configuredMax : 8192;
         max = Math.Clamp(max, 1, 32768);
+        var imageMax = int.TryParse(config["Ai:MaxImageBytes"], out var configuredImageMax) ?
+            configuredImageMax : 2 * 1024 * 1024;
+        imageMax = Math.Clamp(imageMax, 1, 5 * 1024 * 1024);
         return mode == "off" ? new AiModeInfo(mode, true, "Kein Anbieter",
-            "Keine Übermittlung. Manuelles Lernen bleibt verfügbar.", 0, max, false) :
+            "Keine Übermittlung. Manuelles Lernen bleibt verfügbar.", 0, max, imageMax, false) :
             new AiModeInfo(mode, allowed && uriValid && !string.IsNullOrWhiteSpace(model) &&
                 keyReady && quota > 0,
                 uriValid ? uri!.GetLeftPart(UriPartial.Authority) : "Nicht konfiguriert",
-                local ? "Eingegebener Text an den vom Betreiber konfigurierten lokalen Dienst." :
-                    "Eingegebener Text an den konfigurierten Cloud-Anbieter; " +
+                local ? "Ausdrücklich gewählter Text oder Foto an den lokalen Dienst des Betreibers." :
+                    "Ausdrücklich gewählter Text oder Foto an den Cloud-Anbieter; " +
                     (mode == "user-key" ? "der eigene API-Schlüssel wird mitgesendet." :
                         "der Betreiber trägt den API-Schlüssel."),
-                quota, max, mode == "user-key");
+                quota, max, imageMax, mode == "user-key");
     }
 
     private static bool LocalUri(Uri uri)
@@ -105,26 +109,48 @@ public static class AiKeyVault
 public interface IAiProvider
 {
     Task<string> GenerateAsync(string prompt, CancellationToken cancellationToken);
+    Task<string> AnalyzeImageAsync(string instruction, byte[] image, string mediaType,
+        CancellationToken cancellationToken);
 }
 
 public sealed class DisabledAiProvider : IAiProvider
 {
     public Task<string> GenerateAsync(string prompt, CancellationToken cancellationToken) =>
         throw new InvalidOperationException("AI is disabled.");
+    public Task<string> AnalyzeImageAsync(string instruction, byte[] image, string mediaType,
+        CancellationToken cancellationToken) => throw new InvalidOperationException("AI is disabled.");
 }
 
 public sealed class ChatCompletionProvider(Uri endpoint, string model, string? key,
     HttpClient client) : IAiProvider
 {
     public async Task<string> GenerateAsync(string prompt, CancellationToken cancellationToken)
+        => await CompleteAsync(new { role = "user", content = (object)prompt }, 512,
+            cancellationToken);
+
+    public Task<string> AnalyzeImageAsync(string instruction, byte[] image, string mediaType,
+        CancellationToken cancellationToken)
+    {
+        object[] content =
+        [
+            new { type = "text", text = instruction },
+            new { type = "image_url", image_url = new
+                { url = $"data:{mediaType};base64,{Convert.ToBase64String(image)}" } }
+        ];
+        return CompleteAsync(new { role = "user", content = (object)content }, 2048,
+            cancellationToken);
+    }
+
+    private async Task<string> CompleteAsync(object message, int outputTokens,
+        CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
         if (key != null) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
         request.Content = new StringContent(JsonSerializer.Serialize(new
         {
             model,
-            messages = new[] { new { role = "user", content = prompt } },
-            max_tokens = 512
+            messages = new[] { message },
+            max_tokens = outputTokens
         }), Encoding.UTF8, "application/json");
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead,
             cancellationToken);
