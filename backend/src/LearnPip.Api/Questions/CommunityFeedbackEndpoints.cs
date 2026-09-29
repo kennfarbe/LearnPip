@@ -72,8 +72,10 @@ public static class CommunityFeedbackEndpoints
             return Results.Conflict(new { error = "An open report already exists for this version." });
         var report = new QuestionReport
         {
-            QuestionVersionId = versionId.Value, AccountId = accountId,
-            Reason = input.Reason, Details = input.Details.Trim()
+            QuestionVersionId = versionId.Value,
+            AccountId = accountId,
+            Reason = input.Reason,
+            Details = input.Details.Trim()
         };
         db.QuestionReports.Add(report);
         await db.SaveChangesAsync(cancellationToken);
@@ -91,7 +93,9 @@ public static class CommunityFeedbackEndpoints
             return Invalid("text", "Enter up to 2000 characters.");
         var comment = new QuestionComment
         {
-            QuestionVersionId = versionId.Value, AccountId = accountId, Text = input.Text.Trim()
+            QuestionVersionId = versionId.Value,
+            AccountId = accountId,
+            Text = input.Text.Trim()
         };
         db.QuestionComments.Add(comment);
         await db.SaveChangesAsync(cancellationToken);
@@ -135,11 +139,22 @@ public static class CommunityFeedbackEndpoints
     private static async Task<IResult> Inbox(LearnPipDbContext db, CancellationToken cancellationToken)
     {
         var items = await db.QuestionReports.AsNoTracking().Where(report => report.Status == "open")
-            .GroupBy(report => new { report.QuestionVersionId, report.QuestionVersion.QuestionId,
-                report.QuestionVersion.VersionNumber, report.QuestionVersion.Prompt })
-            .Select(group => new { group.Key.QuestionVersionId, group.Key.QuestionId,
-                group.Key.VersionNumber, group.Key.Prompt, OpenReports = group.Count(),
-                Oldest = group.Min(report => report.CreatedAtUtc) })
+            .GroupBy(report => new
+            {
+                report.QuestionVersionId,
+                report.QuestionVersion.QuestionId,
+                report.QuestionVersion.VersionNumber,
+                report.QuestionVersion.Prompt
+            })
+            .Select(group => new
+            {
+                group.Key.QuestionVersionId,
+                group.Key.QuestionId,
+                group.Key.VersionNumber,
+                group.Key.Prompt,
+                OpenReports = group.Count(),
+                Oldest = group.Min(report => report.CreatedAtUtc)
+            })
             .OrderBy(group => group.Oldest).Take(100).ToListAsync(cancellationToken);
         return Results.Ok(new ApiResponse<object>(items));
     }
@@ -152,8 +167,15 @@ public static class CommunityFeedbackEndpoints
         var reports = await db.QuestionReports.AsNoTracking()
             .Where(report => report.QuestionVersionId == versionId)
             .OrderBy(report => report.CreatedAtUtc)
-            .Select(report => new { report.Id, report.Reason, report.Details, report.Status,
-                report.CreatedAtUtc, report.ClosedAtUtc }).ToListAsync(cancellationToken);
+            .Select(report => new
+            {
+                report.Id,
+                report.Reason,
+                report.Details,
+                report.Status,
+                report.CreatedAtUtc,
+                report.ClosedAtUtc
+            }).ToListAsync(cancellationToken);
         var comments = await db.QuestionComments.AsNoTracking()
             .Where(comment => comment.QuestionVersionId == versionId)
             .OrderBy(comment => comment.CreatedAtUtc)
@@ -162,8 +184,13 @@ public static class CommunityFeedbackEndpoints
         var events = await db.QuestionModerationEvents.AsNoTracking()
             .Where(item => item.QuestionVersionId == versionId)
             .OrderBy(item => item.CreatedAtUtc)
-            .Select(item => new { item.Action, item.Note, item.CreatedAtUtc,
-                item.ReplacementVersionId }).ToListAsync(cancellationToken);
+            .Select(item => new
+            {
+                item.Action,
+                item.Note,
+                item.CreatedAtUtc,
+                item.ReplacementVersionId
+            }).ToListAsync(cancellationToken);
         var helpful = await db.QuestionHelpfulVotes.CountAsync(vote => vote.QuestionVersionId == versionId &&
             vote.Helpful, cancellationToken);
         var unhelpful = await db.QuestionHelpfulVotes.CountAsync(vote => vote.QuestionVersionId == versionId &&
@@ -171,7 +198,11 @@ public static class CommunityFeedbackEndpoints
         return Results.Ok(new ApiResponse<object>(new
         {
             Version = await QuestionEndpoints.LoadVersion(db, versionId, cancellationToken),
-            reports, comments, events, helpful, unhelpful
+            reports,
+            comments,
+            events,
+            helpful,
+            unhelpful
         }));
     }
 
@@ -210,40 +241,59 @@ public static class CommunityFeedbackEndpoints
                 .Select(item => (int?)item.VersionNumber).MaxAsync(cancellationToken) ?? 0) + 1;
             var corrected = new QuestionVersion
             {
-                QuestionId = version.QuestionId, CreatedByAccountId = moderatorId,
-                VersionNumber = next, Visibility = "private", Prompt = input.CorrectedPrompt!.Trim(),
-                Explanation = version.Explanation, SelectionMode = version.SelectionMode,
-                Subject = version.Subject, Topic = version.Topic, Language = version.Language,
-                Source = version.Source, License = version.License,
-                AuthorAttribution = version.AuthorAttribution, PublishedAtUtc = now
+                QuestionId = version.QuestionId,
+                CreatedByAccountId = moderatorId,
+                VersionNumber = next,
+                Visibility = "private",
+                Prompt = input.CorrectedPrompt!.Trim(),
+                Explanation = version.Explanation,
+                SelectionMode = version.SelectionMode,
+                Subject = version.Subject,
+                Topic = version.Topic,
+                Language = version.Language,
+                Source = version.Source,
+                License = version.License,
+                AuthorAttribution = version.AuthorAttribution,
+                PublishedAtUtc = now
             };
             db.QuestionVersions.Add(corrected);
             db.QuestionContentBlocks.Add(new QuestionContentBlock
             {
-                QuestionVersionId = corrected.Id, Section = "prompt", SortOrder = 0,
-                Kind = "text", Text = input.CorrectedPrompt.Trim()
+                QuestionVersionId = corrected.Id,
+                Section = "prompt",
+                SortOrder = 0,
+                Kind = "text",
+                Text = input.CorrectedPrompt.Trim()
             });
             foreach (var block in version.Blocks.Where(item => item.Section == "explanation"))
                 db.QuestionContentBlocks.Add(new QuestionContentBlock
                 {
-                    QuestionVersionId = corrected.Id, Section = block.Section,
-                    SortOrder = block.SortOrder, Kind = block.Kind,
-                    Text = block.Text, MediaAssetId = block.MediaAssetId
+                    QuestionVersionId = corrected.Id,
+                    Section = block.Section,
+                    SortOrder = block.SortOrder,
+                    Kind = block.Kind,
+                    Text = block.Text,
+                    MediaAssetId = block.MediaAssetId
                 });
             foreach (var answer in version.AnswerOptions)
             {
                 var copy = new AnswerOption
                 {
-                    QuestionVersionId = corrected.Id, SortOrder = answer.SortOrder,
-                    IsCorrect = answer.IsCorrect, Text = answer.Text
+                    QuestionVersionId = corrected.Id,
+                    SortOrder = answer.SortOrder,
+                    IsCorrect = answer.IsCorrect,
+                    Text = answer.Text
                 };
                 db.AnswerOptions.Add(copy);
                 foreach (var block in answer.Blocks)
                     db.QuestionContentBlocks.Add(new QuestionContentBlock
                     {
-                        AnswerOptionId = copy.Id, Section = block.Section,
-                        SortOrder = block.SortOrder, Kind = block.Kind,
-                        Text = block.Text, MediaAssetId = block.MediaAssetId
+                        AnswerOptionId = copy.Id,
+                        Section = block.Section,
+                        SortOrder = block.SortOrder,
+                        Kind = block.Kind,
+                        Text = block.Text,
+                        MediaAssetId = block.MediaAssetId
                     });
             }
             replacementId = corrected.Id;
@@ -278,9 +328,12 @@ public static class CommunityFeedbackEndpoints
         }
         db.QuestionModerationEvents.Add(new QuestionModerationEvent
         {
-            QuestionVersionId = versionId, ModeratorAccountId = moderatorId,
-            Action = input.Action, Note = input.Note.Trim(),
-            ReplacementVersionId = replacementId, CreatedAtUtc = now
+            QuestionVersionId = versionId,
+            ModeratorAccountId = moderatorId,
+            Action = input.Action,
+            Note = input.Note.Trim(),
+            ReplacementVersionId = replacementId,
+            CreatedAtUtc = now
         });
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
