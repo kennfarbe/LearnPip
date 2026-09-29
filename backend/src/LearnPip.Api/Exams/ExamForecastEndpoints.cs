@@ -36,7 +36,7 @@ public static class ExamForecastEstimator
             evidence.SpacedMasteredContents * 100 < evidence.OwnContents * 70)
             reasons.Add("Zu wenige eigene Lerninhalte haben drei zeitversetzte sichere Wiederholungen.");
         if (recent.Length < 2 || recent.Any(item => !item.Passed))
-            reasons.Add("Es fehlen zwei bestandene Simulationen dieser Profilfassung aus den letzten 30 Tagen.");
+            reasons.Add("Es fehlen zwei vollständig bestandene Simulationen ohne angerechnete Teile aus den letzten 30 Tagen.");
         var earliest = reasons.Count == 0 ? today.AddDays(7) : (DateOnly?)null;
         var latest = reasons.Count == 0 ? today.AddDays(28) : (DateOnly?)null;
         var visible = sessions.OrderBy(item => item.Date).ThenBy(item => item.Place)
@@ -55,7 +55,8 @@ public static class ExamForecastEstimator
             "Heuristik, keine Erfolgswahrscheinlichkeit: mindestens 80 % beantwortete " +
             "Original-Fragegruppen, mindestens 70 % eigene Inhalte mit drei zeitversetzten " +
             "sicheren Wiederholungen (mindestens drei Inhalte) und die letzten zwei " +
-            "Simulationen derselben Profilfassung in 30 Tagen bestanden. Eigene Inhalte " +
+            "Simulationen derselben Profilfassung ohne angerechnete Teile in 30 Tagen " +
+            "bestanden. Eigene Inhalte " +
             "sind nicht zuverlässig dem amtlichen Katalog zugeordnet. Das Fenster " +
             "7–28 Tage enthält einen Vorbereitungspuffer; weitere Übung und geänderte " +
             "Regeln können es verschieben. Termine werden nur bei Quellenstand bis " +
@@ -101,6 +102,7 @@ public static class ExamForecastEndpoints
                 {
                     var results = JsonSerializer.Deserialize<List<PartResult>>(run.ResultJson!, Json)!;
                     signals.Add(new SimulationSignal(run.CompletedAtUtc.Value,
+                        snapshot.All(part => !part.Credited) &&
                         ExamScoring.Passed(snapshot, results)));
                 }
             }

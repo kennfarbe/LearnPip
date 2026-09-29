@@ -4,7 +4,7 @@
 
 - Katalogabdeckung: unterschiedliche beantwortete Original-Fragegruppen aus Simulationen und Powertests dieser Fassung, einschließlich Varianten über `baseCode`, geteilt durch die Original-Fragegruppen der Profiltteile. Das ist Kontakt mit Fragen, nicht eine richtig beantwortete Quote.
 - Wiederholungen: eigene Lerninhalte mit drei zeitversetzten sicheren Antworten nach dem LP-23-Modell. Diese Inhalte sind derzeit nicht zuverlässig den offiziellen Katalogfragen zugeordnet und werden deshalb ausdrücklich als separater, kontoweiter Hinweis angezeigt.
-- Simulationen: mindestens die **zwei letzten** abgeschlossenen Simulationen genau dieser Profilfassung innerhalb von 30 Tagen müssen alle erforderlichen Teile bestanden haben. Powertests zählen hier nicht als Prüfungssimulation.
+- Simulationen: mindestens die **zwei letzten** abgeschlossenen Simulationen genau dieser Profilfassung innerhalb von 30 Tagen müssen alle erforderlichen Teile ohne selbstauskunftsbasierte Anrechnung bestanden haben. Powertests zählen hier nicht als Prüfungssimulation. Eine angerechnete Teilprüfung liefert für die Prognose keine gemessene Übungsleistung.
 
 Erst bei mindestens 80 % Abdeckung, mindestens 70 % solcher Wiederholungen aus mindestens drei eigenen Inhalten und zwei jüngsten bestandenen Simulationen wird ein grobes Bereitschaftsfenster **7 bis 28 Tage ab heute** angezeigt. Die Schwellen und der Puffer sind eine transparente Produkthypothese, keine wissenschaftlich kalibrierte Wahrscheinlichkeit. Bei fehlenden Daten bleibt das Fenster unbestimmt; die Antwort erläutert die Gründe. Die Prognose wird bei jedem Abruf neu berechnet und speichert keine zusätzliche personenbezogene Kopie.
 
