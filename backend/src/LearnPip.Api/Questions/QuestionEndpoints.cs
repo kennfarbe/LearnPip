@@ -180,7 +180,7 @@ public static class QuestionEndpoints
             isCorrect, selected.ToArray(), correct)));
     }
 
-    private static async Task<PublishedQuestionVersion?> LoadVersion(LearnPipDbContext db,
+    internal static async Task<PublishedQuestionVersion?> LoadVersion(LearnPipDbContext db,
         Guid versionId, CancellationToken cancellationToken)
     {
         var version = await db.QuestionVersions.AsNoTracking()

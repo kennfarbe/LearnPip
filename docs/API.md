@@ -105,3 +105,22 @@ und erzeugt die nächste unveränderliche Fassung. Auch eine veröffentlichte
 Fassung bleibt standardmäßig privat und wird damit nicht automatisch für
 andere Konten freigegeben. Änderungen am Entwurf verändern die bisherige
 Fassung nicht.
+
+## Kurze Lernsitzungen (LP-15)
+
+`POST /api/v1/learning/sessions/` mit `{ "catalogId": null | "uuid", "count": 5 }`
+startet eine Sitzung mit bis zu zehn eigenen veröffentlichten Fragen (neueste
+Fassung je Frage). Ohne Katalog werden alle eigenen Fragen verwendet. Die
+Fragenfolge und die Antwortoptionen werden für jede Sitzung einmal zufällig
+gemischt und bleiben beim erneuten Laden in derselben Reihenfolge. Entwürfe
+werden nicht berücksichtigt. Die Antwort enthält die Sitzungs-ID, Zähler und
+die aktuelle Frage ohne Kennzeichnung richtiger Antworten.
+
+`GET /api/v1/learning/sessions/{id}` lädt die aktuelle Frage und den Fortschritt.
+`POST /api/v1/learning/sessions/{id}/answer` mit
+`{ "selectedOptionIds": ["uuid"] }` prüft die gesamte gewählte Menge und
+liefert danach die korrekten IDs sowie optional eine kurze und die vollständige
+Erklärung. Bei Einzelantwort ist genau eine Auswahl zulässig.
+`POST /api/v1/learning/sessions/{id}/skip` geht ohne Bewertung zur nächsten
+Frage. Übersprungene Fragen erzeugen keinen `StudyAttempt`. Beantwortete oder
+übersprungene Fragen können innerhalb der Sitzung nicht wiederholt werden.

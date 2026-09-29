@@ -642,6 +642,10 @@ namespace LearnPip.Data.Migrations
                     b.Property<DateTimeOffset?>("CompletedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("PlanJson")
+                        .HasMaxLength(8192)
+                        .HasColumnType("character varying(8192)");
+
                     b.Property<DateTimeOffset>("StartedAtUtc")
                         .HasColumnType("timestamp with time zone");
 

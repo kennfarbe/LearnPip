@@ -75,6 +75,11 @@ Datenbanksicherungen enthalten damit auch alle privaten Bilder.
 und Veröffentlichungszeitpunkt. `QuestionContentBlocks` ordnen Text und private
 Bildreferenzen in Frage, Erklärung und jede Antwort ein. Veröffentlichungen fügen
 eine neue Versionsnummer hinzu und bearbeiten keine alte Fassung.
+Der optionale `StudySessions.PlanJson` enthält für kurze Lernsitzungen die
+einmalig gemischte Reihenfolge der Frageversionen und Antwortoptionen sowie den
+Status `pending`, `answered` oder `skipped`. Bisherige Einzelversuche ohne Plan
+bleiben gültig. Ein übersprungener Eintrag hat keinen `StudyAttempt`.
+
 `StudyAttemptSelections` speichert jede gewählte Antwort-ID pro Versuch zusätzlich
 zum Korrektheitswert und der Version. Eine spätere Lösungsänderung verändert damit
 weder die ursprüngliche Lösung noch die damalige Auswahl oder Bewertung.

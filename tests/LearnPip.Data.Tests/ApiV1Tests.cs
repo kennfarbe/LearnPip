@@ -321,6 +321,68 @@ public sealed class ApiV1Tests
                     new DraftSaveRequest(draft, catalogId))).StatusCode);
             Assert.Equal(HttpStatusCode.Created,
                 (await ownerClient.PostAsync($"/api/v1/questions/{privateDraftId}/publish", null)).StatusCode);
+            var learningStart = await ownerClient.PostAsJsonAsync("/api/v1/learning/sessions/",
+                new StartLearningRequest(catalogId, 5));
+            Assert.Equal(HttpStatusCode.Created, learningStart.StatusCode);
+            var learning = (await learningStart.Content
+                .ReadFromJsonAsync<ApiResponse<LearningSessionView>>())!.Data;
+            Assert.Equal(1, learning.Total);
+            Assert.NotNull(learning.Current);
+            Assert.Equal(privateDraftId, learning.Current.QuestionId);
+            Assert.Equal(3, learning.Current.Answers.Select(option => option.Id).Distinct().Count());
+            Assert.DoesNotContain("isCorrect", await learningStart.Content.ReadAsStringAsync(),
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(HttpStatusCode.NotFound,
+                (await strangerClient.GetAsync($"/api/v1/learning/sessions/{learning.Id}")).StatusCode);
+            var partialLearning = await ownerClient.PostAsJsonAsync(
+                $"/api/v1/learning/sessions/{learning.Id}/answer",
+                new LearningAnswerRequest([learning.Current.Answers[0].Id]));
+            Assert.Equal(HttpStatusCode.OK, partialLearning.StatusCode);
+            Assert.False((await partialLearning.Content
+                .ReadFromJsonAsync<ApiResponse<LearningFeedback>>())!.Data.IsCorrect);
+            Assert.Equal(HttpStatusCode.Conflict,
+                (await ownerClient.PostAsJsonAsync($"/api/v1/learning/sessions/{learning.Id}/answer",
+                    new LearningAnswerRequest([learning.Current.Answers[0].Id]))).StatusCode);
+            var finishedLearning = (await ownerClient.GetFromJsonAsync<ApiResponse<LearningSessionView>>(
+                $"/api/v1/learning/sessions/{learning.Id}"))!.Data;
+            Assert.True(finishedLearning.Completed);
+            Assert.Equal(1, finishedLearning.Answered);
+            Assert.Equal(0, finishedLearning.Skipped);
+            Assert.Null(finishedLearning.Current);
+
+            var correctStart = await ownerClient.PostAsJsonAsync("/api/v1/learning/sessions/",
+                new StartLearningRequest(catalogId, 1));
+            var correctSession = (await correctStart.Content
+                .ReadFromJsonAsync<ApiResponse<LearningSessionView>>())!.Data;
+            var correctVersion = (await ownerClient.GetFromJsonAsync<ApiResponse<PublishedQuestionVersion>>(
+                $"/api/v1/questions/{privateDraftId}/versions/1"))!.Data;
+            var correctLearning = await ownerClient.PostAsJsonAsync(
+                $"/api/v1/learning/sessions/{correctSession.Id}/answer",
+                new LearningAnswerRequest(correctVersion.Answers.Where(option => option.IsCorrect)
+                    .Select(option => option.Id).ToArray()));
+            Assert.True((await correctLearning.Content
+                .ReadFromJsonAsync<ApiResponse<LearningFeedback>>())!.Data.IsCorrect);
+
+            var mixedStart = await ownerClient.PostAsJsonAsync("/api/v1/learning/sessions/",
+                new StartLearningRequest(null, 10));
+            var mixed = (await mixedStart.Content
+                .ReadFromJsonAsync<ApiResponse<LearningSessionView>>())!.Data;
+            Assert.True(mixed.Total >= 2);
+            var seen = new HashSet<Guid>();
+            while (mixed.Current != null)
+            {
+                Assert.True(seen.Add(mixed.Current.QuestionId));
+                Assert.Equal(HttpStatusCode.NoContent,
+                    (await ownerClient.PostAsync($"/api/v1/learning/sessions/{mixed.Id}/skip", null)).StatusCode);
+                mixed = (await ownerClient.GetFromJsonAsync<ApiResponse<LearningSessionView>>(
+                    $"/api/v1/learning/sessions/{mixed.Id}"))!.Data;
+            }
+            Assert.True(mixed.Completed);
+            Assert.Equal(0, mixed.Answered);
+            Assert.Equal(mixed.Total, mixed.Skipped);
+            await using (var checkSkipped = new LearnPipDbContext(options))
+                Assert.False(await checkSkipped.StudyAttempts.AnyAsync(item => item.StudySessionId == mixed.Id));
+
             var catalogItems = await ownerClient.GetStringAsync($"/api/v1/catalogs/{catalogId}/questions");
             Assert.Contains(privateDraftId.ToString(), catalogItems);
             Assert.Equal(HttpStatusCode.NoContent,

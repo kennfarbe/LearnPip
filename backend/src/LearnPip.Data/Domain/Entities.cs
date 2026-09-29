@@ -124,6 +124,7 @@ public sealed class StudySession
     public Guid AccountId { get; set; }
     public DateTimeOffset StartedAtUtc { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? CompletedAtUtc { get; set; }
+    public string? PlanJson { get; set; }
     public Account Account { get; set; } = null!;
     public ICollection<StudyAttempt> Attempts { get; set; } = [];
 }
