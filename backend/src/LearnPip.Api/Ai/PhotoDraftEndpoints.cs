@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using LearnPip.Api.Media;
+using LearnPip.Api.Questions;
 using LearnPip.Api.Security;
 using LearnPip.Data;
 using Microsoft.EntityFrameworkCore;
@@ -14,9 +15,15 @@ public sealed record PhotoExtractInput(Guid MediaId, string Mode, string Disclos
 public sealed record PhotoRecognition(string DetectedText, string QuestionText, string Subject,
     string Topic, string? Formula, string? DrawingDescription, IReadOnlyList<string> Answers,
     int? SuggestedCorrectIndex, string ComputedSolution, IReadOnlyList<string> Steps,
-    string? ReferenceSolution, IReadOnlyList<string> Uncertainties);
+    string? ReferenceSolution, IReadOnlyList<string> Uncertainties,
+    string? Hint = null, string? NextStep = null);
 public sealed record PhotoReview(PhotoRecognition Recognition, string Comparison,
-    string ComparisonExplanation, Guid MediaId, string Mode);
+    string ComparisonExplanation, Guid MediaId, string Mode, SolutionCheck Verification);
+public sealed record PhotoCheckInput(string? Formula, string? ComputedSolution,
+    string? ReferenceSolution, string? ChosenAnswer, IReadOnlyList<string>? Steps,
+    string? QuestionText);
+public sealed record PhotoDraftReviewInput(Guid MediaId, PhotoRecognition Recognition,
+    int CorrectIndex, bool Confirmed);
 
 public static class PhotoDraftParser
 {
@@ -35,6 +42,7 @@ public static class PhotoDraftParser
             item.Formula is { Length: > 2000 } ||
             item.DrawingDescription is { Length: > 2000 } ||
             item.ReferenceSolution is { Length: > 4000 } ||
+            item.Hint is { Length: > 500 } || item.NextStep is { Length: > 500 } ||
             item.Answers is not { Count: <= 8 } ||
             item.Answers.Any(answer => !Valid(answer, 4000)) ||
             item.Steps is not { Count: <= 12 } ||
@@ -56,7 +64,10 @@ public static class PhotoDraftParser
                 .Distinct().ToArray()
         }, comparison, comparison == "unknown" ? "Keine Musterlösung aus der Vorlage verfügbar." :
             "Nur Textvergleich mit der Vorlage; mathematische Gleichwertigkeit und Richtigkeit " +
-            "wurden nicht bewiesen.", mediaId, mode);
+            "wurden nicht bewiesen.", mediaId, mode,
+            SolutionVerifier.Check(item.Formula, item.ComputedSolution, reference,
+                item.SuggestedCorrectIndex is int index ? item.Answers[index] : null,
+                item.Steps, item.QuestionText));
     }
 
     private static bool Valid(string? text, int max) =>
@@ -69,6 +80,73 @@ public static class PhotoDraftParser
 
 public static class PhotoDraftEndpoints
 {
+    public static IResult Check(PhotoCheckInput input) => Results.Ok(new ApiResponse<SolutionCheck>(
+        SolutionVerifier.Check(input.Formula, input.ComputedSolution, input.ReferenceSolution,
+            input.ChosenAnswer, input.Steps, input.QuestionText)));
+
+    public static async Task<IResult> Save(PhotoDraftReviewInput input, LearnPipDbContext db,
+        ClaimsPrincipal user, CancellationToken ct)
+    {
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        var item = input.Recognition;
+        if (!input.Confirmed || item == null || input.CorrectIndex < 0 ||
+            item.Answers is not { Count: >= 2 and <= 8 } ||
+            input.CorrectIndex >= item.Answers.Count ||
+            item.Answers.Any(answer => string.IsNullOrWhiteSpace(answer) || answer.Length > 4000) ||
+            string.IsNullOrWhiteSpace(item.QuestionText) || item.QuestionText.Length > 4000 ||
+            item.Formula is { Length: > 2000 } || item.ComputedSolution is { Length: > 4000 } ||
+            item.ReferenceSolution is { Length: > 4000 } ||
+            item.DetectedText is { Length: > 8000 } ||
+            item.DrawingDescription is { Length: > 2000 } ||
+            item.Subject is null or { Length: > 120 } ||
+            item.Topic is null or { Length: > 120 } ||
+            item.Hint is { Length: > 500 } || item.NextStep is { Length: > 500 } ||
+            item.Steps is not { Count: <= 12 } ||
+            item.Steps.Any(step => step is null or { Length: > 2000 }) ||
+            item.Uncertainties is not { Count: <= 12 } ||
+            item.Uncertainties.Any(note => note is null or { Length: > 500 }))
+            return Results.BadRequest(new { error = "Review the structured fields and select an answer." });
+        if (!await db.MediaAssets.AsNoTracking().AnyAsync(media => media.Id == input.MediaId &&
+            media.OwnerAccountId == accountId && media.DeletedAtUtc == null, ct))
+            return Results.NotFound();
+        var check = SolutionVerifier.Check(item.Formula, item.ComputedSolution,
+            item.ReferenceSolution, item.Answers[input.CorrectIndex], item.Steps,
+            item.QuestionText);
+        if (check.Status == "conflict") return Results.Conflict(new { error = check.Reason });
+        if (!SolutionVerifier.SafeHint(item.Hint, item.Answers[input.CorrectIndex]) ||
+            !SolutionVerifier.SafeHint(item.NextStep, item.Answers[input.CorrectIndex]))
+            return Results.Conflict(new { error = "A hint reveals the correct answer." });
+        var text = (string value) => new ContentBlockInput("text", value, null);
+        var prompt = string.Join("\n", new[] { item.QuestionText.Trim(),
+            string.IsNullOrWhiteSpace(item.Formula) ? "" : "Formel: " + item.Formula.Trim() }
+            .Where(value => value.Length != 0));
+        prompt = prompt[..Math.Min(4000, prompt.Length)];
+        var explanation = new[]
+        {
+            "Prüfstatus: " + check.Status + ". " + check.Reason,
+            string.IsNullOrWhiteSpace(item.Hint) ? "" : "[Hinweis] " + item.Hint.Trim(),
+            string.IsNullOrWhiteSpace(item.NextStep) ? "" : "[Nächster Schritt] " + item.NextStep.Trim(),
+            item.ComputedSolution?.Trim() ?? "",
+            string.Join("\n", item.Steps),
+            string.IsNullOrWhiteSpace(item.ReferenceSolution) ? "" :
+                "Musterlösung aus der Vorlage: " + item.ReferenceSolution.Trim(),
+            string.IsNullOrWhiteSpace(item.DrawingDescription) ? "" :
+                "Zeichnung: " + item.DrawingDescription.Trim(),
+            string.IsNullOrWhiteSpace(item.DetectedText) ? "" :
+                "Erkannter Originaltext: " + item.DetectedText.Trim(),
+            "Unsicherheiten: " + string.Join("; ", item.Uncertainties)
+        }.Where(value => value.Length != 0);
+        var explanationText = string.Join("\n", explanation);
+        var content = new QuestionPublishRequest("single", item.Subject.Trim(), item.Topic.Trim(),
+            "de", "Privater Fotoentwurf", "",
+            [text(prompt), new ContentBlockInput("image", null, input.MediaId)],
+            [text(explanationText[..Math.Min(4000, explanationText.Length)])],
+            item.Answers.Select((answer, index) => new AnswerInput(index == input.CorrectIndex,
+                [text(answer.Trim())])).ToArray());
+        return await CatalogEditorEndpoints.CreateDraft(new DraftSaveRequest(content, null), db,
+            user, ct);
+    }
+
     public static async Task<IResult> Extract(PhotoExtractInput input, LearnPipDbContext db,
         IPrivateMediaStore store, IConfiguration config, AiGateway gateway,
         ClaimsPrincipal user, CancellationToken ct)
@@ -111,6 +189,7 @@ public static class PhotoDraftEndpoints
             "with camelCase fields: detectedText, questionText, subject, topic, formula, " +
             "drawingDescription, answers (array of possible answer texts, empty if unknown), " +
             "suggestedCorrectIndex (zero-based or null), computedSolution, steps (array), " +
+            "hint (a first non-spoiler hint), nextStep (a second non-spoiler step), " +
             "referenceSolution (only if visibly printed in the image, otherwise null), " +
             "uncertainties (array naming unreadable symbols, drawing ambiguities and guesses). " +
             "Transcribe formulas verbatim; do not invent a missing reference answer. " +

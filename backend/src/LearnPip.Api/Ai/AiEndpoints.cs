@@ -4,6 +4,7 @@ using System.Text;
 using LearnPip.Api.Security;
 using LearnPip.Data;
 using LearnPip.Data.Domain;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Ai;
@@ -23,6 +24,10 @@ public static class AiEndpoints
         ai.MapDelete("/user-key", DeleteKey);
         ai.MapPost("/generate", Generate);
         ai.MapPost("/photo/extract", PhotoDraftEndpoints.Extract);
+        ai.MapPost("/photo/check", PhotoDraftEndpoints.Check)
+            .WithMetadata(new RequestSizeLimitAttribute(16 * 1024));
+        ai.MapPost("/photo/drafts", PhotoDraftEndpoints.Save)
+            .WithMetadata(new RequestSizeLimitAttribute(70 * 1024));
         return app;
     }
 

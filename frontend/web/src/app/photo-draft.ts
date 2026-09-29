@@ -25,6 +25,13 @@ interface Recognition {
   steps: string[];
   referenceSolution: string | null;
   uncertainties: string[];
+  hint?: string | null;
+  nextStep?: string | null;
+}
+interface SolutionCheck {
+  status: 'verified' | 'unverified' | 'conflict';
+  reason: string;
+  expected: string | null;
 }
 interface Review {
   recognition: Recognition;
@@ -32,6 +39,7 @@ interface Review {
   comparisonExplanation: string;
   mediaId: string;
   mode: string;
+  verification: SolutionCheck;
 }
 
 @Component({
@@ -157,7 +165,7 @@ interface Review {
         }
       }
       @if (!savedId() && review(); as result) {
-        <div (input)="reviewConfirmed = false">
+        <div (input)="invalidateReview()" (change)="invalidateReview()">
           <h3>Erkennung prüfen und korrigieren</h3>
           <p>
             Ungeprüfter Vorschlag. Unleserliche Zeichen, Formeln und Zeichnungen im Foto
@@ -229,6 +237,14 @@ interface Review {
             <textarea [(ngModel)]="stepsText" maxlength="4000" rows="4"></textarea>
           </label>
           <label
+            >Erster Hinweis ohne Lösung
+            <textarea [(ngModel)]="result.recognition.hint" maxlength="500"></textarea>
+          </label>
+          <label
+            >Nächster Schritt ohne Lösung
+            <textarea [(ngModel)]="result.recognition.nextStep" maxlength="500"></textarea>
+          </label>
+          <label
             >Musterlösung aus der Vorlage
             <textarea
               [(ngModel)]="result.recognition.referenceSolution"
@@ -242,13 +258,38 @@ interface Review {
           @for (uncertainty of result.recognition.uncertainties; track $index) {
             <p>Unsicherheit: {{ uncertainty }}</p>
           }
+          <button type="button" [disabled]="busy() || correctIndex < 0" (click)="checkSolution()">
+            Korrigierte Lösung unabhängig prüfen
+          </button>
+          @if (verification(); as check) {
+            <p role="status">
+              {{
+                check.status === 'verified'
+                  ? 'Rechnerisch geprüft'
+                  : check.status === 'conflict'
+                    ? 'Widerspruch'
+                    : 'Fachlich ungeprüft'
+              }}:
+              {{ check.reason }}
+            </p>
+          }
         </div>
         <label
-          ><input type="checkbox" [(ngModel)]="reviewConfirmed" /> Ich habe Bild, Frage, Antworten
-          und Lösung geprüft oder offene Unsicherheiten erkannt. Nur einen privaten Entwurf
-          speichern.</label
+          ><input
+            type="checkbox"
+            [(ngModel)]="reviewConfirmed"
+            [disabled]="!verification() || verification()?.status === 'conflict'"
+          />
+          Ich habe Bild, Frage, Antworten und Lösung geprüft oder offene Unsicherheiten erkannt. Nur
+          einen privaten Entwurf speichern.</label
         >
-        <button type="button" [disabled]="busy() || !reviewConfirmed" (click)="saveDraft()">
+        <button
+          type="button"
+          [disabled]="
+            busy() || !reviewConfirmed || !verification() || verification()?.status === 'conflict'
+          "
+          (click)="saveDraft()"
+        >
           Als privaten Entwurf speichern
         </button>
       }
@@ -309,6 +350,7 @@ export class PhotoDraft implements OnInit {
   readonly previewReady = signal(false);
   readonly mediaId = signal('');
   readonly review = signal<Review | null>(null);
+  readonly verification = signal<SolutionCheck | null>(null);
   readonly savedId = signal('');
   readonly message = signal('');
   readonly busy = signal(false);
@@ -325,6 +367,7 @@ export class PhotoDraft implements OnInit {
   correctIndex = -1;
   stepsText = '';
   disclosureVersion = '';
+  private reviewRevision = 0;
 
   ngOnInit(): void {
     void this.reloadModes();
@@ -374,6 +417,7 @@ export class PhotoDraft implements OnInit {
     this.previewReady.set(false);
     this.storageConfirmed = false;
     this.review.set(null);
+    this.verification.set(null);
     this.message.set('');
   }
   invalidateCrop(): void {
@@ -384,6 +428,7 @@ export class PhotoDraft implements OnInit {
     this.mediaId.set('');
     this.savedId.set('');
     this.review.set(null);
+    this.verification.set(null);
     this.file.set(null);
     this.previewReady.set(false);
     this.storageConfirmed = false;
@@ -484,6 +529,7 @@ export class PhotoDraft implements OnInit {
       mode: 'off',
       comparison: 'unknown',
       comparisonExplanation: '',
+      verification: { status: 'unverified', reason: 'Bitte selbst prüfen.', expected: null },
       recognition: {
         detectedText: '',
         questionText: '',
@@ -497,11 +543,14 @@ export class PhotoDraft implements OnInit {
         steps: [],
         referenceSolution: null,
         uncertainties: ['Bitte Bild selbst lesen und Lösung prüfen.'],
+        hint: '',
+        nextStep: '',
       },
     });
     this.correctIndex = -1;
     this.stepsText = '';
     this.reviewConfirmed = false;
+    this.verification.set(null);
   }
   async extract(): Promise<void> {
     if (!this.mediaId() || !this.providerConfirmed || this.mode === 'off') return;
@@ -525,6 +574,7 @@ export class PhotoDraft implements OnInit {
         ? value.recognition.answers
         : ['', ''];
       this.review.set(value);
+      this.verification.set(null);
       this.stepsText = value.recognition.steps.join('\n');
       this.correctIndex = -1;
       this.reviewConfirmed = false;
@@ -546,63 +596,82 @@ export class PhotoDraft implements OnInit {
       ? 'Textgleichheit'
       : 'Textabweichung';
   }
-  async saveDraft(): Promise<void> {
-    const result = this.review();
-    if (!result || !this.reviewConfirmed || !this.mediaId() || this.busy()) return;
+  invalidateReview(): void {
+    this.reviewRevision++;
+    this.verification.set(null);
+    this.reviewConfirmed = false;
+  }
+  async checkSolution(): Promise<void> {
+    const recognition = this.review()?.recognition;
+    if (!recognition || this.correctIndex < 0 || this.correctIndex >= recognition.answers.length)
+      return;
     this.busy.set(true);
-    const text = (value: string) => (value.trim() ? [{ kind: 'text', text: value.trim() }] : []);
-    const explanation = [
-      result.recognition.computedSolution.trim(),
-      this.stepsText.trim(),
-      result.recognition.referenceSolution?.trim()
-        ? `Musterlösung aus der Vorlage: ${result.recognition.referenceSolution.trim()}`
-        : '',
-      result.recognition.drawingDescription?.trim()
-        ? `Zeichnung: ${result.recognition.drawingDescription.trim()}`
-        : '',
-      result.recognition.detectedText.trim()
-        ? `Erkannter Originaltext: ${result.recognition.detectedText.trim()}`
-        : '',
-      result.recognition.uncertainties.length
-        ? `Ungeprüft: ${result.recognition.uncertainties.join('; ')}`
-        : '',
-    ]
-      .filter(Boolean)
-      .join('\n');
-    const content = {
-      selectionMode: 'single',
-      subject: result.recognition.subject.trim(),
-      topic: result.recognition.topic.trim(),
-      language: 'de',
-      source: 'Privater Fotoentwurf',
-      license: '',
-      prompt: [
-        ...text(
-          [
-            result.recognition.questionText,
-            result.recognition.formula?.trim()
-              ? `Formel: ${result.recognition.formula.trim()}`
-              : '',
-          ]
-            .filter(Boolean)
-            .join('\n')
-            .slice(0, 4000),
-        ),
-        { kind: 'image', mediaId: this.mediaId() },
-      ],
-      explanation: text(explanation.slice(0, 4000)),
-      answers: result.recognition.answers.map((answer, index) => ({
-        isCorrect: index === this.correctIndex,
-        blocks: text(answer),
-      })),
-    };
+    const revision = this.reviewRevision;
+    this.verification.set(null);
+    this.reviewConfirmed = false;
     try {
-      const response = await fetch('/api/v1/questions/drafts', {
+      const response = await fetch('/api/v1/ai/photo/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, catalogId: null }),
+        body: JSON.stringify({
+          formula: recognition.formula,
+          questionText: recognition.questionText,
+          computedSolution: recognition.computedSolution,
+          referenceSolution: recognition.referenceSolution,
+          chosenAnswer: recognition.answers[this.correctIndex],
+          steps: this.stepsText
+            .split('\n')
+            .map((step) => step.trim())
+            .filter(Boolean),
+        }),
       });
       if (!response.ok) throw new Error(`${response.status}`);
+      const check = ((await response.json()) as { data: SolutionCheck }).data;
+      if (revision !== this.reviewRevision) return;
+      this.verification.set(check);
+      this.message.set('Prüfstatus ansehen und Bild weiterhin selbst vergleichen.');
+    } catch {
+      this.message.set('Lösungsprüfung fehlgeschlagen. Bitte erneut versuchen.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+  async saveDraft(): Promise<void> {
+    const result = this.review();
+    if (
+      !result ||
+      !this.reviewConfirmed ||
+      !this.verification() ||
+      this.verification()?.status === 'conflict' ||
+      !this.mediaId() ||
+      this.busy()
+    )
+      return;
+    this.busy.set(true);
+    result.recognition.steps = this.stepsText
+      .split('\n')
+      .map((step) => step.trim())
+      .filter(Boolean);
+    try {
+      const response = await fetch('/api/v1/ai/photo/drafts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mediaId: this.mediaId(),
+          recognition: result.recognition,
+          correctIndex: this.correctIndex,
+          confirmed: true,
+        }),
+      });
+      if (!response.ok) {
+        this.message.set(
+          response.status === 409
+            ? 'Widerspruch erkannt. Lösung und Antworten korrigieren, dann erneut prüfen.'
+            : 'Entwurf konnte nicht gespeichert werden. Prüfe die Felder.',
+        );
+        this.invalidateReview();
+        return;
+      }
       const id = ((await response.json()) as { data: { questionId: string } }).data.questionId;
       this.savedId.set(id);
       window.dispatchEvent(new CustomEvent('learnpip:photo-draft', { detail: id }));

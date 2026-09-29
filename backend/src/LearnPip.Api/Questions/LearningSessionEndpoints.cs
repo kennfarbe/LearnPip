@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text.Json;
+using LearnPip.Api.Ai;
 using LearnPip.Api.Security;
 using LearnPip.Data;
 using LearnPip.Data.Domain;
@@ -13,7 +14,8 @@ public sealed record LearningAnswerRequest(IReadOnlyList<Guid> SelectedOptionIds
 public sealed record ExplanationViewRequest(Guid AttemptId);
 public sealed record LearningOption(Guid Id, IReadOnlyList<ContentBlockOutput> Blocks);
 public sealed record LearningQuestion(Guid QuestionId, Guid VersionId, string SelectionMode,
-    IReadOnlyList<ContentBlockOutput> Prompt, IReadOnlyList<LearningOption> Answers);
+    IReadOnlyList<ContentBlockOutput> Prompt, IReadOnlyList<LearningOption> Answers,
+    string? Hint, string? NextStep);
 public sealed record LearningSessionView(Guid Id, int Total, int Answered, int Skipped,
     bool Completed, LearningQuestion? Current);
 public sealed record LearningFeedback(Guid AttemptId, Guid ContentId, bool IsCorrect,
@@ -200,16 +202,34 @@ public static class LearningSessionEndpoints
         {
             var version = await QuestionEndpoints.LoadVersion(db, current.VersionId, cancellationToken);
             if (version != null)
+            {
+                var guidance = Guidance(version.Explanation, version.Answers);
                 question = new LearningQuestion(current.QuestionId, current.VersionId,
                     version.SelectionMode, version.Prompt, current.OptionIds.Select(id =>
                     {
                         var option = version.Answers.Single(answer => answer.Id == id);
                         return new LearningOption(id, option.Blocks);
-                    }).ToArray());
+                    }).ToArray(), guidance.Hint, guidance.NextStep);
+            }
         }
         return new LearningSessionView(session.Id, plan.Count,
             plan.Count(item => item.State == "answered"), plan.Count(item => item.State == "skipped"),
             session.CompletedAtUtc != null, question);
+    }
+
+    public static (string? Hint, string? NextStep) Guidance(
+        IReadOnlyList<ContentBlockOutput> explanation, IReadOnlyList<AnswerOutput> answers)
+    {
+        var text = explanation.FirstOrDefault(block => block.Kind == "text")?.Text ?? "";
+        var lines = text.Split('\n');
+        string? Find(string marker) => lines.FirstOrDefault(line => line.StartsWith(marker,
+            StringComparison.Ordinal))?[marker.Length..].Trim();
+        var correct = answers.Where(answer => answer.IsCorrect)
+            .SelectMany(answer => answer.Blocks).Where(block => block.Kind == "text")
+            .Select(block => block.Text ?? "").ToArray();
+        string? Safe(string? value) => value is { Length: > 0 and <= 500 } &&
+            correct.All(answer => SolutionVerifier.SafeHint(value, answer)) ? value : null;
+        return (Safe(Find("[Hinweis] ")), Safe(Find("[Nächster Schritt] ")));
     }
 
     private static void Shuffle<T>(IList<T> items)

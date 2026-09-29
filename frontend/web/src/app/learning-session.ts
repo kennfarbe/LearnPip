@@ -17,6 +17,8 @@ interface LearningQuestion {
   selectionMode: 'single' | 'multiple';
   prompt: Block[];
   answers: Option[];
+  hint: string | null;
+  nextStep: string | null;
 }
 interface Session {
   id: string;
@@ -181,6 +183,32 @@ const sessionKey = 'learnpip-learning-session';
                   : 'Wähle alle richtigen Antworten.'
               }}
             </p>
+            @if (question.hint) {
+              <button
+                type="button"
+                class="secondary"
+                (click)="guidanceLevel.set(1)"
+                [disabled]="guidanceLevel() >= 1"
+              >
+                Hinweis anzeigen
+              </button>
+              @if (guidanceLevel() >= 1) {
+                <p class="hint" role="status">{{ question.hint }}</p>
+              }
+            }
+            @if (question.nextStep && guidanceLevel() >= 1) {
+              <button
+                type="button"
+                class="secondary"
+                (click)="guidanceLevel.set(2)"
+                [disabled]="guidanceLevel() >= 2"
+              >
+                Nächsten Schritt anzeigen
+              </button>
+              @if (guidanceLevel() >= 2) {
+                <p class="hint" role="status">{{ question.nextStep }}</p>
+              }
+            }
             <div class="options" role="group" aria-label="Antwortmöglichkeiten">
               @for (option of question.answers; track option.id) {
                 <label class="option">
@@ -301,6 +329,7 @@ export class LearningSession implements OnInit {
   readonly selected = signal<string[]>([]);
   readonly feedback = signal<Feedback | null>(null);
   readonly showFull = signal(false);
+  readonly guidanceLevel = signal(0);
   readonly busy = signal(false);
   readonly message = signal('');
   readonly overview = signal<ReviewOverview | null>(null);
@@ -449,6 +478,7 @@ export class LearningSession implements OnInit {
     if (!id) return;
     this.feedback.set(null);
     this.showFull.set(false);
+    this.guidanceLevel.set(0);
     this.selected.set([]);
     this.wasGuessed = false;
     await this.load(id);
@@ -459,6 +489,7 @@ export class LearningSession implements OnInit {
     this.session.set(null);
     this.feedback.set(null);
     this.selected.set([]);
+    this.guidanceLevel.set(0);
     this.wasGuessed = false;
   }
 
