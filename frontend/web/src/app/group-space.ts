@@ -1,4 +1,5 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { LanguageService } from './language';
 import { FormsModule } from '@angular/forms';
 
 interface Group {
@@ -29,17 +30,23 @@ interface Api<T> {
   imports: [FormsModule],
   template: `
     <section class="groups" aria-labelledby="groups-title">
-      <h2 id="groups-title">Geschlossene Lerngruppen</h2>
+      <h2 id="groups-title">{{ language.t('Geschlossene Lerngruppen') }}</h2>
       <p>
-        Teile einen eigenen Katalog mit deiner Gruppe. Ein Einladungscode dient nur zum Beitritt.
+        {{
+          language.t(
+            'Teile einen eigenen Katalog mit deiner Gruppe. Ein Einladungscode dient nur zum Beitritt.'
+          )
+        }}
       </p>
       <div class="actions">
-        <label>Gruppenname <input [(ngModel)]="name" maxlength="160" /></label>
-        <button type="button" (click)="create()">Gruppe erstellen</button>
+        <label>{{ language.t('Gruppenname') }}<input [(ngModel)]="name" maxlength="160" /></label>
+        <button type="button" (click)="create()">{{ language.t('Gruppe erstellen') }}</button>
       </div>
       <div class="actions">
-        <label>Einladungscode <input [(ngModel)]="code" autocomplete="off" /></label>
-        <button type="button" (click)="join()">Beitreten</button>
+        <label
+          >{{ language.t('Einladungscode') }}<input [(ngModel)]="code" autocomplete="off"
+        /></label>
+        <button type="button" (click)="join()">{{ language.t('Beitreten') }}</button>
       </div>
       @if (message()) {
         <p role="status">{{ message() }}</p>
@@ -47,54 +54,68 @@ interface Api<T> {
       @for (group of groups(); track group.id) {
         <article>
           <h3>{{ group.name }}</h3>
-          <button type="button" (click)="open(group)">Mitglieder und Kataloge anzeigen</button>
+          <button type="button" (click)="open(group)">
+            {{ language.t('Mitglieder und Kataloge anzeigen') }}
+          </button>
           @if (selected() === group.id) {
-            <h4>Mitglieder</h4>
+            <h4>{{ language.t('Mitglieder') }}</h4>
             <ul>
               @for (member of members(); track member.accountId) {
                 <li>
                   {{ member.accountId }} ({{ member.role }})
-                  <button type="button" (click)="remove(group, member.accountId)">Entfernen</button>
+                  <button type="button" (click)="remove(group, member.accountId)">
+                    {{ language.t('Entfernen') }}
+                  </button>
                 </li>
               }
             </ul>
-            <h4>Freigegebene Kataloge</h4>
+            <h4>{{ language.t('Freigegebene Kataloge') }}</h4>
             <ul>
               @for (catalog of shared(); track catalog.id) {
                 <li>
                   {{ catalog.name }}
                   <button type="button" (click)="unshare(group, catalog.id)">
-                    Freigabe aufheben
+                    {{ language.t('Freigabe aufheben') }}
                   </button>
                 </li>
               }
             </ul>
             <div class="actions">
               <label
-                >Eigener Katalog
-                <select [(ngModel)]="catalogId">
-                  <option value="">Bitte wählen</option>
+                >{{ language.t('Eigener Katalog')
+                }}<select [(ngModel)]="catalogId">
+                  <option value="">{{ language.t('Bitte wählen') }}</option>
                   @for (catalog of catalogs(); track catalog.id) {
                     <option [value]="catalog.id">{{ catalog.name }}</option>
                   }
                 </select>
               </label>
-              <button type="button" (click)="share(group)">Aktuelle Fassungen freigeben</button>
+              <button type="button" (click)="share(group)">
+                {{ language.t('Aktuelle Fassungen freigeben') }}
+              </button>
             </div>
             <div class="actions">
               <label
-                >Ablauf in Tagen <input type="number" min="1" max="30" [(ngModel)]="days"
+                >{{ language.t('Ablauf in Tagen')
+                }}<input type="number" min="1" max="30" [(ngModel)]="days"
               /></label>
-              <label>Nutzungen <input type="number" min="1" max="1000" [(ngModel)]="uses" /></label>
-              <button type="button" (click)="invite(group)">Code erstellen</button>
+              <label
+                >{{ language.t('Nutzungen')
+                }}<input type="number" min="1" max="1000" [(ngModel)]="uses"
+              /></label>
+              <button type="button" (click)="invite(group)">
+                {{ language.t('Code erstellen') }}
+              </button>
             </div>
             @if (invitation(); as issued) {
               <p role="status">
-                Code nur jetzt kopieren: <strong>{{ issued.code }}</strong
+                {{ language.t('Code nur jetzt kopieren:') }}<strong>{{ issued.code }}</strong
                 ><br />
                 Gültig bis {{ issued.expiresAtUtc }} für {{ issued.maxUses }} Beitritte.
               </p>
-              <button type="button" (click)="revoke(group, issued.id)">Code widerrufen</button>
+              <button type="button" (click)="revoke(group, issued.id)">
+                {{ language.t('Code widerrufen') }}
+              </button>
             }
           }
         </article>
@@ -159,6 +180,7 @@ interface Api<T> {
   `,
 })
 export class GroupSpace implements OnInit {
+  readonly language = inject(LanguageService);
   readonly groups = signal<Group[]>([]);
   readonly catalogs = signal<Catalog[]>([]);
   readonly members = signal<Member[]>([]);

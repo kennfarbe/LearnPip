@@ -1,4 +1,5 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { LanguageService } from './language';
 import { FormsModule } from '@angular/forms';
 
 interface Part {
@@ -118,15 +119,18 @@ interface Catalog {
   imports: [FormsModule],
   template: `
     <section class="exams" aria-labelledby="exam-title">
-      <h2 id="exam-title">Prüfungssimulation</h2>
+      <h2 id="exam-title">{{ language.t('Prüfungssimulation') }}</h2>
       <p>
-        Jeder verlangte Fachteil wird getrennt bewertet. Selbst gemeldete bestandene Teile ersetzen
-        keinen amtlichen Nachweis.
+        {{
+          language.t(
+            'Jeder verlangte Fachteil wird getrennt bewertet. Selbst gemeldete bestandene Teile ersetzen keinen amtlichen Nachweis.'
+          )
+        }}
       </p>
       <label
-        >Profilfassung
-        <select [(ngModel)]="profileId">
-          <option value="">Bitte auswählen</option>
+        >{{ language.t('Profilfassung')
+        }}<select [(ngModel)]="profileId">
+          <option value="">{{ language.t('Bitte auswählen') }}</option>
           @for (profile of profiles(); track profile.id) {
             <option [value]="profile.id">
               {{ profile.title }} · Fassung {{ profile.version }} · Katalog {{ profile.revision }}
@@ -147,31 +151,44 @@ interface Catalog {
         @if (profile.rulesSourceUrl && profile.rulesCheckedOn) {
           <p>
             Prüfungsregeln geprüft am {{ profile.rulesCheckedOn }} ·
-            <a [href]="profile.rulesSourceUrl">Regelquelle</a>
+            <a [href]="profile.rulesSourceUrl">{{ language.t('Regelquelle') }}</a>
           </p>
         } @else {
-          <p>Für diese ältere Profilfassung ist kein geprüfter Regelstand hinterlegt.</p>
+          <p>
+            {{
+              language.t('Für diese ältere Profilfassung ist kein geprüfter Regelstand hinterlegt.')
+            }}
+          </p>
         }
         @for (session of profile.sessions; track session.date + session.place) {
           <p>
             {{ session.date }} · {{ session.place }} · Anmeldefrist:
             {{ session.registrationDeadline ?? 'nicht veröffentlicht' }} · Quelle geprüft am
-            {{ session.checkedOn }} · <a [href]="session.sourceUrl">Terminquelle</a>
+            {{ session.checkedOn }} ·
+            <a [href]="session.sourceUrl">{{ language.t('Terminquelle') }}</a>
           </p>
         } @empty {
-          <p>Für diese Profilfassung sind keine geprüften Termine hinterlegt.</p>
+          <p>
+            {{ language.t('Für diese Profilfassung sind keine geprüften Termine hinterlegt.') }}
+          </p>
         }
-        <button type="button" (click)="loadForecast()">Bereitschaft einschätzen</button>
+        <button type="button" (click)="loadForecast()">
+          {{ language.t('Bereitschaft einschätzen') }}
+        </button>
         @if (forecastProfileId === profile.id && forecast(); as estimate) {
           <section aria-label="Bereitschaftsprognose" role="status">
-            <h3>Lernbereitschaft</h3>
+            <h3>{{ language.t('Lernbereitschaft') }}</h3>
             @if (estimate.status === 'window') {
               <p>
                 Grobes Bereitschaftsfenster: {{ estimate.earliestReadyDate }} bis
                 {{ estimate.latestReadyDate }}.
               </p>
             } @else {
-              <p>Ein belastbares Bereitschaftsfenster lässt sich noch nicht ableiten.</p>
+              <p>
+                {{
+                  language.t('Ein belastbares Bereitschaftsfenster lässt sich noch nicht ableiten.')
+                }}
+              </p>
             }
             <p>
               Katalogabdeckung: {{ estimate.evidence.answeredCatalogQuestions }} /
@@ -196,30 +213,37 @@ interface Catalog {
               <p>{{ reason }}</p>
             }
             <p>{{ estimate.assumptions }}</p>
-            <h3>Formale Zulassung</h3>
+            <h3>{{ language.t('Formale Zulassung') }}</h3>
             <p>{{ estimate.formalAdmissionStatus }}</p>
-            <p>LearnPip meldet niemanden automatisch zur Prüfung an.</p>
+            <p>{{ language.t('LearnPip meldet niemanden automatisch zur Prüfung an.') }}</p>
           </section>
         }
       }
       <label
-        >Fragen
-        <select [(ngModel)]="questionMode">
-          <option value="original">Originalfragen</option>
+        >{{ language.t('Fragen')
+        }}<select [(ngModel)]="questionMode">
+          <option value="original">{{ language.t('Originalfragen') }}</option>
           @if (selectedProfile()?.parts?.every((part) => part.allowVariants)) {
-            <option value="variant">Varianten</option>
-            <option value="mixed">Gemischt</option>
+            <option value="variant">{{ language.t('Varianten') }}</option>
+            <option value="mixed">{{ language.t('Gemischt') }}</option>
           }
         </select>
       </label>
-      <button type="button" (click)="start()" [disabled]="!profileId">Simulation starten</button>
+      <button type="button" (click)="start()" [disabled]="!profileId">
+        {{ language.t('Simulation starten') }}
+      </button>
       <p>
-        Die Zeit läuft je Fachteil ab Start auch nach Schließen der Seite weiter. Offene Läufe
-        können fortgesetzt werden.
+        {{
+          language.t(
+            'Die Zeit läuft je Fachteil ab Start auch nach Schließen der Seite weiter. Offene Läufe können fortgesetzt werden.'
+          )
+        }}
       </p>
       @for (run of simulationHistory(); track run.id) {
         @if (!run.completedAtUtc) {
-          <button type="button" (click)="resumeSimulation(run.id)">Simulation fortsetzen</button>
+          <button type="button" (click)="resumeSimulation(run.id)">
+            {{ language.t('Simulation fortsetzen') }}
+          </button>
         }
       }
       @if (simulation(); as run) {
@@ -243,7 +267,7 @@ interface Catalog {
               }
             </fieldset>
           }
-          <button type="button" (click)="finish()">Fachteil abgeben</button>
+          <button type="button" (click)="finish()">{{ language.t('Fachteil abgeben') }}</button>
         } @else {
           <p role="status">
             {{
@@ -268,21 +292,26 @@ interface Catalog {
           }
         </ul>
       }
-      <h2>Powertest</h2>
+      <h2>{{ language.t('Powertest') }}</h2>
       <p>
-        Alle Fragen des gewählten Profils in Etappen ohne Zeitlimit. Die Fehleranalyse erscheint
-        nach der letzten Etappe.
+        {{
+          language.t(
+            'Alle Fragen des gewählten Profils in Etappen ohne Zeitlimit. Die Fehleranalyse erscheint nach der letzten Etappe.'
+          )
+        }}
       </p>
       <label
-        >Fragen pro Etappe
-        <input type="number" min="1" max="100" [(ngModel)]="stageSize" />
+        >{{ language.t('Fragen pro Etappe')
+        }}<input type="number" min="1" max="100" [(ngModel)]="stageSize" />
       </label>
       <button type="button" (click)="startPower()" [disabled]="!profileId">
-        Powertest starten
+        {{ language.t('Powertest starten') }}
       </button>
       @for (run of powerHistory(); track run.id) {
         @if (!run.completedAtUtc) {
-          <button type="button" (click)="resumePower(run.id)">Powertest fortsetzen</button>
+          <button type="button" (click)="resumePower(run.id)">
+            {{ language.t('Powertest fortsetzen') }}
+          </button>
         }
       }
       @if (powerTest(); as run) {
@@ -304,13 +333,13 @@ interface Catalog {
               }
             </fieldset>
           }
-          <button type="button" (click)="finishPower()">Etappe abgeben</button>
+          <button type="button" (click)="finishPower()">{{ language.t('Etappe abgeben') }}</button>
         } @else {
-          <h4>Auswertung je Fachteil</h4>
+          <h4>{{ language.t('Auswertung je Fachteil') }}</h4>
           @for (part of run.parts; track part.code) {
             <p>{{ part.code }}: {{ part.correct }} / {{ part.total }} richtig</p>
           }
-          <h4>Fehleranalyse</h4>
+          <h4>{{ language.t('Fehleranalyse') }}</h4>
           @for (mistake of run.mistakes; track mistake.code) {
             <p>
               {{ mistake.partCode }} · {{ mistake.code }}: {{ mistake.prompt }}<br />
@@ -318,11 +347,11 @@ interface Catalog {
               {{ mistake.correctAnswer }}
             </p>
           } @empty {
-            <p>Alle Fragen richtig beantwortet.</p>
+            <p>{{ language.t('Alle Fragen richtig beantwortet.') }}</p>
           }
         }
       }
-      <h3>Bereits bestandene Fachbereiche (Selbstauskunft)</h3>
+      <h3>{{ language.t('Bereits bestandene Fachbereiche (Selbstauskunft)') }}</h3>
       @for (code of creditCodes; track code) {
         <label
           ><input
@@ -333,30 +362,38 @@ interface Catalog {
         >
       }
       @if (catalogs().length) {
-        <h3>Katalogquellen</h3>
+        <h3>{{ language.t('Katalogquellen') }}</h3>
         <ul>
           @for (catalog of catalogs(); track catalog.id) {
             <li>
               {{ catalog.title }} · {{ catalog.revision }} ({{ catalog.changedOn }}) ·
               {{ catalog.license }} · {{ catalog.attribution }} ·
-              <a [href]="catalog.sourceUrl">Quelle</a>
+              <a [href]="catalog.sourceUrl">{{ language.t('Quelle') }}</a>
             </li>
           }
         </ul>
       }
       @if (admin()) {
         <details>
-          <summary>Offiziellen Katalog und Profilfassungen verwalten</summary>
+          <summary>{{ language.t('Offiziellen Katalog und Profilfassungen verwalten') }}</summary>
           <p>
-            JSON-Import mit Quelle, Lizenz, Urheberangabe, Fassungsdatum und bestätigten Rechten.
+            {{
+              language.t(
+                'JSON-Import mit Quelle, Lizenz, Urheberangabe, Fassungsdatum und bestätigten Rechten.'
+              )
+            }}
           </p>
-          <label>Katalogimport (JSON) <textarea [(ngModel)]="catalogJson"></textarea></label>
+          <label
+            >{{ language.t('Katalogimport (JSON)') }}<textarea [(ngModel)]="catalogJson"></textarea>
+          </label>
           <button type="button" (click)="submitAdmin('catalogs/import', catalogJson)">
-            Katalogfassung importieren
+            {{ language.t('Katalogfassung importieren') }}
           </button>
-          <label>Profilfassung (JSON) <textarea [(ngModel)]="profileJson"></textarea></label>
+          <label
+            >{{ language.t('Profilfassung (JSON)') }}<textarea [(ngModel)]="profileJson"></textarea>
+          </label>
           <button type="button" (click)="submitAdmin('profiles/versions', profileJson)">
-            Profilfassung speichern
+            {{ language.t('Profilfassung speichern') }}
           </button>
         </details>
       }
@@ -398,6 +435,7 @@ interface Catalog {
   `,
 })
 export class ExamProfiles implements OnInit {
+  readonly language = inject(LanguageService);
   readonly profiles = signal<Profile[]>([]);
   readonly catalogs = signal<Catalog[]>([]);
   readonly credits = signal<string[]>([]);

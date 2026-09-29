@@ -1,4 +1,5 @@
-import { Component, ElementRef, OnInit, ViewChild, signal } from '@angular/core';
+import { Component, inject, ElementRef, OnInit, ViewChild, signal } from '@angular/core';
+import { LanguageService } from './language';
 import { FormsModule } from '@angular/forms';
 
 interface Mode {
@@ -47,21 +48,24 @@ interface Review {
   imports: [FormsModule],
   template: `
     <section class="photo" aria-labelledby="photo-title">
-      <h2 id="photo-title">Foto in privaten Aufgabenentwurf übernehmen</h2>
+      <h2 id="photo-title">{{ language.t('Foto in privaten Aufgabenentwurf übernehmen') }}</h2>
       <p>
-        Zuschnitt und Vorschau entstehen zuerst auf deinem Gerät. Das zugeschnittene Foto wird nur
-        nach deiner Freigabe in deinem privaten Konto gespeichert. Eine KI-Auswertung ist optional.
+        {{
+          language.t(
+            'Zuschnitt und Vorschau entstehen zuerst auf deinem Gerät. Das zugeschnittene Foto wird nur nach deiner Freigabe in deinem privaten Konto gespeichert. Eine KI-Auswertung ist optional.'
+          )
+        }}
       </p>
       <label
-        >Foto auswählen (JPEG oder PNG, höchstens 5 MiB)
-        <input type="file" accept="image/jpeg,image/png" (change)="selectFile($event)" />
+        >{{ language.t('Foto auswählen (JPEG oder PNG, höchstens 5 MiB)')
+        }}<input type="file" accept="image/jpeg,image/png" (change)="selectFile($event)" />
       </label>
       @if (file()) {
         <fieldset>
-          <legend>Bildbereich in Prozent zuschneiden</legend>
+          <legend>{{ language.t('Bildbereich in Prozent zuschneiden') }}</legend>
           <label
-            >Links
-            <input
+            >{{ language.t('Links')
+            }}<input
               type="number"
               min="0"
               max="99"
@@ -69,8 +73,8 @@ interface Review {
               (ngModelChange)="invalidateCrop()"
           /></label>
           <label
-            >Oben
-            <input
+            >{{ language.t('Oben')
+            }}<input
               type="number"
               min="0"
               max="99"
@@ -78,8 +82,8 @@ interface Review {
               (ngModelChange)="invalidateCrop()"
           /></label>
           <label
-            >Breite
-            <input
+            >{{ language.t('Breite')
+            }}<input
               type="number"
               min="1"
               max="100"
@@ -87,15 +91,17 @@ interface Review {
               (ngModelChange)="invalidateCrop()"
           /></label>
           <label
-            >Höhe
-            <input
+            >{{ language.t('Höhe')
+            }}<input
               type="number"
               min="1"
               max="100"
               [(ngModel)]="cropHeight"
               (ngModelChange)="invalidateCrop()"
           /></label>
-          <button type="button" (click)="previewCrop()">Zuschnitt anzeigen</button>
+          <button type="button" (click)="previewCrop()">
+            {{ language.t('Zuschnitt anzeigen') }}
+          </button>
         </fieldset>
       }
       <canvas
@@ -104,12 +110,12 @@ interface Review {
         aria-label="Vorschau des zugeschnittenen Fotos"
       ></canvas>
       <label
-        >Bildbeschreibung für deinen Entwurf
-        <input [(ngModel)]="altText" maxlength="300" placeholder="Was zeigt das Foto?" />
+        >{{ language.t('Bildbeschreibung für deinen Entwurf')
+        }}<input [(ngModel)]="altText" maxlength="300" placeholder="Was zeigt das Foto?" />
       </label>
       <label
-        >Betriebsart
-        <select [(ngModel)]="mode" (ngModelChange)="providerConfirmed = false">
+        >{{ language.t('Betriebsart')
+        }}<select [(ngModel)]="mode" (ngModelChange)="providerConfirmed = false">
           @for (entry of modes(); track entry.info.mode) {
             <option [value]="entry.info.mode" [disabled]="!entry.info.available">
               {{ label(entry.info.mode) }}{{ entry.info.available ? '' : ' · nicht verfügbar' }}
@@ -118,7 +124,10 @@ interface Review {
         </select>
       </label>
       @if (selectedMode(); as selected) {
-        <p><strong>Empfänger einer späteren KI-Anfrage:</strong> {{ selected.info.recipient }}.</p>
+        <p>
+          <strong>{{ language.t('Empfänger einer späteren KI-Anfrage:') }}</strong>
+          {{ selected.info.recipient }}.
+        </p>
         <p>{{ selected.info.dataShared }}</p>
         @if (mode !== 'off') {
           <p>
@@ -129,74 +138,88 @@ interface Review {
       }
       @if (previewReady() && !mediaId()) {
         <label
-          ><input type="checkbox" [(ngModel)]="storageConfirmed" /> Ich möchte nur diesen Zuschnitt
-          privat bei LearnPip hochladen.</label
+          ><input type="checkbox" [(ngModel)]="storageConfirmed" />{{
+            language.t('Ich möchte nur diesen Zuschnitt privat bei LearnPip hochladen.')
+          }}</label
         >
         <button
           type="button"
           [disabled]="busy() || !storageConfirmed || !altText.trim()"
           (click)="upload()"
         >
-          Zuschnitt privat hochladen
+          {{ language.t('Zuschnitt privat hochladen') }}
         </button>
       }
       @if (mediaId()) {
-        <p role="status">Zugeschnittenes Bild privat gespeichert.</p>
+        <p role="status">{{ language.t('Zugeschnittenes Bild privat gespeichert.') }}</p>
         @if (!savedId()) {
           <button type="button" (click)="discard()" [disabled]="busy()">
-            Privates Bild verwerfen
+            {{ language.t('Privates Bild verwerfen') }}
           </button>
         }
         @if (!savedId() && mode !== 'off' && selectedMode()?.info?.available) {
           <label
-            >Musterlösung aus der Vorlage (falls lesbar, optional)
-            <textarea [(ngModel)]="referenceHint" maxlength="4000"></textarea>
+            >{{ language.t('Musterlösung aus der Vorlage (falls lesbar, optional)')
+            }}<textarea [(ngModel)]="referenceHint" maxlength="4000"></textarea>
           </label>
           <label
-            ><input type="checkbox" [(ngModel)]="providerConfirmed" /> Ich darf das Foto verarbeiten
-            und bestätige die Übermittlung des Zuschnitts und der optionalen Musterlösung genau an
-            den angezeigten Empfänger.</label
+            ><input type="checkbox" [(ngModel)]="providerConfirmed" />{{
+              language.t(
+                'Ich darf das Foto verarbeiten und bestätige die Übermittlung des Zuschnitts und der optionalen Musterlösung genau an den angezeigten Empfänger.'
+              )
+            }}</label
           >
           <button type="button" [disabled]="busy() || !providerConfirmed" (click)="extract()">
-            Foto mit gewähltem Anbieter analysieren
+            {{ language.t('Foto mit gewähltem Anbieter analysieren') }}
           </button>
         } @else if (!savedId() && mode === 'off' && !review()) {
-          <button type="button" (click)="manualReview()">Ohne KI selbst erfassen</button>
+          <button type="button" (click)="manualReview()">
+            {{ language.t('Ohne KI selbst erfassen') }}
+          </button>
         }
       }
       @if (!savedId() && review(); as result) {
         <div (input)="invalidateReview()" (change)="invalidateReview()">
-          <h3>Erkennung prüfen und korrigieren</h3>
+          <h3>{{ language.t('Erkennung prüfen und korrigieren') }}</h3>
           <p>
-            Ungeprüfter Vorschlag. Unleserliche Zeichen, Formeln und Zeichnungen im Foto
-            vergleichen.
+            {{
+              language.t(
+                'Ungeprüfter Vorschlag. Unleserliche Zeichen, Formeln und Zeichnungen im Foto vergleichen.'
+              )
+            }}
           </p>
           <label
-            >Erkannter Text
-            <textarea [(ngModel)]="result.recognition.detectedText" rows="3"></textarea>
+            >{{ language.t('Erkannter Text')
+            }}<textarea [(ngModel)]="result.recognition.detectedText" rows="3"></textarea>
           </label>
           <label
-            >Frage
-            <textarea
+            >{{ language.t('Frage')
+            }}<textarea
               [(ngModel)]="result.recognition.questionText"
               maxlength="4000"
               rows="3"
             ></textarea>
           </label>
           <label
-            >Formel <textarea [(ngModel)]="result.recognition.formula" maxlength="2000"></textarea>
+            >{{ language.t('Formel')
+            }}<textarea [(ngModel)]="result.recognition.formula" maxlength="2000"></textarea>
           </label>
           <label
-            >Zeichnung/Bildbeschreibung
-            <textarea
+            >{{ language.t('Zeichnung/Bildbeschreibung')
+            }}<textarea
               [(ngModel)]="result.recognition.drawingDescription"
               maxlength="2000"
             ></textarea>
           </label>
-          <label>Fach <input [(ngModel)]="result.recognition.subject" maxlength="120" /></label>
-          <label>Thema <input [(ngModel)]="result.recognition.topic" maxlength="120" /></label>
+          <label
+            >{{ language.t('Fach')
+            }}<input [(ngModel)]="result.recognition.subject" maxlength="120"
+          /></label>
+          <label
+            >{{ language.t('Thema') }}<input [(ngModel)]="result.recognition.topic" maxlength="120"
+          /></label>
           <fieldset>
-            <legend>Antworten · richtige Lösung selbst festlegen</legend>
+            <legend>{{ language.t('Antworten · richtige Lösung selbst festlegen') }}</legend>
             @for (answer of result.recognition.answers; track $index; let i = $index) {
               <label
                 >Antwort {{ i + 1 }}
@@ -211,7 +234,7 @@ interface Review {
                   name="photo-correct"
                   [checked]="correctIndex === i"
                   (change)="correctIndex = i"
-                />Von mir als richtig geprüft</label
+                />{{ language.t('Von mir als richtig geprüft') }}</label
               >
             }
             <button
@@ -219,7 +242,7 @@ interface Review {
               [disabled]="result.recognition.answers.length >= 8"
               (click)="result.recognition.answers.push(''); reviewConfirmed = false"
             >
-              Antwort ergänzen
+              {{ language.t('Antwort ergänzen') }}
             </button>
           </fieldset>
           @if (result.recognition.suggestedCorrectIndex !== null) {
@@ -229,24 +252,27 @@ interface Review {
             </p>
           }
           <label
-            >Errechnete Lösung (ungeprüft)
-            <textarea [(ngModel)]="result.recognition.computedSolution" maxlength="4000"></textarea>
+            >{{ language.t('Errechnete Lösung (ungeprüft)')
+            }}<textarea
+              [(ngModel)]="result.recognition.computedSolution"
+              maxlength="4000"
+            ></textarea>
           </label>
           <label
-            >Lösungsweg (eine Zeile je Schritt)
-            <textarea [(ngModel)]="stepsText" maxlength="4000" rows="4"></textarea>
+            >{{ language.t('Lösungsweg (eine Zeile je Schritt)')
+            }}<textarea [(ngModel)]="stepsText" maxlength="4000" rows="4"></textarea>
           </label>
           <label
-            >Erster Hinweis ohne Lösung
-            <textarea [(ngModel)]="result.recognition.hint" maxlength="500"></textarea>
+            >{{ language.t('Erster Hinweis ohne Lösung')
+            }}<textarea [(ngModel)]="result.recognition.hint" maxlength="500"></textarea>
           </label>
           <label
-            >Nächster Schritt ohne Lösung
-            <textarea [(ngModel)]="result.recognition.nextStep" maxlength="500"></textarea>
+            >{{ language.t('Nächster Schritt ohne Lösung')
+            }}<textarea [(ngModel)]="result.recognition.nextStep" maxlength="500"></textarea>
           </label>
           <label
-            >Musterlösung aus der Vorlage
-            <textarea
+            >{{ language.t('Musterlösung aus der Vorlage')
+            }}<textarea
               [(ngModel)]="result.recognition.referenceSolution"
               maxlength="4000"
             ></textarea>
@@ -259,7 +285,7 @@ interface Review {
             <p>Unsicherheit: {{ uncertainty }}</p>
           }
           <button type="button" [disabled]="busy() || correctIndex < 0" (click)="checkSolution()">
-            Korrigierte Lösung unabhängig prüfen
+            {{ language.t('Korrigierte Lösung unabhängig prüfen') }}
           </button>
           @if (verification(); as check) {
             <p role="status">
@@ -279,9 +305,11 @@ interface Review {
             type="checkbox"
             [(ngModel)]="reviewConfirmed"
             [disabled]="!verification() || verification()?.status === 'conflict'"
-          />
-          Ich habe Bild, Frage, Antworten und Lösung geprüft oder offene Unsicherheiten erkannt. Nur
-          einen privaten Entwurf speichern.</label
+          />{{
+            language.t(
+              'Ich habe Bild, Frage, Antworten und Lösung geprüft oder offene Unsicherheiten erkannt. Nur einen privaten Entwurf speichern.'
+            )
+          }}</label
         >
         <button
           type="button"
@@ -290,15 +318,20 @@ interface Review {
           "
           (click)="saveDraft()"
         >
-          Als privaten Entwurf speichern
+          {{ language.t('Als privaten Entwurf speichern') }}
         </button>
       }
       @if (savedId()) {
         <p role="status">
-          Privater Entwurf gespeichert. Er ist oben im Frageneditor geöffnet; Veröffentlichung und
-          öffentliche Einreichung sind eigene Schritte.
+          {{
+            language.t(
+              'Privater Entwurf gespeichert. Er ist oben im Frageneditor geöffnet; Veröffentlichung und öffentliche Einreichung sind eigene Schritte.'
+            )
+          }}
         </p>
-        <button type="button" (click)="startAgain()">Weitere Aufgabe erfassen</button>
+        <button type="button" (click)="startAgain()">
+          {{ language.t('Weitere Aufgabe erfassen') }}
+        </button>
       }
       @if (message()) {
         <p role="alert">{{ message() }}</p>
@@ -344,6 +377,7 @@ interface Review {
   `,
 })
 export class PhotoDraft implements OnInit {
+  readonly language = inject(LanguageService);
   @ViewChild('preview') preview?: ElementRef<HTMLCanvasElement>;
   readonly modes = signal<Mode[]>([]);
   readonly file = signal<File | null>(null);

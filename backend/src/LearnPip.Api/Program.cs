@@ -146,6 +146,7 @@ app.MapV1Endpoints();
 app.MapAuthEndpoints();
 app.MapMediaEndpoints();
 app.MapQuestionEndpoints();
+app.MapTranslationEndpoints();
 app.MapPublicSubmissionEndpoints();
 app.MapCommunityFeedbackEndpoints();
 app.MapLearningSessionEndpoints();

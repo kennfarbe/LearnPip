@@ -1,4 +1,5 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { LanguageService } from './language';
 
 interface AccountInfo {
   lastActivityAtUtc: string;
@@ -10,22 +11,28 @@ interface AccountInfo {
   template: `
     @if (account(); as info) {
       <section class="account-activity" aria-labelledby="account-activity-title">
-        <h2 id="account-activity-title">Dein Konto</h2>
+        <h2 id="account-activity-title">{{ language.t('Dein Konto') }}</h2>
         <p>
-          Letzte Aktivität vor diesem Seitenaufruf:
-          <strong>{{ dateLabel(info.lastActivityAtUtc) }}</strong>
+          {{ language.t('Letzte Aktivität vor diesem Seitenaufruf:')
+          }}<strong>{{ dateLabel(info.lastActivityAtUtc) }}</strong>
         </p>
         <p>
-          Erfolgreiche angemeldete API-Aufrufe halten dein Konto aktiv. Nach 60, 76 und 87 Tagen
-          ohne Aktivität erhältst du eine E-Mail-Erinnerung, wenn eine Adresse verknüpft und der
-          Mailversand eingerichtet ist. Nach 90 Tagen wird das Konto deaktiviert. Weitere 90 Tage
-          später wird es gelöscht.
+          {{
+            language.t(
+              'Erfolgreiche angemeldete API-Aufrufe halten dein Konto aktiv. Nach 60, 76 und 87 Tagen ohne Aktivität erhältst du eine E-Mail-Erinnerung, wenn eine Adresse verknüpft und der Mailversand eingerichtet ist. Nach 90 Tagen wird das Konto deaktiviert. Weitere 90 Tage später wird es gelöscht.'
+            )
+          }}
         </p>
         <p>
-          Bis zur Löschung kannst du dich mit deinem Wiederherstellungsgeheimnis, deiner verknüpften
-          E-Mail oder OIDC erneut anmelden und das Konto reaktivieren.
+          {{
+            language.t(
+              'Bis zur Löschung kannst du dich mit deinem Wiederherstellungsgeheimnis, deiner verknüpften E-Mail oder OIDC erneut anmelden und das Konto reaktivieren.'
+            )
+          }}
         </p>
-        <button type="button" (click)="refresh()">Aktivität aktualisieren</button>
+        <button type="button" (click)="refresh()">
+          {{ language.t('Aktivität aktualisieren') }}
+        </button>
       </section>
     }
   `,
@@ -67,6 +74,7 @@ interface AccountInfo {
   `,
 })
 export class AccountActivity implements OnInit {
+  readonly language = inject(LanguageService);
   readonly account = signal<AccountInfo | null>(null);
 
   ngOnInit(): void {

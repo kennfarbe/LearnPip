@@ -1,4 +1,5 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { LanguageService } from './language';
 import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -31,10 +32,13 @@ interface Api<T> {
   template: `
     @if (available()) {
       <section class="queue" aria-labelledby="moderation-title">
-        <h2 id="moderation-title">Öffentliche Einreichungen prüfen</h2>
+        <h2 id="moderation-title">{{ language.t('Öffentliche Einreichungen prüfen') }}</h2>
         <p>
-          Jede Fassung bleibt bis zur vollständigen Prüfung privat. Einreichungen Minderjähriger
-          können ohne gesondertes Verfahren nicht freigegeben werden.
+          {{
+            language.t(
+              'Jede Fassung bleibt bis zur vollständigen Prüfung privat. Einreichungen Minderjähriger können ohne gesondertes Verfahren nicht freigegeben werden.'
+            )
+          }}
         </p>
         @if (message()) {
           <p role="status">{{ message() }}</p>
@@ -46,16 +50,18 @@ interface Api<T> {
               Herkunft: {{ item.source }} · Urheber: {{ item.authorAttribution }} · Lizenz:
               {{ item.licenseChoice }} · Status: {{ item.status }}
             </p>
-            <button type="button" (click)="open(item)">Private Vorschau prüfen</button>
+            <button type="button" (click)="open(item)">
+              {{ language.t('Private Vorschau prüfen') }}
+            </button>
             @if (selected() === item.questionVersionId && version(); as view) {
-              <h4>Frage</h4>
+              <h4>{{ language.t('Frage') }}</h4>
               @for (block of view.prompt; track $index) {
                 <ng-container
                   [ngTemplateOutlet]="blockTemplate"
                   [ngTemplateOutletContext]="{ $implicit: block }"
                 />
               }
-              <h4>Antworten und Korrektheit</h4>
+              <h4>{{ language.t('Antworten und Korrektheit') }}</h4>
               <ol>
                 @for (answer of view.answers; track $index) {
                   <li>
@@ -69,22 +75,36 @@ interface Api<T> {
                   </li>
                 }
               </ol>
-              <h4>Erklärung</h4>
+              <h4>{{ language.t('Erklärung') }}</h4>
               @for (block of view.explanation; track $index) {
                 <ng-container
                   [ngTemplateOutlet]="blockTemplate"
                   [ngTemplateOutletContext]="{ $implicit: block }"
                 />
               }
-              <label><input type="checkbox" [(ngModel)]="correctness" /> Korrektheit geprüft</label>
-              <label><input type="checkbox" [(ngModel)]="imageRights" /> Bildrechte geprüft</label>
               <label
-                ><input type="checkbox" [(ngModel)]="personalData" /> Persönliche Daten
-                geprüft</label
+                ><input type="checkbox" [(ngModel)]="correctness" />{{
+                  language.t('Korrektheit geprüft')
+                }}</label
               >
-              <label><input type="checkbox" [(ngModel)]="duplicates" /> Dubletten geprüft</label>
               <label
-                >Begründung/Notiz <textarea [(ngModel)]="note" maxlength="1000"></textarea>
+                ><input type="checkbox" [(ngModel)]="imageRights" />{{
+                  language.t('Bildrechte geprüft')
+                }}</label
+              >
+              <label
+                ><input type="checkbox" [(ngModel)]="personalData" />{{
+                  language.t('Persönliche Daten geprüft')
+                }}</label
+              >
+              <label
+                ><input type="checkbox" [(ngModel)]="duplicates" />{{
+                  language.t('Dubletten geprüft')
+                }}</label
+              >
+              <label
+                >{{ language.t('Begründung/Notiz')
+                }}<textarea [(ngModel)]="note" maxlength="1000"></textarea>
               </label>
               <div class="actions">
                 <button
@@ -92,12 +112,14 @@ interface Api<T> {
                   (click)="decide(item, 'approve')"
                   [disabled]="item.status === 'minor_hold'"
                 >
-                  Freigeben
+                  {{ language.t('Freigeben') }}
                 </button>
                 <button type="button" (click)="decide(item, 'changes_requested')">
-                  Überarbeitung anfordern
+                  {{ language.t('Überarbeitung anfordern') }}
                 </button>
-                <button type="button" (click)="decide(item, 'reject')">Ablehnen</button>
+                <button type="button" (click)="decide(item, 'reject')">
+                  {{ language.t('Ablehnen') }}
+                </button>
               </div>
             }
           </article>
@@ -166,6 +188,7 @@ interface Api<T> {
   `,
 })
 export class ModerationQueue implements OnInit {
+  readonly language = inject(LanguageService);
   readonly available = signal(false);
   readonly items = signal<Submission[]>([]);
   readonly selected = signal<string | null>(null);

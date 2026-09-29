@@ -4,43 +4,55 @@
       <span class="brand-mark" aria-hidden="true">L</span>
       <span>{{ title }}</span>
     </a>
-    <span class="phase-label">Technischer Aufbau</span>
+    <label class="language-control"
+      >{{ language.current() === 'en' ? 'Language' : 'Sprache' }}
+      <select [value]="language.current()" (change)="language.set($any($event.target).value)">
+        <option value="de">Deutsch</option>
+        <option value="en">English</option>
+      </select>
+    </label>
+    <span class="phase-label">{{ language.t('Technischer Aufbau') }}</span>
   </header>
 
   <section class="hero" aria-labelledby="welcome-title">
     <p class="eyebrow">Little steps, lasting knowledge</p>
-    <h1 id="welcome-title">Jeden Tag ein bisschen schlauer.</h1>
+    <h1 id="welcome-title">{{ language.t('Jeden Tag ein bisschen schlauer.') }}</h1>
     <p class="intro">
-      LearnPip entsteht als Ort für kurze, persönliche Lerneinheiten. Das Grundgerüst ist bereit;
-      Erstelle eigene Fragen und übe sie in kurzen Sitzungen.
+      {{
+        language.t(
+          'LearnPip entsteht als Ort für kurze, persönliche Lerneinheiten. Das Grundgerüst ist bereit; Erstelle eigene Fragen und übe sie in kurzen Sitzungen.'
+        )
+      }}
     </p>
     <div class="status-card" role="status">
       <span class="status-dot" aria-hidden="true"></span>
-      <span>Die Anwendung befindet sich im Aufbau.</span>
+      <span>{{ language.t('Die Anwendung befindet sich im Aufbau.') }}</span>
     </div>
   </section>
 
   <section class="next-steps" aria-label="Geplante Funktionen">
     <article>
       <span class="step-number">01</span>
-      <h2>Fragen sammeln</h2>
-      <p>Eigene Fragen, Antworten und Erklärungen an einem privaten Ort.</p>
+      <h2>{{ language.t('Fragen sammeln') }}</h2>
+      <p>{{ language.t('Eigene Fragen, Antworten und Erklärungen an einem privaten Ort.') }}</p>
     </article>
     <article>
       <span class="step-number">02</span>
-      <h2>In kleinen Schritten üben</h2>
-      <p>Kurze Lerneinheiten, die in den Alltag passen.</p>
+      <h2>{{ language.t('In kleinen Schritten üben') }}</h2>
+      <p>{{ language.t('Kurze Lerneinheiten, die in den Alltag passen.') }}</p>
     </article>
     <article>
       <span class="step-number">03</span>
-      <h2>Fortschritt erkennen</h2>
-      <p>Sehen, was schon sitzt und was noch etwas Übung braucht.</p>
+      <h2>{{ language.t('Fortschritt erkennen') }}</h2>
+      <p>{{ language.t('Sehen, was schon sitzt und was noch etwas Übung braucht.') }}</p>
     </article>
   </section>
 
   <app-question-editor />
 
   <app-photo-draft />
+
+  <app-translations />
 
   <app-learning-session />
 
@@ -63,8 +75,8 @@
   <app-private-media />
 
   <footer class="site-footer">
-    <span>Ein Open-Source-Projekt in der Aufbauphase</span>
-    <span>Private Inhalte bleiben privat.</span>
+    <span>{{ language.t('Ein Open-Source-Projekt in der Aufbauphase') }}</span>
+    <span>{{ language.t('Private Inhalte bleiben privat.') }}</span>
   </footer>
   <router-outlet />
 </main>

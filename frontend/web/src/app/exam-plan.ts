@@ -1,4 +1,5 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { LanguageService } from './language';
 import { FormsModule } from '@angular/forms';
 
 interface Content {
@@ -30,8 +31,14 @@ interface Result {
   imports: [FormsModule],
   template: `
     <section class="exam-plan" aria-labelledby="exam-plan-title">
-      <h2 id="exam-plan-title">Prüfungsziel planen</h2>
-      <p>Wähle zwei Größen aus. Die dritte wird grob geschätzt; es gibt keine Erfolgsgarantie.</p>
+      <h2 id="exam-plan-title">{{ language.t('Prüfungsziel planen') }}</h2>
+      <p>
+        {{
+          language.t(
+            'Wähle zwei Größen aus. Die dritte wird grob geschätzt; es gibt keine Erfolgsgarantie.'
+          )
+        }}
+      </p>
       @if (contents().length) {
         <fieldset>
           <legend>Lerninhalte im Stoffumfang ({{ selected.length }})</legend>
@@ -47,16 +54,16 @@ interface Result {
           }
         </fieldset>
         <label
-          >Zu schätzende Größe
-          <select [(ngModel)]="missing">
-            <option value="target">Beherrschungsgrad</option>
-            <option value="time">Lernzeit</option>
-            <option value="scope">Stoffumfang</option>
+          >{{ language.t('Zu schätzende Größe')
+          }}<select [(ngModel)]="missing">
+            <option value="target">{{ language.t('Beherrschungsgrad') }}</option>
+            <option value="time">{{ language.t('Lernzeit') }}</option>
+            <option value="scope">{{ language.t('Stoffumfang') }}</option>
           </select></label
         >
         <label
-          >Lernzeit pro Tag in Minuten
-          <input
+          >{{ language.t('Lernzeit pro Tag in Minuten')
+          }}<input
             type="number"
             [(ngModel)]="minutes"
             min="1"
@@ -64,8 +71,8 @@ interface Result {
             [disabled]="missing === 'time'"
         /></label>
         <label
-          >Gewünschter Beherrschungsgrad in Prozent
-          <input
+          >{{ language.t('Gewünschter Beherrschungsgrad in Prozent')
+          }}<input
             type="number"
             [(ngModel)]="target"
             min="1"
@@ -73,16 +80,20 @@ interface Result {
             [disabled]="missing === 'target'"
         /></label>
         <label
-          >Tageslimit in Minuten <input type="number" [(ngModel)]="limit" min="5" max="480"
+          >{{ language.t('Tageslimit in Minuten')
+          }}<input type="number" [(ngModel)]="limit" min="5" max="480"
         /></label>
-        <label>Optionaler Prüfungstermin <input type="date" [(ngModel)]="examDate" /></label>
+        <label
+          >{{ language.t('Optionaler Prüfungstermin') }}<input type="date" [(ngModel)]="examDate"
+        /></label>
         @if (!examDate) {
           <label
-            >Planungshorizont in Tagen <input type="number" [(ngModel)]="horizon" min="1" max="365"
+            >{{ language.t('Planungshorizont in Tagen')
+            }}<input type="number" [(ngModel)]="horizon" min="1" max="365"
           /></label>
         }
         <fieldset>
-          <legend>Schultage (halbe verfügbare Lernzeit)</legend>
+          <legend>{{ language.t('Schultage (halbe verfügbare Lernzeit)') }}</legend>
           @for (day of days; track day.id) {
             <label
               ><input
@@ -94,11 +105,11 @@ interface Result {
           }
         </fieldset>
         <label
-          >Pausentage (Datum, kommagetrennt)
-          <input type="text" [(ngModel)]="breaks" placeholder="2026-10-03, 2026-10-04"
+          >{{ language.t('Pausentage (Datum, kommagetrennt)')
+          }}<input type="text" [(ngModel)]="breaks" placeholder="2026-10-03, 2026-10-04"
         /></label>
         <button type="button" (click)="estimate()" [disabled]="busy() || !selected.length">
-          Schätzen
+          {{ language.t('Schätzen') }}
         </button>
         @if (result(); as plan) {
           <div role="status">
@@ -116,7 +127,7 @@ interface Result {
               %.
             </p>
             @if (!plan.feasible) {
-              <h4>Handlungsoptionen</h4>
+              <h4>{{ language.t('Handlungsoptionen') }}</h4>
               <ul>
                 @for (option of plan.options; track option) {
                   <li>{{ option }}</li>
@@ -136,7 +147,7 @@ interface Result {
           </div>
         }
       } @else {
-        <p>Erstelle zuerst Lerninhalte, um einen Plan zu schätzen.</p>
+        <p>{{ language.t('Erstelle zuerst Lerninhalte, um einen Plan zu schätzen.') }}</p>
       }
       @if (error()) {
         <p role="alert">{{ error() }}</p>
@@ -175,6 +186,7 @@ interface Result {
   `,
 })
 export class ExamPlan implements OnInit {
+  readonly language = inject(LanguageService);
   readonly contents = signal<Content[]>([]);
   readonly result = signal<Result | null>(null);
   readonly error = signal('');
