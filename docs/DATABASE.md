@@ -78,3 +78,12 @@ eine neue Versionsnummer hinzu und bearbeiten keine alte Fassung.
 `StudyAttemptSelections` speichert jede gewählte Antwort-ID pro Versuch zusätzlich
 zum Korrektheitswert und der Version. Eine spätere Lösungsänderung verändert damit
 weder die ursprüngliche Lösung noch die damalige Auswahl oder Bewertung.
+
+## Entwürfe und private Kataloge (LP-14)
+
+`QuestionDrafts` enthält einen bearbeitbaren Entwurf je Frage als begrenztes
+JSON-Dokument. Er kann unvollständig und dauerhaft unveröffentlicht bleiben.
+`PrivateCatalogs` gehören jeweils einem Konto; `Questions.PrivateCatalogId`
+ordnet eine Frage optional einem Katalog zu. Beim Löschen des Katalogs wird
+die Zuordnung auf `NULL` gesetzt und die Frage nicht gelöscht. Veröffentlichte
+Fassungen verbleiben unverändert in `QuestionVersions`.

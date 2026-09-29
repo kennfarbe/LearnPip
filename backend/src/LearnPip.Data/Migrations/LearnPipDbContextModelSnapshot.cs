@@ -401,6 +401,28 @@ namespace LearnPip.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("LearnPip.Data.Domain.PrivateCatalog", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<Guid>("OwnerAccountId").HasColumnType("uuid");
+                    b.Property<string>("Name").IsRequired().HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("Id");
+                    b.HasIndex("OwnerAccountId", "Name").IsUnique();
+                    b.ToTable("PrivateCatalogs");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionDraft", b =>
+                {
+                    b.Property<Guid>("QuestionId").HasColumnType("uuid");
+                    b.Property<string>("PayloadJson").IsRequired().HasMaxLength(65536)
+                        .HasColumnType("character varying(65536)");
+                    b.Property<DateTimeOffset>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("QuestionId");
+                    b.ToTable("QuestionDrafts");
+                });
+
             modelBuilder.Entity("LearnPip.Data.Domain.Question", b =>
                 {
                     b.Property<Guid>("Id")
@@ -415,6 +437,8 @@ namespace LearnPip.Data.Migrations
                     b.Property<DateTimeOffset?>("DeletedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("PrivateCatalogId").HasColumnType("uuid");
+
                     b.Property<Guid>("OwnerAccountId")
                         .HasColumnType("uuid");
 
@@ -426,6 +450,8 @@ namespace LearnPip.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerAccountId", "UpdatedAtUtc");
+
+                    b.HasIndex("PrivateCatalogId");
 
                     b.ToTable("Questions");
                 });
@@ -795,6 +821,21 @@ namespace LearnPip.Data.Migrations
                     b.Navigation("QuestionVersion");
                 });
 
+            modelBuilder.Entity("LearnPip.Data.Domain.PrivateCatalog", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("OwnerAccountId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionDraft", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.Question", "Question")
+                        .WithOne("Draft").HasForeignKey("LearnPip.Data.Domain.QuestionDraft", "QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
+                    b.Navigation("Question");
+                });
+
             modelBuilder.Entity("LearnPip.Data.Domain.Question", b =>
                 {
                     b.HasOne("LearnPip.Data.Domain.Account", "Owner")
@@ -803,7 +844,11 @@ namespace LearnPip.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("LearnPip.Data.Domain.PrivateCatalog", "PrivateCatalog")
+                        .WithMany("Questions").HasForeignKey("PrivateCatalogId")
+                        .OnDelete(DeleteBehavior.SetNull);
                     b.Navigation("Owner");
+                    b.Navigation("PrivateCatalog");
                 });
 
             modelBuilder.Entity("LearnPip.Data.Domain.QuestionObjective", b =>
@@ -922,8 +967,14 @@ namespace LearnPip.Data.Migrations
                     b.Navigation("QuestionObjectives");
                 });
 
+            modelBuilder.Entity("LearnPip.Data.Domain.PrivateCatalog", b =>
+                {
+                    b.Navigation("Questions");
+                });
+
             modelBuilder.Entity("LearnPip.Data.Domain.Question", b =>
                 {
+                    b.Navigation("Draft");
                     b.Navigation("Versions");
                 });
 

@@ -297,6 +297,40 @@ public sealed class ApiV1Tests
                 Assert.Equal(selected.Order(), saved.Selections.Select(item => item.AnswerOptionId).Order());
             }
 
+            var catalogResponse = await ownerClient.PostAsJsonAsync("/api/v1/catalogs/",
+                new CatalogInput("Prüfungsvorbereitung"));
+            Assert.Equal(HttpStatusCode.Created, catalogResponse.StatusCode);
+            var catalogId = (await catalogResponse.Content.ReadFromJsonAsync<ApiResponse<CatalogView>>())!.Data.Id;
+            var emptyDraft = new QuestionPublishRequest("single", "", "", "de", "", "", [], [], []);
+            var savedDraft = await ownerClient.PostAsJsonAsync("/api/v1/questions/drafts",
+                new DraftSaveRequest(emptyDraft, catalogId));
+            Assert.Equal(HttpStatusCode.Created, savedDraft.StatusCode);
+            var privateDraftId = (await savedDraft.Content.ReadFromJsonAsync<ApiResponse<DraftView>>())!.Data.QuestionId;
+            Assert.Equal(HttpStatusCode.NotFound,
+                (await strangerClient.GetAsync($"/api/v1/questions/{privateDraftId}/draft")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound,
+                (await strangerClient.GetAsync($"/api/v1/catalogs/{catalogId}/questions")).StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest,
+                (await ownerClient.PostAsync($"/api/v1/questions/{privateDraftId}/publish", null)).StatusCode);
+            await using (var checkPrivate = new LearnPipDbContext(options))
+            {
+                Assert.False(await checkPrivate.QuestionVersions.AnyAsync(item => item.QuestionId == privateDraftId));
+            }
+            Assert.Equal(HttpStatusCode.NoContent,
+                (await ownerClient.PutAsJsonAsync($"/api/v1/questions/{privateDraftId}/draft",
+                    new DraftSaveRequest(draft, catalogId))).StatusCode);
+            Assert.Equal(HttpStatusCode.Created,
+                (await ownerClient.PostAsync($"/api/v1/questions/{privateDraftId}/publish", null)).StatusCode);
+            var catalogItems = await ownerClient.GetStringAsync($"/api/v1/catalogs/{catalogId}/questions");
+            Assert.Contains(privateDraftId.ToString(), catalogItems);
+            Assert.Equal(HttpStatusCode.NoContent,
+                (await ownerClient.PutAsJsonAsync($"/api/v1/questions/{privateDraftId}/catalog",
+                    new CatalogMoveRequest(null))).StatusCode);
+            Assert.Equal(HttpStatusCode.NoContent,
+                (await ownerClient.DeleteAsync($"/api/v1/catalogs/{catalogId}")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound,
+                (await ownerClient.GetAsync($"/api/v1/catalogs/{catalogId}/questions")).StatusCode);
+
             using var scope = factory.Services.CreateScope();
             var authorization = scope.ServiceProvider.GetRequiredService<IAuthorizationService>();
             var memberPrincipal = PrincipalFor(member);

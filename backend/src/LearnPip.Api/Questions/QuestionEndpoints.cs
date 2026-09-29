@@ -42,7 +42,7 @@ public static class QuestionEndpoints
         return app;
     }
 
-    private static async Task<IResult> Publish(Guid? id, QuestionPublishRequest request,
+    internal static async Task<IResult> Publish(Guid? id, QuestionPublishRequest request,
         LearnPipDbContext db, ClaimsPrincipal user, CancellationToken cancellationToken)
     {
         if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();

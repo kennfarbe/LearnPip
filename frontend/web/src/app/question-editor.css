@@ -1,0 +1,210 @@
+:host {
+  display: block;
+}
+.editor {
+  margin-top: 3rem;
+  padding: clamp(1rem, 3vw, 2rem);
+  border: 1px solid #dfe9df;
+  border-radius: 1rem;
+  background: #f8fbf7;
+  color: #1d3a32;
+}
+.editor h2 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.6rem, 4vw, 2rem);
+}
+.editor h3 {
+  margin: 0 0 1rem;
+}
+.editor header p {
+  max-width: 46rem;
+  line-height: 1.6;
+}
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+aside,
+.form-panel {
+  min-width: 0;
+  padding: 1.25rem;
+  border: 1px solid #dfe9df;
+  border-radius: 0.8rem;
+  background: white;
+}
+aside {
+  align-self: start;
+}
+label {
+  display: grid;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+input:not([type='checkbox']):not([type='radio']),
+textarea,
+select {
+  width: 100%;
+  min-width: 0;
+  padding: 0.7rem;
+  border: 1px solid #98afa4;
+  border-radius: 0.5rem;
+  background: white;
+  color: #1d3a32;
+  font: inherit;
+  font-size: 1rem;
+}
+textarea {
+  resize: vertical;
+}
+button {
+  min-height: 2.75rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #205d45;
+  border-radius: 0.5rem;
+  background: #205d45;
+  color: white;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:hover {
+  background: #174635;
+}
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid #e5a44c;
+  outline-offset: 2px;
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.secondary {
+  background: white;
+  color: #205d45;
+}
+.secondary:hover {
+  background: #edf6ec;
+}
+.row,
+.actions,
+.answer-heading {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+}
+.row input {
+  flex: 1;
+}
+aside > label,
+aside > button {
+  margin-top: 1rem;
+}
+.draft-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+}
+.draft-list li + li {
+  margin-top: 0.5rem;
+}
+.draft-list button {
+  width: 100%;
+  text-align: left;
+  background: #edf6ec;
+  color: #205d45;
+}
+.draft-list button[aria-current='true'] {
+  border: 2px solid #205d45;
+}
+.draft-list small {
+  display: block;
+  margin-top: 0.2rem;
+  font-weight: normal;
+}
+.form-panel {
+  display: grid;
+  gap: 1rem;
+}
+.privacy {
+  margin: 0;
+  color: #486658;
+}
+.two-column {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.image-field {
+  display: grid;
+  gap: 0.65rem;
+}
+.image-field img,
+.answer img {
+  max-width: 100%;
+  max-height: 12rem;
+  object-fit: contain;
+}
+fieldset {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid #dfe9df;
+  border-radius: 0.6rem;
+}
+.answer {
+  display: grid;
+  gap: 0.65rem;
+  padding: 1rem;
+  border: 1px solid #dfe9df;
+  border-radius: 0.6rem;
+}
+.answer-heading {
+  justify-content: space-between;
+}
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.choice input {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.actions {
+  flex-wrap: wrap;
+}
+.publish {
+  background: #174635;
+}
+.status {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: #edf6ec;
+}
+@media (max-width: 46rem) {
+  .workspace,
+  .two-column {
+    grid-template-columns: 1fr;
+  }
+  .editor {
+    padding: 0.75rem;
+  }
+  aside,
+  .form-panel {
+    padding: 0.9rem;
+  }
+  .row {
+    flex-wrap: wrap;
+  }
+  .row input,
+  .row button,
+  .actions button {
+    width: 100%;
+  }
+}
