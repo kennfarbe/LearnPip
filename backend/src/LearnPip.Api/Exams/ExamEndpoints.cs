@@ -17,7 +17,11 @@ public sealed record ProfilePart(string Code, string Title, string CatalogPartCo
     int QuestionCount, int TimeLimitMinutes, int RequiredCorrect, string? CreditCode,
     bool AllowVariants = false, bool ShuffleAnswers = true);
 public sealed record ProfileInput(string Code, string Title, string AmateurClass,
-    Guid CatalogEditionId, IReadOnlyList<ProfilePart> Parts);
+    Guid CatalogEditionId, IReadOnlyList<ProfilePart> Parts,
+    IReadOnlyList<ExamSession>? Sessions = null, string? RulesSourceUrl = null,
+    DateOnly? RulesCheckedOn = null);
+public sealed record ExamSession(DateOnly Date, string Place, DateOnly? RegistrationDeadline,
+    string SourceUrl, DateOnly CheckedOn);
 public sealed record StartSimulationInput(Guid ProfileVersionId, string QuestionMode = "original");
 public sealed record StartPowerTestInput(Guid ProfileVersionId, string QuestionMode = "original",
     int StageSize = 25);
@@ -110,6 +114,7 @@ public static class ExamEndpoints
             .WithTags("Exams");
         exams.MapGet("/catalogs", Catalogs);
         exams.MapGet("/profiles", Profiles);
+        exams.MapGet("/profiles/{id:guid}/forecast", ExamForecastEndpoints.Read);
         exams.MapGet("/credits", ReadCredits);
         exams.MapPut("/credits", AddCredit);
         exams.MapDelete("/credits/{code}", RemoveCredit);
@@ -167,7 +172,11 @@ public static class ExamEndpoints
             item.Version,
             item.CatalogEditionId,
             item.CatalogEdition.Revision,
-            Parts = Parse<ProfilePart>(item.PartsJson)
+            Parts = Parse<ProfilePart>(item.PartsJson),
+            Sessions = Parse<ExamSession>(item.ScheduleJson),
+            item.RulesSourceUrl,
+            item.RulesCheckedOn,
+            item.CreatedAtUtc
         }).ToArray()));
     }
 
@@ -236,6 +245,20 @@ public static class ExamEndpoints
             input.Parts.Select(part => part.CreditCode).ToHashSet().SetEquals(
                 ["B", "V", "T-" + input.AmateurClass]) == false))
             return Invalid("parts", "Amateur radio profiles require B, V and the matching technical part.");
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var sessions = input.Sessions ?? [];
+        if (sessions.Count > 100 || sessions.Any(session =>
+                !Valid(session.Place, 200) || !Https(session.SourceUrl) ||
+                session.CheckedOn > today || session.Date < session.CheckedOn ||
+                session.RegistrationDeadline > session.Date) ||
+            sessions.Select(session => (session.Date, session.Place)).Distinct().Count() !=
+                sessions.Count || sessions.Count > 0 &&
+            (!Https(input.RulesSourceUrl) || input.RulesCheckedOn is null ||
+                input.RulesCheckedOn > today) ||
+            (input.RulesSourceUrl != null || input.RulesCheckedOn != null) &&
+            (!Https(input.RulesSourceUrl) || input.RulesCheckedOn is null ||
+                input.RulesCheckedOn > today))
+            return Invalid("sessions", "Verify dates, source URLs, checked dates and rules before publishing.");
         var edition = await db.OfficialCatalogEditions.AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == input.CatalogEditionId, ct);
         if (edition == null) return Results.NotFound();
@@ -253,7 +276,10 @@ public static class ExamEndpoints
             AmateurClass = input.AmateurClass,
             Version = version,
             CatalogEditionId = edition.Id,
-            PartsJson = JsonSerializer.Serialize(input.Parts, Json)
+            PartsJson = JsonSerializer.Serialize(input.Parts, Json),
+            ScheduleJson = JsonSerializer.Serialize(sessions, Json),
+            RulesSourceUrl = input.RulesSourceUrl,
+            RulesCheckedOn = input.RulesCheckedOn
         };
         db.ExamProfileVersions.Add(profile);
         await db.SaveChangesAsync(ct);
@@ -605,6 +631,8 @@ public static class ExamEndpoints
     private static List<T> Parse<T>(string json) => JsonSerializer.Deserialize<List<T>>(json, Json)!;
     private static bool Valid(string? value, int max) =>
         !string.IsNullOrWhiteSpace(value) && value.Length <= max;
+    private static bool Https(string? value) => value is { Length: <= 1000 } &&
+        Uri.TryCreate(value, UriKind.Absolute, out var url) && url.Scheme == Uri.UriSchemeHttps;
     private static IResult Invalid(string key, string error) => Results.ValidationProblem(
         new Dictionary<string, string[]> { [key] = [error] });
 }

@@ -17,6 +17,39 @@ interface Profile {
   version: number;
   revision: string;
   parts: Part[];
+  sessions: ExamSession[];
+  rulesSourceUrl: string | null;
+  rulesCheckedOn: string | null;
+  createdAtUtc: string;
+}
+interface ExamSession {
+  date: string;
+  place: string;
+  registrationDeadline: string | null;
+  sourceUrl: string;
+  checkedOn: string;
+}
+interface Forecast {
+  status: 'window' | 'insufficient';
+  earliestReadyDate: string | null;
+  latestReadyDate: string | null;
+  suggestedExamDate: string | null;
+  profileVersion: number;
+  evidence: {
+    answeredCatalogQuestions: number;
+    catalogQuestions: number;
+    spacedMasteredContents: number;
+    ownContents: number;
+    completedSimulations: number;
+    recentSimulations: number;
+    recentPassedSimulations: number;
+  };
+  reasons: string[];
+  assumptions: string;
+  formalAdmissionStatus: string;
+  rulesSourceUrl: string | null;
+  rulesCheckedOn: string | null;
+  sessions: (ExamSession & { registrationStatus: 'open' | 'closed' | 'unknown' })[];
 }
 interface Question {
   code: string;
@@ -110,6 +143,64 @@ interface Catalog {
             </li>
           }
         </ul>
+        <h3>Termine und Anmeldung · Profilfassung {{ profile.version }}</h3>
+        @if (profile.rulesSourceUrl && profile.rulesCheckedOn) {
+          <p>
+            Prüfungsregeln geprüft am {{ profile.rulesCheckedOn }} ·
+            <a [href]="profile.rulesSourceUrl">Regelquelle</a>
+          </p>
+        } @else {
+          <p>Für diese ältere Profilfassung ist kein geprüfter Regelstand hinterlegt.</p>
+        }
+        @for (session of profile.sessions; track session.date + session.place) {
+          <p>
+            {{ session.date }} · {{ session.place }} · Anmeldefrist:
+            {{ session.registrationDeadline ?? 'nicht veröffentlicht' }} · Quelle geprüft am
+            {{ session.checkedOn }} · <a [href]="session.sourceUrl">Terminquelle</a>
+          </p>
+        } @empty {
+          <p>Für diese Profilfassung sind keine geprüften Termine hinterlegt.</p>
+        }
+        <button type="button" (click)="loadForecast()">Bereitschaft einschätzen</button>
+        @if (forecastProfileId === profile.id && forecast(); as estimate) {
+          <section aria-label="Bereitschaftsprognose" role="status">
+            <h3>Lernbereitschaft</h3>
+            @if (estimate.status === 'window') {
+              <p>
+                Grobes Bereitschaftsfenster: {{ estimate.earliestReadyDate }} bis
+                {{ estimate.latestReadyDate }}.
+              </p>
+            } @else {
+              <p>Ein belastbares Bereitschaftsfenster lässt sich noch nicht ableiten.</p>
+            }
+            <p>
+              Katalogabdeckung: {{ estimate.evidence.answeredCatalogQuestions }} /
+              {{ estimate.evidence.catalogQuestions }} Fragegruppen beantwortet.
+            </p>
+            <p>
+              Zeitversetzt sicher wiederholte eigene Inhalte:
+              {{ estimate.evidence.spacedMasteredContents }} / {{ estimate.evidence.ownContents }}.
+            </p>
+            <p>
+              Simulationen dieser Fassung:
+              {{ estimate.evidence.completedSimulations }} abgeschlossen,
+              {{ estimate.evidence.recentPassedSimulations }} in den letzten 30 Tagen bestanden.
+            </p>
+            @if (estimate.suggestedExamDate) {
+              <p>
+                Erster passender Termin mit bekannter offener Frist:
+                {{ estimate.suggestedExamDate }}. Vor einer Anmeldung bei der Quelle erneut prüfen.
+              </p>
+            }
+            @for (reason of estimate.reasons; track reason) {
+              <p>{{ reason }}</p>
+            }
+            <p>{{ estimate.assumptions }}</p>
+            <h3>Formale Zulassung</h3>
+            <p>{{ estimate.formalAdmissionStatus }}</p>
+            <p>LearnPip meldet niemanden automatisch zur Prüfung an.</p>
+          </section>
+        }
       }
       <label
         >Fragen
@@ -314,10 +405,12 @@ export class ExamProfiles implements OnInit {
   readonly simulationHistory = signal<RunSummary[]>([]);
   readonly powerHistory = signal<RunSummary[]>([]);
   readonly powerTest = signal<PowerTest | null>(null);
+  readonly forecast = signal<Forecast | null>(null);
   readonly admin = signal(false);
   readonly message = signal('');
   readonly creditCodes = ['B', 'V', 'T-N', 'T-E', 'T-A'];
   profileId = '';
+  forecastProfileId = '';
   questionMode = 'original';
   stageSize = 25;
   choices: Record<string, number> = {};
@@ -330,6 +423,16 @@ export class ExamProfiles implements OnInit {
   }
   selectedProfile(): Profile | undefined {
     return this.profiles().find((item) => item.id === this.profileId);
+  }
+  async loadForecast(): Promise<void> {
+    const id = this.profileId;
+    this.forecast.set(null);
+    this.forecastProfileId = id;
+    const response = await fetch(`/api/v1/exams/profiles/${id}/forecast`);
+    if (response.ok) {
+      if (this.profileId === id)
+        this.forecast.set(((await response.json()) as { data: Forecast }).data);
+    } else this.message.set(`Prognose konnte nicht geladen werden (${response.status}).`);
   }
   async reload(): Promise<void> {
     const [profiles, catalogs, credits, admin, simulations, powerTests] = await Promise.all([
