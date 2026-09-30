@@ -1,1 +1,48 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #1d3a32;
+  background: #f4f7f2;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 0;
+  margin: 0;
+}
+
+:where(main, section, article, form, fieldset, div, label) {
+  min-width: 0;
+}
+
+:where(section, article, p, li, label) {
+  overflow-wrap: anywhere;
+}
+
+:where(img, video, canvas) {
+  max-width: 100%;
+}
+
+:where(input, textarea, select, button) {
+  max-width: 100%;
+}
+
+:where(button) {
+  white-space: normal;
+}
+
+@media (max-width: 42rem) {
+  :where(input, textarea, select) {
+    font-size: 1rem;
+  }
+
+  :where(table) {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}
