@@ -41,8 +41,16 @@
   color: #205d45;
 }
 
-.language-control { margin-left: auto; display: flex; align-items: center; gap: .4rem; }
-.language-control select { padding: .4rem; border-radius: .4rem; }
+.language-control {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.language-control select {
+  padding: 0.4rem;
+  border-radius: 0.4rem;
+}
 
 .phase-label,
 .eyebrow,

@@ -404,7 +404,7 @@ export class QuestionEditor implements OnInit, OnDestroy {
   imageRightsConfirmed = false;
   subject = '';
   topic = '';
-  language = this.uiLanguage.current();
+  language: string = this.uiLanguage.current();
   source = '';
   license = '';
   selectionMode: 'single' | 'multiple' = 'single';

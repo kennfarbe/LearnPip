@@ -830,6 +830,39 @@ namespace LearnPip.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict).IsRequired();
                 });
 
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionTranslation", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<DateTimeOffset?>("ApprovedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<Guid>("CreatedByAccountId").HasColumnType("uuid");
+                    b.Property<string>("Language").IsRequired().HasMaxLength(8).HasColumnType("character varying(8)");
+                    b.Property<string>("License").IsRequired().HasMaxLength(120).HasColumnType("character varying(120)");
+                    b.Property<string>("PayloadJson").IsRequired().HasMaxLength(65536).HasColumnType("character varying(65536)");
+                    b.Property<string>("Provenance").IsRequired().HasMaxLength(24).HasColumnType("character varying(24)");
+                    b.Property<Guid>("QuestionVersionId").HasColumnType("uuid");
+                    b.Property<int>("Revision").HasColumnType("integer");
+                    b.Property<string>("Source").IsRequired().HasMaxLength(500).HasColumnType("character varying(500)");
+                    b.Property<string>("Status").IsRequired().HasMaxLength(16).HasColumnType("character varying(16)");
+                    b.HasKey("Id");
+                    b.HasIndex("CreatedByAccountId");
+                    b.HasIndex("QuestionVersionId", "Language", "Revision").IsUnique();
+                    b.ToTable("QuestionTranslations");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.TranslationReport", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<string>("Details").IsRequired().HasMaxLength(2000).HasColumnType("character varying(2000)");
+                    b.Property<Guid>("QuestionTranslationId").HasColumnType("uuid");
+                    b.HasKey("Id");
+                    b.HasIndex("AccountId");
+                    b.HasIndex("QuestionTranslationId", "CreatedAtUtc");
+                    b.ToTable("TranslationReports");
+                });
+
             modelBuilder.Entity("LearnPip.Data.Domain.QuestionVersion", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1364,6 +1397,28 @@ namespace LearnPip.Data.Migrations
                     b.HasOne("LearnPip.Data.Domain.Account", null)
                         .WithMany().HasForeignKey("ModeratorAccountId")
                         .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionTranslation", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.QuestionVersion", "QuestionVersion")
+                        .WithMany().HasForeignKey("QuestionVersionId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("CreatedByAccountId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.Navigation("QuestionVersion");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.TranslationReport", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.QuestionTranslation", "Translation")
+                        .WithMany().HasForeignKey("QuestionTranslationId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.Navigation("Translation");
                 });
 
             modelBuilder.Entity("LearnPip.Data.Domain.QuestionVersion", b =>
