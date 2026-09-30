@@ -35,22 +35,18 @@ public static class DataRightsEndpoints
             .Select(item => new { item.Id, item.Name, item.CreatedAtUtc }).ToListAsync(ct);
         var questions = await db.Questions.AsNoTracking()
             .Where(item => item.OwnerAccountId == id)
-            .Select(item => new { item.Id, item.PrivateCatalogId, item.CreatedAtUtc,
-                item.DeletedAtUtc }).ToListAsync(ct);
+            .Select(item => new { item.Id, item.PrivateCatalogId, item.CreatedAtUtc, item.DeletedAtUtc }).ToListAsync(ct);
         var drafts = await db.QuestionDrafts.AsNoTracking()
             .Where(item => item.Question.OwnerAccountId == id)
             .Select(item => new { item.QuestionId, item.PayloadJson, item.UpdatedAtUtc })
             .ToListAsync(ct);
         var versions = await db.QuestionVersions.AsNoTracking()
             .Where(item => item.Question.OwnerAccountId == id)
-            .Select(item => new { item.Id, item.QuestionId, item.VersionNumber, item.Visibility,
-                item.Prompt, item.Explanation, item.Subject, item.Topic, item.Language,
-                item.Source, item.License, item.AuthorAttribution, item.CreatedAtUtc })
+            .Select(item => new { item.Id, item.QuestionId, item.VersionNumber, item.Visibility, item.Prompt, item.Explanation, item.Subject, item.Topic, item.Language, item.Source, item.License, item.AuthorAttribution, item.CreatedAtUtc })
             .ToListAsync(ct);
         var answers = await db.AnswerOptions.AsNoTracking()
             .Where(item => item.QuestionVersion.Question.OwnerAccountId == id)
-            .Select(item => new { item.QuestionVersionId, item.Text, item.IsCorrect,
-                item.SortOrder }).ToListAsync(ct);
+            .Select(item => new { item.QuestionVersionId, item.Text, item.IsCorrect, item.SortOrder }).ToListAsync(ct);
         var sessions = await db.StudySessions.AsNoTracking()
             .Where(item => item.AccountId == id)
             .Select(item => new { item.Id, item.StartedAtUtc, item.CompletedAtUtc })
@@ -58,9 +54,7 @@ public static class DataRightsEndpoints
         var attempts = await db.StudyAttempts.AsNoTracking()
             .Where(item => item.StudySession.AccountId == id)
             .OrderBy(item => item.AnsweredAtUtc)
-            .Select(item => new { item.Id, item.StudySessionId, item.QuestionVersionId,
-                item.QuestionVersion.Subject, item.QuestionVersion.Topic, item.IsCorrect,
-                item.WasGuessed, item.ExplanationViewedAtUtc, item.AnsweredAtUtc })
+            .Select(item => new { item.Id, item.StudySessionId, item.QuestionVersionId, item.QuestionVersion.Subject, item.QuestionVersion.Topic, item.IsCorrect, item.WasGuessed, item.ExplanationViewedAtUtc, item.AnsweredAtUtc })
             .ToListAsync(ct);
         var selections = await db.StudyAttemptSelections.AsNoTracking()
             .Where(item => item.StudyAttempt.StudySession.AccountId == id)
@@ -68,8 +62,7 @@ public static class DataRightsEndpoints
             .ToListAsync(ct);
         var media = await db.MediaAssets.AsNoTracking()
             .Where(item => item.OwnerAccountId == id && item.DeletedAtUtc == null)
-            .Select(item => new { item.Id, item.MediaType, item.AltText,
-                item.ByteLength, item.CreatedAtUtc })
+            .Select(item => new { item.Id, item.MediaType, item.AltText, item.ByteLength, item.CreatedAtUtc })
             .ToListAsync(ct);
         var groups = await db.GroupMemberships.AsNoTracking()
             .Where(item => item.AccountId == id)
@@ -77,11 +70,9 @@ public static class DataRightsEndpoints
             .ToListAsync(ct);
         context.Response.Headers.CacheControl = "private, no-store";
         context.Response.Headers.ContentDisposition = "attachment; filename=learnpip-export.json";
-        return Results.Json(new { generatedAtUtc = DateTimeOffset.UtcNow, account, identities,
-            catalogs, questions, drafts, versions, answers, sessions, attempts,
-            selections, media, groups, notice =
-                "Media bytes can be downloaded individually via /api/v1/media/{id}/content. " +
-                "Copies published under open licenses by others cannot be recalled." });
+        var notice = "Media bytes can be downloaded individually via /api/v1/media/{id}/content. " +
+            "Copies published under open licenses by others cannot be recalled.";
+        return Results.Json(new { generatedAtUtc = DateTimeOffset.UtcNow, account, identities, catalogs, questions, drafts, versions, answers, sessions, attempts, selections, media, groups, notice });
     }
 
     private static async Task<IResult> Delete(DeleteAccountRequest input,

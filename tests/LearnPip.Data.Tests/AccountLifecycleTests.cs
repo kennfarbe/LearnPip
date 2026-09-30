@@ -137,18 +137,26 @@ public sealed class AccountLifecycleTests
                 db.Questions.Add(new Question { Id = questionId, OwnerAccountId = accountId });
                 db.QuestionVersions.Add(new QuestionVersion
                 {
-                    Id = versionId, QuestionId = questionId, CreatedByAccountId = accountId,
-                    VersionNumber = 1, Prompt = "Private question"
+                    Id = versionId,
+                    QuestionId = questionId,
+                    CreatedByAccountId = accountId,
+                    VersionNumber = 1,
+                    Prompt = "Private question"
                 });
                 db.StudySessions.Add(new StudySession { Id = sessionId, AccountId = accountId });
                 db.StudyAttempts.Add(new StudyAttempt
                 {
-                    StudySessionId = sessionId, QuestionVersionId = versionId, IsCorrect = true
+                    StudySessionId = sessionId,
+                    QuestionVersionId = versionId,
+                    IsCorrect = true
                 });
                 db.MediaAssets.Add(new MediaAsset
                 {
-                    Id = mediaId, OwnerAccountId = accountId, StorageKey = "private/test",
-                    MediaType = "image/png", ByteLength = 3
+                    Id = mediaId,
+                    OwnerAccountId = accountId,
+                    StorageKey = "private/test",
+                    MediaType = "image/png",
+                    ByteLength = 3
                 });
                 db.MediaBlobs.Add(new MediaBlob { MediaAssetId = mediaId, Data = [1, 2, 3] });
                 await db.SaveChangesAsync();
