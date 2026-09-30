@@ -2,6 +2,13 @@ import { FormsModule } from '@angular/forms';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { LanguageService } from './language';
 
+type Reminder = {
+  enabled: boolean;
+  intervalDays: number;
+  quietStartMinute: number;
+  quietEndMinute: number;
+  timeZoneId: string;
+};
 type Link = { id: string; status: string; childAccountId: string; parentAccountId: string | null };
 type Goal = { id: string; title: string };
 type Overview = {
@@ -27,6 +34,41 @@ type Overview = {
           )
         }}
       </p>
+      <article>
+        <h3>{{ t('Lernerinnerungen per E-Mail', 'Email study reminders') }}</h3>
+        <p>
+          {{
+            t(
+              'Freiwillig. Maximal eine Erinnerung bis zu deiner nächsten Lernaktivität. Keine Aufgabeninhalte in der E-Mail.',
+              'Optional. At most one reminder until your next study activity. No private task details in the email.'
+            )
+          }}
+        </p>
+        <label
+          ><input type="checkbox" [(ngModel)]="reminder.enabled" />{{
+            t('Erinnerungen aktivieren', 'Enable reminders')
+          }}</label
+        >
+        <label
+          >{{ t('Nach Tagen ohne Lernaktivität', 'Days without study activity') }}
+          <input type="number" min="1" max="30" [(ngModel)]="reminder.intervalDays" />
+        </label>
+        <label
+          >{{ t('Ruhezeit ab (Stunde)', 'Quiet hours from (hour)') }}
+          <input type="number" min="0" max="23" [(ngModel)]="quietFromHour" />
+        </label>
+        <label
+          >{{ t('Ruhezeit bis (Stunde)', 'Quiet hours until (hour)') }}
+          <input type="number" min="0" max="23" [(ngModel)]="quietUntilHour" />
+        </label>
+        <label
+          >{{ t('Zeitzone', 'Time zone') }}
+          <input [(ngModel)]="reminder.timeZoneId" maxlength="100" />
+        </label>
+        <button type="button" (click)="saveReminder()">
+          {{ t('Erinnerungen speichern', 'Save reminders') }}
+        </button>
+      </article>
       @if (ageBand() === 'unknown') {
         <label
           >{{ t('Altersgruppe', 'Age group') }}
@@ -183,6 +225,15 @@ export class FamilySpace implements OnInit {
   code = '';
   goalTitle = '';
   submissionId = '';
+  reminder: Reminder = {
+    enabled: false,
+    intervalDays: 7,
+    quietStartMinute: 1320,
+    quietEndMinute: 480,
+    timeZoneId: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Berlin',
+  };
+  quietFromHour = 22;
+  quietUntilHour = 8;
 
   ngOnInit(): void {
     void this.reload();
@@ -208,6 +259,9 @@ export class FamilySpace implements OnInit {
     try {
       this.ageBand.set((await this.request<{ ageBand: string }>('/me')).ageBand);
       this.links.set(await this.request<Link[]>('/links'));
+      this.reminder = await this.request<Reminder>('/reminders');
+      this.quietFromHour = Math.floor(this.reminder.quietStartMinute / 60);
+      this.quietUntilHour = Math.floor(this.reminder.quietEndMinute / 60);
     } catch {
       this.links.set([]);
     }
@@ -220,6 +274,15 @@ export class FamilySpace implements OnInit {
     } catch (error) {
       this.message.set(`${this.t('Aktion fehlgeschlagen', 'Action failed')} (${error}).`);
     }
+  }
+  saveReminder(): void {
+    void this.execute(() =>
+      this.request<void>('/reminders', 'PUT', {
+        ...this.reminder,
+        quietStartMinute: this.quietFromHour * 60,
+        quietEndMinute: this.quietUntilHour * 60,
+      }),
+    );
   }
   declareAge(): void {
     void this.execute(() => this.request<void>('/age-band', 'PUT', { ageBand: this.selectedAge }));

@@ -106,6 +106,23 @@ namespace LearnPip.Data.Migrations
                     b.ToTable("Accounts");
                 });
 
+            modelBuilder.Entity("LearnPip.Data.Domain.ReminderPreference", b =>
+                {
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<bool>("Enabled").HasColumnType("boolean");
+                    b.Property<int>("IntervalDays").HasColumnType("integer");
+                    b.Property<int>("QuietStartMinute").HasColumnType("integer");
+                    b.Property<int>("QuietEndMinute").HasColumnType("integer");
+                    b.Property<string>("TimeZoneId").IsRequired().HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+                    b.Property<DateTimeOffset?>("LastNotifiedActivityAtUtc")
+                        .HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset?>("LastSentAtUtc")
+                        .HasColumnType("timestamp with time zone");
+                    b.HasKey("AccountId");
+                    b.ToTable("ReminderPreferences");
+                });
+
             modelBuilder.Entity("LearnPip.Data.Domain.FamilyLink", b =>
                 {
                     b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
@@ -171,6 +188,13 @@ namespace LearnPip.Data.Migrations
                         .HasColumnType("character varying(16)");
                     b.HasKey("AccountId", "PhaseDays", "ActivityAtUtc");
                     b.ToTable("AccountInactivityWarnings");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.ReminderPreference", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithOne().HasForeignKey("LearnPip.Data.Domain.ReminderPreference", "AccountId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
                 });
 
             modelBuilder.Entity("LearnPip.Data.Domain.UserAiCredential", b =>
