@@ -19,7 +19,7 @@ public sealed class FamilyLinks : Migration
         migrationBuilder.CreateIndex("IX_PublicSubmissions_GuardianApprovedByAccountId",
             "PublicSubmissions", "GuardianApprovedByAccountId");
         migrationBuilder.AddForeignKey("FK_PublicSubmissions_Accounts_GuardianApprovedByAccountId",
-            "PublicSubmissions", "GuardianApprovedByAccountId", "Accounts", "Id",
+            "PublicSubmissions", "GuardianApprovedByAccountId", "Accounts", principalColumn: "Id",
             onDelete: ReferentialAction.Restrict);
 
         migrationBuilder.CreateTable("FamilyLinks", columns: table => new
