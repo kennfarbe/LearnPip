@@ -91,8 +91,11 @@ public static class TranslationEndpoints
         TranslationPayload payload, string language, string source, string license) =>
         original with
         {
-            Language = language, Source = source, License = license,
-            Prompt = Convert(payload.Prompt), Explanation = Convert(payload.Explanation),
+            Language = language,
+            Source = source,
+            License = license,
+            Prompt = Convert(payload.Prompt),
+            Explanation = Convert(payload.Explanation),
             Answers = original.Answers.Select(answer => answer with
             {
                 Blocks = Convert(payload.Answers.Single(item => item.OptionId == answer.Id).Blocks)
@@ -169,8 +172,14 @@ public static class TranslationEndpoints
             .ToListAsync(ct);
         return Results.Ok(new ApiResponse<object>(history.Select(item => new
         {
-            item.Id, item.Revision, item.Status, item.Source, item.License,
-            item.Provenance, item.CreatedAtUtc, item.ApprovedAtUtc,
+            item.Id,
+            item.Revision,
+            item.Status,
+            item.Source,
+            item.License,
+            item.Provenance,
+            item.CreatedAtUtc,
+            item.ApprovedAtUtc,
             Reports = reports.Where(report => report.QuestionTranslationId == item.Id)
                 .Select(report => new { report.Details, report.CreatedAtUtc }).ToArray(),
             Payload = JsonSerializer.Deserialize<TranslationPayload>(item.PayloadJson, Json)
@@ -199,9 +208,13 @@ public static class TranslationEndpoints
             .MaxAsync(item => (int?)item.Revision, ct) ?? 0) + 1;
         var row = new QuestionTranslation
         {
-            QuestionVersionId = original.Id, Language = input.Language,
-            Revision = revision, PayloadJson = json, Source = input.Source.Trim(),
-            License = input.License.Trim(), Provenance = input.Provenance,
+            QuestionVersionId = original.Id,
+            Language = input.Language,
+            Revision = revision,
+            PayloadJson = json,
+            Source = input.Source.Trim(),
+            License = input.License.Trim(),
+            Provenance = input.Provenance,
             CreatedByAccountId = accountId
         };
         db.QuestionTranslations.Add(row);
@@ -252,7 +265,8 @@ public static class TranslationEndpoints
             item.Status == "approved", ct)) return Results.NotFound();
         var report = new TranslationReport
         {
-            QuestionTranslationId = translationId, AccountId = accountId,
+            QuestionTranslationId = translationId,
+            AccountId = accountId,
             Details = input.Details.Trim()
         };
         db.TranslationReports.Add(report);
