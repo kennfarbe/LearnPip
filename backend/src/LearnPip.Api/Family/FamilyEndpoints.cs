@@ -75,8 +75,8 @@ public static class FamilyEndpoints
         catch (InvalidTimeZoneException) { return Results.BadRequest(); }
         if (input.Enabled && !await db.ExternalIdentities.AnyAsync(item =>
                 item.AccountId == id && item.Provider == "email", ct))
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-                { ["email"] = ["Link an email address before enabling reminders."] });
+            return Results.ValidationProblem(new Dictionary<string, string[]> { ["email"] =
+                ["Link an email address before enabling reminders."] });
         var preference = await db.ReminderPreferences.SingleOrDefaultAsync(item => item.AccountId == id, ct);
         if (preference == null)
         {

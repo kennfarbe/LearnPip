@@ -13,14 +13,17 @@ public sealed class LearningReminderService(LearnPipDbContext db, IConfiguration
             string.IsNullOrWhiteSpace(config["Mail:From"]) ||
             string.IsNullOrWhiteSpace(config["Mail:Username"]) ||
             string.IsNullOrWhiteSpace(config["Mail:Password"])) return 0;
-        var candidates = await (from preference in db.ReminderPreferences.AsNoTracking()
-            join account in db.Accounts.AsNoTracking() on preference.AccountId equals account.Id
-            where preference.Enabled && account.DeletedAtUtc == null && account.DisabledAtUtc == null &&
-                  account.LastActivityAtUtc <= now.AddDays(-1) &&
-                  (preference.LastNotifiedActivityAtUtc == null ||
-                   preference.LastNotifiedActivityAtUtc < account.LastActivityAtUtc)
-            select new { preference.AccountId, preference.IntervalDays, preference.QuietStartMinute,
-                preference.QuietEndMinute, preference.TimeZoneId, account.LastActivityAtUtc })
+        var candidates = await db.ReminderPreferences.AsNoTracking()
+            .Join(db.Accounts.AsNoTracking(), preference => preference.AccountId,
+                account => account.Id, (preference, account) => new { preference, account })
+            .Where(item => item.preference.Enabled && item.account.DeletedAtUtc == null &&
+                item.account.DisabledAtUtc == null &&
+                item.account.LastActivityAtUtc <= now.AddDays(-1) &&
+                (item.preference.LastNotifiedActivityAtUtc == null ||
+                 item.preference.LastNotifiedActivityAtUtc < item.account.LastActivityAtUtc))
+            .Select(item => new { item.preference.AccountId, item.preference.IntervalDays,
+                item.preference.QuietStartMinute, item.preference.QuietEndMinute,
+                item.preference.TimeZoneId, item.account.LastActivityAtUtc })
             .ToListAsync(ct);
         var sent = 0;
         foreach (var item in candidates)
