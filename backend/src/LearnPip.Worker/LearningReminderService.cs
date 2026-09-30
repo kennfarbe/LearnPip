@@ -21,38 +21,35 @@ public sealed class LearningReminderService(LearnPipDbContext db, IConfiguration
                 item.account.LastActivityAtUtc <= now.AddDays(-1) &&
                 (item.preference.LastNotifiedActivityAtUtc == null ||
                  item.preference.LastNotifiedActivityAtUtc < item.account.LastActivityAtUtc))
-            .Select(item => new { item.preference.AccountId, item.preference.IntervalDays,
-                item.preference.QuietStartMinute, item.preference.QuietEndMinute,
-                item.preference.TimeZoneId, item.account.LastActivityAtUtc })
             .ToListAsync(ct);
         var sent = 0;
         foreach (var item in candidates)
         {
-            if (item.LastActivityAtUtc.AddDays(item.IntervalDays) > now) continue;
+            if (item.account.LastActivityAtUtc.AddDays(item.preference.IntervalDays) > now) continue;
             TimeZoneInfo zone;
-            try { zone = TimeZoneInfo.FindSystemTimeZoneById(item.TimeZoneId); }
+            try { zone = TimeZoneInfo.FindSystemTimeZoneById(item.preference.TimeZoneId); }
             catch (TimeZoneNotFoundException) { continue; }
             catch (InvalidTimeZoneException) { continue; }
             var local = TimeZoneInfo.ConvertTime(now, zone);
             var minute = local.Hour * 60 + local.Minute;
-            var quiet = item.QuietStartMinute < item.QuietEndMinute
-                ? minute >= item.QuietStartMinute && minute < item.QuietEndMinute
-                : minute >= item.QuietStartMinute || minute < item.QuietEndMinute;
+            var quiet = item.preference.QuietStartMinute < item.preference.QuietEndMinute
+                ? minute >= item.preference.QuietStartMinute && minute < item.preference.QuietEndMinute
+                : minute >= item.preference.QuietStartMinute || minute < item.preference.QuietEndMinute;
             if (quiet) continue;
             var email = await db.ExternalIdentities.AsNoTracking()
-                .Where(identity => identity.AccountId == item.AccountId && identity.Provider == "email")
+                .Where(identity => identity.AccountId == item.preference.AccountId && identity.Provider == "email")
                 .Select(identity => identity.Subject).FirstOrDefaultAsync(ct);
             if (email == null) continue;
             // Claim exactly once for this activity period, even if SMTP or the worker crashes.
             var claimed = await db.ReminderPreferences.Where(preference =>
-                preference.AccountId == item.AccountId && preference.Enabled &&
+                preference.AccountId == item.preference.AccountId && preference.Enabled &&
                 (preference.LastNotifiedActivityAtUtc == null ||
-                 preference.LastNotifiedActivityAtUtc < item.LastActivityAtUtc) &&
+                 preference.LastNotifiedActivityAtUtc < item.account.LastActivityAtUtc) &&
                 db.Accounts.Any(account => account.Id == preference.AccountId &&
                     account.DeletedAtUtc == null && account.DisabledAtUtc == null &&
-                    account.LastActivityAtUtc == item.LastActivityAtUtc))
+                    account.LastActivityAtUtc == item.account.LastActivityAtUtc))
                 .ExecuteUpdateAsync(setters => setters.SetProperty(preference =>
-                    preference.LastNotifiedActivityAtUtc, item.LastActivityAtUtc), ct);
+                    preference.LastNotifiedActivityAtUtc, item.account.LastActivityAtUtc), ct);
             if (claimed != 1) continue;
             try
             {
@@ -69,14 +66,14 @@ public sealed class LearningReminderService(LearnPipDbContext db, IConfiguration
                            "Deine Erinnerungen kannst du jederzeit in den Einstellungen ausschalten."
                 };
                 await client.SendMailAsync(message, ct);
-                await db.ReminderPreferences.Where(preference => preference.AccountId == item.AccountId)
+                await db.ReminderPreferences.Where(preference => preference.AccountId == item.preference.AccountId)
                     .ExecuteUpdateAsync(setters => setters.SetProperty(preference => preference.LastSentAtUtc, now), ct);
                 sent++;
             }
             catch (Exception exception) when (!ct.IsCancellationRequested)
             {
                 // Keep the claim: automatic retries could send a duplicate if SMTP accepted the email.
-                Console.Error.WriteLine($"Learning reminder delivery failed for account {item.AccountId}: {exception.Message}");
+                Console.Error.WriteLine($"Learning reminder delivery failed for account {item.preference.AccountId}: {exception.Message}");
             }
         }
         return sent;
