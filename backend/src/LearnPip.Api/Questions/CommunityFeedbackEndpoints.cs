@@ -19,7 +19,7 @@ public static class CommunityFeedbackEndpoints
             .WithTags("Question feedback").RequireAuthorization(ApiPolicies.ActiveAccount);
         feedback.MapGet("/", Read);
         feedback.MapPost("/reports", Report);
-        feedback.MapPost("/comments", Comment);
+        feedback.MapPost("/comments", Comment).RequireRateLimiting("content-write");
         feedback.MapPut("/helpful", Vote);
         feedback.MapDelete("/helpful", RemoveVote);
 

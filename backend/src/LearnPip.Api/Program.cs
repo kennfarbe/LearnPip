@@ -43,6 +43,8 @@ builder.Services.AddProblemDetails(options =>
         context.ProblemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier);
 
 builder.Services.AddScoped<IdentityService>();
+builder.Services.AddScoped<AccountLifecycleService>();
+builder.Services.AddSingleton<IInactivityNoticeSender, DisabledInactivityNoticeSender>();
 builder.Services.AddScoped<AdministrationService>();
 builder.Services.AddScoped<GroupService>();
 builder.Services.AddScoped<PublicSubmissionService>();
@@ -64,6 +66,36 @@ builder.Services.AddRateLimiter(options =>
         {
             PermitLimit = 20,
             Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        }));
+    options.AddPolicy("account-delete", context => RateLimitPartition.GetFixedWindowLimiter(
+        AccountIdentity.TryGetAccountId(context.User, out var accountId)
+            ? accountId.ToString() : context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 3,
+            Window = TimeSpan.FromHours(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        }));
+    options.AddPolicy("data-export", context => RateLimitPartition.GetFixedWindowLimiter(
+        AccountIdentity.TryGetAccountId(context.User, out var accountId)
+            ? accountId.ToString() : context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromHours(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        }));
+    options.AddPolicy("content-write", context => RateLimitPartition.GetFixedWindowLimiter(
+        AccountIdentity.TryGetAccountId(context.User, out var accountId)
+            ? accountId.ToString() : context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 30,
+            Window = TimeSpan.FromMinutes(10),
             QueueLimit = 0,
             AutoReplenishment = true
         }));
@@ -92,6 +124,7 @@ app.Use(async (context, next) =>
     }
     await next();
 });
+app.UseAuthentication();
 app.UseRateLimiter();
 app.Use(async (context, next) =>
 {
@@ -116,7 +149,6 @@ app.Use(async (context, next) =>
 
     await next();
 });
-app.UseAuthentication();
 app.UseAuthorization();
 app.Use(async (context, next) =>
 {
@@ -145,6 +177,7 @@ app.MapGet("/health/ready", async (LearnPipDbContext dbContext, CancellationToke
     .WithName("Readiness");
 app.MapV1Endpoints();
 app.MapAuthEndpoints();
+app.MapDataRightsEndpoints();
 app.MapMediaEndpoints();
 app.MapQuestionEndpoints();
 app.MapTranslationEndpoints();
