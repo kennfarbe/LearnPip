@@ -107,6 +107,85 @@ public sealed class AccountLifecycleTests
         }
     }
 
+    [Fact]
+    public async Task Voluntary_deletion_removes_private_media_and_learning_history_immediately()
+    {
+        var source = Environment.GetEnvironmentVariable("ConnectionStrings__LearnPip")
+            ?? throw new InvalidOperationException("Set ConnectionStrings__LearnPip to a disposable PostgreSQL server.");
+        var name = $"learnpip_self_delete_{Guid.NewGuid():N}";
+        var maintenance = new NpgsqlConnectionStringBuilder(source) { Database = "postgres" };
+        var database = new NpgsqlConnectionStringBuilder(source) { Database = name };
+        await using (var admin = new NpgsqlConnection(maintenance.ConnectionString))
+        {
+            await admin.OpenAsync();
+            await using var create = new NpgsqlCommand($"CREATE DATABASE \"{name}\"", admin);
+            await create.ExecuteNonQueryAsync();
+        }
+        try
+        {
+            var options = new DbContextOptionsBuilder<LearnPipDbContext>()
+                .UseNpgsql(database.ConnectionString).Options;
+            var accountId = Guid.NewGuid();
+            var questionId = Guid.NewGuid();
+            var versionId = Guid.NewGuid();
+            var sessionId = Guid.NewGuid();
+            var mediaId = Guid.NewGuid();
+            await using (var db = new LearnPipDbContext(options))
+            {
+                await db.Database.MigrateAsync();
+                db.Accounts.Add(new Account { Id = accountId });
+                db.Questions.Add(new Question { Id = questionId, OwnerAccountId = accountId });
+                db.QuestionVersions.Add(new QuestionVersion
+                {
+                    Id = versionId,
+                    QuestionId = questionId,
+                    CreatedByAccountId = accountId,
+                    VersionNumber = 1,
+                    Prompt = "Private question"
+                });
+                db.StudySessions.Add(new StudySession { Id = sessionId, AccountId = accountId });
+                db.StudyAttempts.Add(new StudyAttempt
+                {
+                    StudySessionId = sessionId,
+                    QuestionVersionId = versionId,
+                    IsCorrect = true
+                });
+                db.MediaAssets.Add(new MediaAsset
+                {
+                    Id = mediaId,
+                    OwnerAccountId = accountId,
+                    StorageKey = "private/test",
+                    MediaType = "image/png",
+                    ByteLength = 3
+                });
+                db.MediaBlobs.Add(new MediaBlob { MediaAssetId = mediaId, Data = [1, 2, 3] });
+                await db.SaveChangesAsync();
+            }
+            await using (var db = new LearnPipDbContext(options))
+            {
+                var service = new AccountLifecycleService(db, new DisabledInactivityNoticeSender());
+                Assert.True(await service.DeleteOwnAsync(accountId));
+                Assert.False(await service.DeleteOwnAsync(accountId));
+                Assert.False(await db.Accounts.AnyAsync(item => item.Id == accountId));
+                Assert.False(await db.MediaBlobs.AnyAsync(item => item.MediaAssetId == mediaId));
+                Assert.False(await db.StudyAttempts.AnyAsync(item => item.StudySessionId == sessionId));
+            }
+        }
+        finally
+        {
+            await using var admin = new NpgsqlConnection(maintenance.ConnectionString);
+            await admin.OpenAsync();
+            await using (var terminate = new NpgsqlCommand(
+                "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = @name AND pid <> pg_backend_pid()", admin))
+            {
+                terminate.Parameters.AddWithValue("name", name);
+                await terminate.ExecuteNonQueryAsync();
+            }
+            await using var drop = new NpgsqlCommand($"DROP DATABASE IF EXISTS \"{name}\"", admin);
+            await drop.ExecuteNonQueryAsync();
+        }
+    }
+
     private sealed class RecordingSender : IInactivityNoticeSender
     {
         public bool IsAvailable => true;

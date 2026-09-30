@@ -33,7 +33,7 @@ docker run -d --name "$container" --network none \
   -e "POSTGRES_PASSWORD=$password" "$image" >/dev/null
 ready=0
 for ((attempt=0; attempt<60; attempt++)); do
-  if docker exec "$container" pg_isready -U learnpip -d learnpip >/dev/null 2>&1; then
+  if docker exec "$container" psql -XAt -U learnpip -d learnpip -c "SELECT 1" >/dev/null 2>&1; then
     ready=1
     break
   fi

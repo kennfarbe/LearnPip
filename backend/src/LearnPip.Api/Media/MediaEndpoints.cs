@@ -16,7 +16,7 @@ public static class MediaEndpoints
             .WithTags("Public media");
         var media = app.MapGroup("/api/v1/media").WithTags("Private media")
             .RequireAuthorization(ApiPolicies.ActiveAccount);
-        media.MapPost("/", Upload).DisableAntiforgery()
+        media.MapPost("/", Upload).DisableAntiforgery().RequireRateLimiting("content-write")
             .WithMetadata(new RequestSizeLimitAttribute(PrivateImageProcessor.MaxUploadBytes + 1024 * 1024))
             .Produces<ApiResponse<MediaDetails>>(StatusCodes.Status201Created);
         media.MapGet("/{id:guid}/content", Read);
@@ -62,8 +62,19 @@ public static class MediaEndpoints
             AltText = description,
             ByteLength = image.Value.Bytes.Length
         };
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT pg_advisory_xact_lock(hashtext({accountId.ToString()}))", cancellationToken);
+        var count = await db.MediaAssets.CountAsync(item =>
+            item.OwnerAccountId == accountId && item.DeletedAtUtc == null, cancellationToken);
+        var bytesUsed = await db.MediaAssets.Where(item => item.OwnerAccountId == accountId &&
+                item.DeletedAtUtc == null).SumAsync(item => (long?)item.ByteLength, cancellationToken) ?? 0;
+        if (count >= 100 || bytesUsed + asset.ByteLength > 100L * 1024 * 1024)
+            return Results.Problem("Private image quota reached (100 images or 100 MiB).",
+                statusCode: StatusCodes.Status413PayloadTooLarge);
         store.Add(asset, image.Value.Bytes);
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         var details = new MediaDetails(asset.Id, asset.MediaType, asset.ByteLength,
             asset.QuestionVersionId, asset.AltText);
         return Results.Created($"/api/v1/media/{asset.Id}", new ApiResponse<MediaDetails>(details));

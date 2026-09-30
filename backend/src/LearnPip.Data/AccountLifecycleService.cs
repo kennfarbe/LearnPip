@@ -10,6 +10,13 @@ public interface IInactivityNoticeSender
         CancellationToken cancellationToken);
 }
 
+public sealed class DisabledInactivityNoticeSender : IInactivityNoticeSender
+{
+    public bool IsAvailable => false;
+    public Task SendAsync(string email, int phaseDays, DateTimeOffset lastActivityAtUtc,
+        CancellationToken cancellationToken) => Task.CompletedTask;
+}
+
 public sealed record LifecycleRunResult(int WarningsClaimed, int Deactivated, int Deleted);
 
 public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNoticeSender sender)
@@ -33,6 +40,17 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
             if (action == "deleted") deleted++;
         }
         return new LifecycleRunResult(warnings, deactivated, deleted);
+    }
+
+    public async Task<bool> DeleteOwnAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(1049071810)", cancellationToken);
+        var account = await LockedAccount(id, cancellationToken);
+        if (account == null || account.DeletedAtUtc != null) return false;
+        await DeleteAccountAsync(id, DateTimeOffset.UtcNow, cancellationToken, requireExpired: false);
+        await transaction.CommitAsync(cancellationToken);
+        return true;
     }
 
     private async Task<string> ProcessAsync(Guid id, DateTimeOffset now, CancellationToken cancellationToken)
@@ -128,7 +146,7 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
             cancellationToken);
 
     private async Task DeleteAccountAsync(Guid id, DateTimeOffset now,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool requireExpired = true)
     {
         var emails = await db.ExternalIdentities.AsNoTracking().Where(item =>
             item.AccountId == id && item.Provider == "email")
@@ -239,8 +257,8 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
         await db.AccountInactivityWarnings.Where(item => item.AccountId == id)
             .ExecuteDeleteAsync(cancellationToken);
         var removed = await db.Accounts.Where(item => item.Id == id &&
-            item.DisabledAtUtc <= now.AddDays(-90) &&
-            item.LastActivityAtUtc <= now.AddDays(-180))
+            (!requireExpired || item.DisabledAtUtc <= now.AddDays(-90) &&
+             item.LastActivityAtUtc <= now.AddDays(-180)))
             .ExecuteDeleteAsync(cancellationToken);
         if (removed != 1) throw new InvalidOperationException("Account activity changed during deletion.");
     }
