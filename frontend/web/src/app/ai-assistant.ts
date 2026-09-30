@@ -1,4 +1,5 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { LanguageService } from './language';
 import { FormsModule } from '@angular/forms';
 
 interface Mode {
@@ -19,11 +20,11 @@ interface Mode {
   imports: [FormsModule],
   template: `
     <section class="ai" aria-labelledby="ai-title">
-      <h2 id="ai-title">Optionale KI-Unterstützung</h2>
-      <p>Eigene Fragen erstellen und lernen funktioniert auch ohne KI.</p>
+      <h2 id="ai-title">{{ language.t('Optionale KI-Unterstützung') }}</h2>
+      <p>{{ language.t('Eigene Fragen erstellen und lernen funktioniert auch ohne KI.') }}</p>
       <label
-        >Betriebsart
-        <select [(ngModel)]="mode" (ngModelChange)="confirmed = false; answer.set('')">
+        >{{ language.t('Betriebsart')
+        }}<select [(ngModel)]="mode" (ngModelChange)="confirmed = false; answer.set('')">
           @for (item of modes(); track item.info.mode) {
             <option [value]="item.info.mode" [disabled]="!item.info.available">
               {{ label(item.info.mode) }}{{ item.info.available ? '' : ' · nicht verfügbar' }}
@@ -32,43 +33,58 @@ interface Mode {
         </select>
       </label>
       @if (selected(); as choice) {
-        <p><strong>Empfänger:</strong> {{ choice.info.recipient }}</p>
-        <p><strong>Datenweg:</strong> {{ choice.info.dataShared }}</p>
+        <p>
+          <strong>{{ language.t('Empfänger:') }}</strong> {{ choice.info.recipient }}
+        </p>
+        <p>
+          <strong>{{ language.t('Datenweg:') }}</strong> {{ choice.info.dataShared }}
+        </p>
         @if (mode !== 'off') {
           <p>
             {{ choice.usedToday }} / {{ choice.info.dailyQuota }} Anfragen heute · höchstens
             {{ choice.info.maxInputBytes }} UTF-8-Bytes je Text.
           </p>
           <label
-            >Text für den gewählten Anbieter
-            <textarea [(ngModel)]="prompt" [attr.maxlength]="choice.info.maxInputBytes"></textarea>
+            >{{ language.t('Text für den gewählten Anbieter')
+            }}<textarea
+              [(ngModel)]="prompt"
+              [attr.maxlength]="choice.info.maxInputBytes"
+            ></textarea>
           </label>
           <label
-            ><input type="checkbox" [(ngModel)]="confirmed" />
-            Ich habe Empfänger und Datenübermittlung gelesen und möchte genau diesen Text senden.
-          </label>
+            ><input type="checkbox" [(ngModel)]="confirmed" />{{
+              language.t(
+                'Ich habe Empfänger und Datenübermittlung gelesen und möchte genau diesen Text senden.'
+              )
+            }}</label
+          >
           <button
             type="button"
             [disabled]="!confirmed || busy() || !prompt.trim()"
             (click)="generate()"
           >
-            An gewählten Anbieter senden
+            {{ language.t('An gewählten Anbieter senden') }}
           </button>
         }
       }
       @if (userKeyEnabled()) {
         <details>
-          <summary>Eigenen API-Schlüssel verwalten</summary>
+          <summary>{{ language.t('Eigenen API-Schlüssel verwalten') }}</summary>
           <p>
             Schlüssel
             {{ hasUserKey() ? 'gespeichert (Wert nicht abrufbar)' : 'nicht gespeichert' }}.
           </p>
           <label
-            >Neuer Schlüssel <input type="password" [(ngModel)]="newKey" autocomplete="off"
+            >{{ language.t('Neuer Schlüssel')
+            }}<input type="password" [(ngModel)]="newKey" autocomplete="off"
           /></label>
-          <button type="button" (click)="saveKey()">Schlüssel speichern/ersetzen</button>
+          <button type="button" (click)="saveKey()">
+            {{ language.t('Schlüssel speichern/ersetzen') }}
+          </button>
           @if (hasUserKey()) {
-            <button type="button" (click)="deleteKey()">Schlüssel löschen</button>
+            <button type="button" (click)="deleteKey()">
+              {{ language.t('Schlüssel löschen') }}
+            </button>
           }
         </details>
       }
@@ -110,6 +126,7 @@ interface Mode {
   `,
 })
 export class AiAssistant implements OnInit {
+  readonly language = inject(LanguageService);
   readonly modes = signal<Mode[]>([]);
   readonly hasUserKey = signal(false);
   readonly canConfigureUserKey = signal(false);

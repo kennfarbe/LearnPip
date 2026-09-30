@@ -18,6 +18,8 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
     public DbSet<LearningContent> LearningContents => Set<LearningContent>();
     public DbSet<FrequentLearningContent> FrequentLearningContents => Set<FrequentLearningContent>();
     public DbSet<QuestionVersion> QuestionVersions => Set<QuestionVersion>();
+    public DbSet<QuestionTranslation> QuestionTranslations => Set<QuestionTranslation>();
+    public DbSet<TranslationReport> TranslationReports => Set<TranslationReport>();
     public DbSet<AnswerOption> AnswerOptions => Set<AnswerOption>();
     public DbSet<QuestionContentBlock> QuestionContentBlocks => Set<QuestionContentBlock>();
     public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
@@ -52,6 +54,31 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<QuestionTranslation>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Language).HasMaxLength(8).IsRequired();
+            entity.Property(x => x.Status).HasMaxLength(16).IsRequired();
+            entity.Property(x => x.PayloadJson).HasMaxLength(65536).IsRequired();
+            entity.Property(x => x.Source).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.License).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.Provenance).HasMaxLength(24).IsRequired();
+            entity.HasIndex(x => new { x.QuestionVersionId, x.Language, x.Revision }).IsUnique();
+            entity.HasOne(x => x.QuestionVersion).WithMany().HasForeignKey(x => x.QuestionVersionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.CreatedByAccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<TranslationReport>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Details).HasMaxLength(2000).IsRequired();
+            entity.HasIndex(x => new { x.QuestionTranslationId, x.CreatedAtUtc });
+            entity.HasOne(x => x.Translation).WithMany().HasForeignKey(x => x.QuestionTranslationId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.AccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
         modelBuilder.Entity<UserAiCredential>(entity =>
         {
             entity.HasKey(x => x.AccountId);

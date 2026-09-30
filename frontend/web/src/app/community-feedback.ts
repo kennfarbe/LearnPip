@@ -1,4 +1,5 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { LanguageService } from './language';
 import { FormsModule } from '@angular/forms';
 
 interface Api<T> {
@@ -34,11 +35,11 @@ interface Detail {
   imports: [FormsModule],
   template: `
     <section class="feedback">
-      <h2>Fragen besprechen</h2>
+      <h2>{{ language.t('Fragen besprechen') }}</h2>
       <label
-        >Frage auswählen
-        <select [(ngModel)]="selected" (ngModelChange)="loadFeedback()">
-          <option value="">Bitte auswählen</option>
+        >{{ language.t('Frage auswählen')
+        }}<select [(ngModel)]="selected" (ngModelChange)="loadFeedback()">
+          <option value="">{{ language.t('Bitte auswählen') }}</option>
           @for (item of questions(); track item.id) {
             <option [value]="item.id">{{ item.prompt }} (Version {{ item.version }})</option>
           }
@@ -47,34 +48,41 @@ interface Detail {
       @if (selected && feedback(); as data) {
         <p>Hilfreich: {{ data.helpful }} · Nicht hilfreich: {{ data.unhelpful }}</p>
         <button type="button" (click)="vote(true)" [attr.aria-pressed]="data.myVote === true">
-          Hilfreich
+          {{ language.t('Hilfreich') }}
         </button>
         <button type="button" (click)="vote(false)" [attr.aria-pressed]="data.myVote === false">
-          Nicht hilfreich
+          {{ language.t('Nicht hilfreich') }}
         </button>
-        <button type="button" (click)="removeVote()">Bewertung entfernen</button>
-        <h3>Kommentare</h3>
+        <button type="button" (click)="removeVote()">
+          {{ language.t('Bewertung entfernen') }}
+        </button>
+        <h3>{{ language.t('Kommentare') }}</h3>
         @for (entry of data.comments; track entry.id) {
           <p>{{ entry.text }}</p>
         }
-        <label>Kommentar <textarea [(ngModel)]="comment" maxlength="2000"></textarea></label>
-        <button type="button" (click)="postComment()" [disabled]="!comment.trim()">
-          Kommentieren
-        </button>
-        <h3>Problem melden</h3>
         <label
-          >Grund
-          <select [(ngModel)]="reason">
-            <option value="incorrect">Inhaltlich falsch</option>
-            <option value="unclear">Unklar</option>
-            <option value="rights">Rechte</option>
-            <option value="privacy">Persönliche Daten</option>
-            <option value="other">Sonstiges</option>
+          >{{ language.t('Kommentar') }}<textarea [(ngModel)]="comment" maxlength="2000"></textarea>
+        </label>
+        <button type="button" (click)="postComment()" [disabled]="!comment.trim()">
+          {{ language.t('Kommentieren') }}
+        </button>
+        <h3>{{ language.t('Problem melden') }}</h3>
+        <label
+          >{{ language.t('Grund')
+          }}<select [(ngModel)]="reason">
+            <option value="incorrect">{{ language.t('Inhaltlich falsch') }}</option>
+            <option value="unclear">{{ language.t('Unklar') }}</option>
+            <option value="rights">{{ language.t('Rechte') }}</option>
+            <option value="privacy">{{ language.t('Persönliche Daten') }}</option>
+            <option value="other">{{ language.t('Sonstiges') }}</option>
           </select></label
         >
-        <label>Beschreibung <textarea [(ngModel)]="details" maxlength="2000"></textarea></label>
+        <label
+          >{{ language.t('Beschreibung')
+          }}<textarea [(ngModel)]="details" maxlength="2000"></textarea>
+        </label>
         <button type="button" (click)="report()" [disabled]="!details.trim()">
-          Meldung senden
+          {{ language.t('Meldung senden') }}
         </button>
       }
       @if (message()) {
@@ -83,14 +91,16 @@ interface Detail {
     </section>
     @if (moderator()) {
       <section class="feedback">
-        <h2>Meldungen prüfen</h2>
-        <button type="button" (click)="loadInbox()">Posteingang aktualisieren</button>
+        <h2>{{ language.t('Meldungen prüfen') }}</h2>
+        <button type="button" (click)="loadInbox()">
+          {{ language.t('Posteingang aktualisieren') }}
+        </button>
         @for (item of inbox(); track item.questionVersionId) {
           <article>
             <h3>
               {{ item.prompt }} · Version {{ item.versionNumber }} · {{ item.openReports }} offen
             </h3>
-            <button type="button" (click)="open(item)">Details prüfen</button>
+            <button type="button" (click)="open(item)">{{ language.t('Details prüfen') }}</button>
             @if (opened() === item.questionVersionId && review(); as data) {
               <p>Hilfreich: {{ data.helpful }} · Nicht hilfreich: {{ data.unhelpful }}</p>
               @for (entry of data.reports; track $index) {
@@ -103,19 +113,30 @@ interface Detail {
                 <p>{{ entry.text }}</p>
                 @if (!entry.removedAtUtc) {
                   <button type="button" (click)="act('remove_comment', entry.id)">
-                    Kommentar entfernen
+                    {{ language.t('Kommentar entfernen') }}
                   </button>
                 }
               }
-              <label>Begründung <textarea [(ngModel)]="note" maxlength="1000"></textarea></label>
               <label
-                >Korrigierter Fragetext
-                <textarea [(ngModel)]="correctedPrompt" maxlength="12000"></textarea>
+                >{{ language.t('Begründung')
+                }}<textarea [(ngModel)]="note" maxlength="1000"></textarea>
               </label>
-              <button type="button" (click)="act('close')">Meldungen schließen</button>
-              <button type="button" (click)="act('correct')">Neue private Version erstellen</button>
-              <button type="button" (click)="act('withdraw')">Version zurückziehen</button>
-              <button type="button" (click)="act('delete')">Frage löschen</button>
+              <label
+                >{{ language.t('Korrigierter Fragetext')
+                }}<textarea [(ngModel)]="correctedPrompt" maxlength="12000"></textarea>
+              </label>
+              <button type="button" (click)="act('close')">
+                {{ language.t('Meldungen schließen') }}
+              </button>
+              <button type="button" (click)="act('correct')">
+                {{ language.t('Neue private Version erstellen') }}
+              </button>
+              <button type="button" (click)="act('withdraw')">
+                {{ language.t('Version zurückziehen') }}
+              </button>
+              <button type="button" (click)="act('delete')">
+                {{ language.t('Frage löschen') }}
+              </button>
             }
           </article>
         }
@@ -155,6 +176,7 @@ interface Detail {
   `,
 })
 export class CommunityFeedback implements OnInit {
+  readonly language = inject(LanguageService);
   readonly questions = signal<Question[]>([]);
   readonly feedback = signal<Feedback | null>(null);
   readonly moderator = signal(false);

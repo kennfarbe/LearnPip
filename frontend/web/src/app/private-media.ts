@@ -1,4 +1,5 @@
-import { Component, ElementRef, ViewChild, signal } from '@angular/core';
+import { Component, inject, ElementRef, ViewChild, signal } from '@angular/core';
+import { LanguageService } from './language';
 
 interface MediaResponse {
   data: { id: string; altText: string };
@@ -8,12 +9,16 @@ interface MediaResponse {
   selector: 'app-private-media',
   template: `
     <section class="media-panel" aria-labelledby="media-title">
-      <h2 id="media-title">Private Bilder</h2>
+      <h2 id="media-title">{{ language.t('Private Bilder') }}</h2>
       <p>
-        Fotos und Zeichnungen bleiben in deinem Konto. Melde dich an, bevor du ein Bild hochlädst.
+        {{
+          language.t(
+            'Fotos und Zeichnungen bleiben in deinem Konto. Melde dich an, bevor du ein Bild hochlädst.'
+          )
+        }}
       </p>
       <form (submit)="upload($event)">
-        <label for="media-file">Bild (JPEG oder PNG, maximal 5 MiB)</label>
+        <label for="media-file">{{ language.t('Bild (JPEG oder PNG, maximal 5 MiB)') }}</label>
         <input
           id="media-file"
           type="file"
@@ -21,7 +26,7 @@ interface MediaResponse {
           (change)="selectFile($event)"
           required
         />
-        <label for="media-description">Bildbeschreibung</label>
+        <label for="media-description">{{ language.t('Bildbeschreibung') }}</label>
         <input
           id="media-description"
           type="text"
@@ -49,13 +54,13 @@ interface MediaResponse {
           </button>
           <figcaption>{{ imageAlt() }}</figcaption>
         </figure>
-        <button type="button" (click)="remove()">Bild löschen</button>
+        <button type="button" (click)="remove()">{{ language.t('Bild löschen') }}</button>
       }
       <dialog #viewer aria-label="Bild vergrößert anzeigen" (click)="closeViewer()">
         @if (imageUrl()) {
           <img [src]="imageUrl()" [alt]="imageAlt()" />
         }
-        <button type="button" (click)="closeViewer()">Schließen</button>
+        <button type="button" (click)="closeViewer()">{{ language.t('Schließen') }}</button>
       </dialog>
     </section>
   `,
@@ -109,6 +114,7 @@ interface MediaResponse {
   `,
 })
 export class PrivateMedia {
+  readonly language = inject(LanguageService);
   @ViewChild('viewer') private viewer?: ElementRef<HTMLDialogElement>;
   readonly description = signal('');
   readonly uploading = signal(false);

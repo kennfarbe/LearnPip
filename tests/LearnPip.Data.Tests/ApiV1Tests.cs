@@ -259,6 +259,59 @@ public sealed class ApiV1Tests
             Assert.Equal(1, firstVersion.Version);
             Assert.Contains(firstVersion.Prompt, block => block.MediaId == questionMedia);
             Assert.Contains(firstVersion.Answers[0].Blocks, block => block.MediaId == questionMedia);
+            var translationsPath = $"/api/v1/questions/{createdQuestionId}/versions/1/translations";
+            var missingTranslation = (await ownerClient.GetFromJsonAsync<ApiResponse<TranslationView>>(
+                $"{translationsPath}/en"))!.Data;
+            Assert.True(missingTranslation.Missing);
+            Assert.Equal(firstVersion.Answers[0].Id, missingTranslation.Payload.Answers[0].OptionId);
+            var translated = TranslationEndpoints.FromOriginal(firstVersion);
+            translated = translated with
+            {
+                Prompt = [new LocalizedBlock("text", "Which statements are correct?", null, null),
+                    new LocalizedBlock("image", null, questionMedia, "Green symbol")],
+                Explanation = [new LocalizedBlock("text", "Green is correct.", null, null)],
+                Answers = [new LocalizedAnswer(firstVersion.Answers[0].Id,
+                        [new LocalizedBlock("image", null, questionMedia, "Green symbol")]),
+                    new LocalizedAnswer(firstVersion.Answers[1].Id,
+                        [new LocalizedBlock("text", "Chlorophyll", null, null)]),
+                    new LocalizedAnswer(firstVersion.Answers[2].Id,
+                        [new LocalizedBlock("text", "Neither", null, null)])]
+            };
+            var translatedVersion = TranslationEndpoints.Apply(firstVersion, translated, "en",
+                "Owner translation", "CC-BY-4.0");
+            Assert.Equal(firstVersion.Answers.Select(option => (option.Id, option.IsCorrect)),
+                translatedVersion.Answers.Select(option => (option.Id, option.IsCorrect)));
+            Assert.False(TranslationEndpoints.Valid(translated with
+            {
+                Answers = translated.Answers.Select((answer, index) => index == 0 ?
+                    answer with { OptionId = Guid.NewGuid() } : answer).ToArray()
+            }, firstVersion));
+            Assert.Equal(HttpStatusCode.NotFound,
+                (await strangerClient.GetAsync($"{translationsPath}/en")).StatusCode);
+            var translationDraft = await ownerClient.PostAsJsonAsync($"{translationsPath}/drafts",
+                new TranslationDraftInput("en", translated, "Owner translation", "CC-BY-4.0", "manual"));
+            Assert.Equal(HttpStatusCode.Created, translationDraft.StatusCode);
+            var translationId = (await translationDraft.Content.ReadFromJsonAsync<
+                ApiResponse<TranslationDraftCreated>>())!.Data.Id;
+            Assert.True((await ownerClient.GetFromJsonAsync<ApiResponse<TranslationView>>(
+                $"{translationsPath}/en"))!.Data.Missing);
+            Assert.Equal(HttpStatusCode.OK,
+                (await ownerClient.PostAsync($"{translationsPath}/{translationId}/approve", null)).StatusCode);
+            var approved = (await ownerClient.GetFromJsonAsync<ApiResponse<TranslationView>>(
+                $"{translationsPath}/en"))!.Data;
+            Assert.False(approved.Missing);
+            Assert.Equal("Which statements are correct?", approved.Payload.Prompt[0].Text);
+            Assert.Equal(HttpStatusCode.Created,
+                (await ownerClient.PostAsJsonAsync($"{translationsPath}/{translationId}/reports",
+                    new TranslationReportInput("Check image caption"))).StatusCode);
+            var correction = await ownerClient.PostAsJsonAsync($"{translationsPath}/drafts",
+                new TranslationDraftInput("en", translated with
+                {
+                    Explanation = [new LocalizedBlock("text", "The green color is correct.", null, null)]
+                }, "Corrected by owner", "CC-BY-4.0", "manual"));
+            Assert.Equal(HttpStatusCode.Created, correction.StatusCode);
+            Assert.Equal(1, (await ownerClient.GetFromJsonAsync<ApiResponse<TranslationView>>(
+                $"{translationsPath}/en"))!.Data.Revision);
             Assert.Equal(HttpStatusCode.Conflict,
                 (await ownerClient.DeleteAsync($"/api/v1/media/{questionMedia}")).StatusCode);
             Assert.Equal(HttpStatusCode.NotFound,

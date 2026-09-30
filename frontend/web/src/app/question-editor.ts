@@ -1,4 +1,5 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { LanguageService } from './language';
 import { FormsModule } from '@angular/forms';
 
 type Block = { kind: 'text' | 'image'; text?: string; mediaId?: string };
@@ -45,17 +46,20 @@ type SubmissionPreview = {
   template: `
     <section class="editor" aria-labelledby="editor-title">
       <header>
-        <p class="eyebrow">Mein Lernstoff</p>
-        <h2 id="editor-title">Fragen sammeln</h2>
+        <p class="eyebrow">{{ uiLanguage.t('Mein Lernstoff') }}</p>
+        <h2 id="editor-title">{{ uiLanguage.t('Fragen sammeln') }}</h2>
         <p>
-          Erstelle Fragen mit Text oder Foto, speichere sie privat und veröffentliche eine Fassung
-          erst, wenn du bereit bist.
+          {{
+            uiLanguage.t(
+              'Erstelle Fragen mit Text oder Foto, speichere sie privat und veröffentliche eine Fassung erst, wenn du bereit bist.'
+            )
+          }}
         </p>
       </header>
 
       <div class="workspace">
         <aside aria-label="Private Kataloge und Entwürfe">
-          <h3>Private Kataloge</h3>
+          <h3>{{ uiLanguage.t('Private Kataloge') }}</h3>
           <div class="row">
             <input
               aria-label="Neuer Katalog"
@@ -63,27 +67,31 @@ type SubmissionPreview = {
               maxlength="120"
               [(ngModel)]="newCatalog"
             />
-            <button type="button" (click)="createCatalog()">Anlegen</button>
+            <button type="button" (click)="createCatalog()">{{ uiLanguage.t('Anlegen') }}</button>
           </div>
-          <label for="catalog-filter">Anzeigen</label>
+          <label for="catalog-filter">{{ uiLanguage.t('Anzeigen') }}</label>
           <select id="catalog-filter" [(ngModel)]="filterCatalog">
-            <option value="all">Alle Entwürfe</option>
-            <option value="none">Ohne Katalog</option>
+            <option value="all">{{ uiLanguage.t('Alle Entwürfe') }}</option>
+            <option value="none">{{ uiLanguage.t('Ohne Katalog') }}</option>
             @for (catalog of catalogs(); track catalog.id) {
               <option [value]="catalog.id">{{ catalog.name }} ({{ catalog.questionCount }})</option>
             }
           </select>
           @if (activeCatalog()) {
-            <label for="catalog-rename">Katalogname ändern</label>
+            <label for="catalog-rename">{{ uiLanguage.t('Katalogname ändern') }}</label>
             <input id="catalog-rename" maxlength="120" [(ngModel)]="renamedCatalog" />
             <div class="row">
-              <button type="button" class="secondary" (click)="renameCatalog()">Umbenennen</button>
+              <button type="button" class="secondary" (click)="renameCatalog()">
+                {{ uiLanguage.t('Umbenennen') }}
+              </button>
               <button type="button" class="secondary" (click)="deleteCatalog()">
-                Katalog löschen
+                {{ uiLanguage.t('Katalog löschen') }}
               </button>
             </div>
           }
-          <button type="button" class="secondary" (click)="newDraft()">Neue Frage</button>
+          <button type="button" class="secondary" (click)="newDraft()">
+            {{ uiLanguage.t('Neue Frage') }}
+          </button>
           <ul class="draft-list">
             @for (draft of visibleDrafts(); track draft.questionId) {
               <li>
@@ -113,16 +121,21 @@ type SubmissionPreview = {
           </p>
           <div class="two-column">
             <label
-              >Fach <input [(ngModel)]="subject" maxlength="120" placeholder="z. B. Biologie"
+              >{{ uiLanguage.t('Fach')
+              }}<input [(ngModel)]="subject" maxlength="120" placeholder="z. B. Biologie"
             /></label>
             <label
-              >Thema <input [(ngModel)]="topic" maxlength="120" placeholder="z. B. Pflanzen"
+              >{{ uiLanguage.t('Thema')
+              }}<input [(ngModel)]="topic" maxlength="120" placeholder="z. B. Pflanzen"
             /></label>
-            <label>Sprache <input [(ngModel)]="language" maxlength="35" placeholder="de" /></label>
             <label
-              >Katalog
-              <select [(ngModel)]="catalogId">
-                <option value="">Ohne Katalog</option>
+              >{{ uiLanguage.t('Sprache')
+              }}<input [(ngModel)]="language" maxlength="35" placeholder="de"
+            /></label>
+            <label
+              >{{ uiLanguage.t('Katalog')
+              }}<select [(ngModel)]="catalogId">
+                <option value="">{{ uiLanguage.t('Ohne Katalog') }}</option>
                 @for (catalog of catalogs(); track catalog.id) {
                   <option [value]="catalog.id">{{ catalog.name }}</option>
                 }
@@ -130,8 +143,8 @@ type SubmissionPreview = {
             </label>
           </div>
           <label
-            >Frage
-            <textarea
+            >{{ uiLanguage.t('Frage')
+            }}<textarea
               [(ngModel)]="promptText"
               maxlength="4000"
               rows="4"
@@ -139,7 +152,7 @@ type SubmissionPreview = {
             ></textarea>
           </label>
           <div class="image-field">
-            <label for="prompt-image">Foto oder Bilddatei zur Frage</label>
+            <label for="prompt-image">{{ uiLanguage.t('Foto oder Bilddatei zur Frage') }}</label>
             <input
               id="prompt-image"
               type="file"
@@ -147,8 +160,8 @@ type SubmissionPreview = {
               (change)="uploadImage($event, -1)"
             />
             <label
-              >Bildbeschreibung
-              <input
+              >{{ uiLanguage.t('Bildbeschreibung')
+              }}<input
                 [(ngModel)]="promptImageAlt"
                 maxlength="300"
                 placeholder="Was ist auf dem Bild zu sehen?"
@@ -156,43 +169,43 @@ type SubmissionPreview = {
             @if (promptImageId) {
               <img [src]="imageUrl(promptImageId)" [alt]="promptImageAlt" />
               <button type="button" class="secondary" (click)="promptImageId = ''">
-                Bild aus Frage entfernen
+                {{ uiLanguage.t('Bild aus Frage entfernen') }}
               </button>
             }
           </div>
           <label
-            >Auswahlart
-            <select [(ngModel)]="selectionMode" (change)="normalizeChoice()">
-              <option value="single">Eine richtige Antwort</option>
-              <option value="multiple">Mehrere richtige Antworten</option>
+            >{{ uiLanguage.t('Auswahlart')
+            }}<select [(ngModel)]="selectionMode" (change)="normalizeChoice()">
+              <option value="single">{{ uiLanguage.t('Eine richtige Antwort') }}</option>
+              <option value="multiple">{{ uiLanguage.t('Mehrere richtige Antworten') }}</option>
             </select>
           </label>
           <fieldset>
-            <legend>Antworten</legend>
+            <legend>{{ uiLanguage.t('Antworten') }}</legend>
             @for (answer of answers; track $index; let i = $index) {
               <div class="answer">
                 <div class="answer-heading">
                   <strong>Antwort {{ i + 1 }}</strong>
                   @if (answers.length > 2) {
                     <button type="button" class="secondary" (click)="removeAnswer(i)">
-                      Entfernen
+                      {{ uiLanguage.t('Entfernen') }}
                     </button>
                   }
                 </div>
                 <label
-                  >Antworttext
-                  <textarea [(ngModel)]="answer.text" maxlength="4000" rows="2"></textarea>
+                  >{{ uiLanguage.t('Antworttext')
+                  }}<textarea [(ngModel)]="answer.text" maxlength="4000" rows="2"></textarea>
                 </label>
                 <label
-                  >Bilddatei (optional)
-                  <input
+                  >{{ uiLanguage.t('Bilddatei (optional)')
+                  }}<input
                     type="file"
                     accept="image/jpeg,image/png"
                     (change)="uploadImage($event, i)"
                 /></label>
                 <label
-                  >Bildbeschreibung
-                  <input
+                  >{{ uiLanguage.t('Bildbeschreibung')
+                  }}<input
                     [(ngModel)]="answer.imageAlt"
                     maxlength="300"
                     placeholder="Bild beschreiben"
@@ -200,7 +213,7 @@ type SubmissionPreview = {
                 @if (answer.imageId) {
                   <img [src]="imageUrl(answer.imageId)" [alt]="answer.imageAlt" />
                   <button type="button" class="secondary" (click)="answer.imageId = ''">
-                    Bild entfernen
+                    {{ uiLanguage.t('Bild entfernen') }}
                   </button>
                 }
                 @if (selectionMode === 'single') {
@@ -210,12 +223,13 @@ type SubmissionPreview = {
                       name="correct-answer"
                       [checked]="answer.isCorrect"
                       (change)="selectCorrect(i)"
-                    />
-                    Richtig</label
+                    />{{ uiLanguage.t('Richtig') }}</label
                   >
                 } @else {
                   <label class="choice"
-                    ><input type="checkbox" [(ngModel)]="answer.isCorrect" /> Richtig</label
+                    ><input type="checkbox" [(ngModel)]="answer.isCorrect" />{{
+                      uiLanguage.t('Richtig')
+                    }}</label
                   >
                 }
               </div>
@@ -226,12 +240,12 @@ type SubmissionPreview = {
               [disabled]="answers.length >= 8"
               (click)="addAnswer()"
             >
-              Antwort hinzufügen
+              {{ uiLanguage.t('Antwort hinzufügen') }}
             </button>
           </fieldset>
           <label
-            >Lösungsweg und Erklärung
-            <textarea
+            >{{ uiLanguage.t('Lösungsweg und Erklärung')
+            }}<textarea
               [(ngModel)]="explanation"
               maxlength="4000"
               rows="4"
@@ -240,24 +254,24 @@ type SubmissionPreview = {
           </label>
           <div class="two-column">
             <label
-              >Herkunft
-              <input [(ngModel)]="source" maxlength="500" placeholder="z. B. Eigene Frage"
+              >{{ uiLanguage.t('Herkunft')
+              }}<input [(ngModel)]="source" maxlength="500" placeholder="z. B. Eigene Frage"
             /></label>
             <label
-              >Lizenz
-              <input [(ngModel)]="license" maxlength="120" placeholder="z. B. eigene Inhalte"
+              >{{ uiLanguage.t('Lizenz')
+              }}<input [(ngModel)]="license" maxlength="120" placeholder="z. B. eigene Inhalte"
             /></label>
           </div>
           <div class="actions">
             <button type="button" [disabled]="busy()" (click)="saveDraft()">
-              Privat speichern
+              {{ uiLanguage.t('Privat speichern') }}
             </button>
             <button type="button" class="publish" [disabled]="busy()" (click)="publish()">
               {{ latestVersion() ? 'Neue Fassung veröffentlichen' : 'Fassung veröffentlichen' }}
             </button>
             @if (questionId() && latestVersion()) {
               <button type="button" class="secondary" [disabled]="busy()" (click)="createVariant()">
-                Bearbeitbare Variante zum Lerninhalt anlegen
+                {{ uiLanguage.t('Bearbeitbare Variante zum Lerninhalt anlegen') }}
               </button>
             }
           </div>
@@ -276,7 +290,7 @@ type SubmissionPreview = {
               submissionStatus() === 'minor_hold'
             ) {
               <button type="button" class="secondary" [disabled]="busy()" (click)="withdraw()">
-                Freigabe oder Einreichung zurückziehen
+                {{ uiLanguage.t('Freigabe oder Einreichung zurückziehen') }}
               </button>
             } @else {
               <button
@@ -285,11 +299,11 @@ type SubmissionPreview = {
                 [disabled]="busy()"
                 (click)="requestPreview()"
               >
-                Öffentliche Einreichung vorbereiten und Vorschau anzeigen
+                {{ uiLanguage.t('Öffentliche Einreichung vorbereiten und Vorschau anzeigen') }}
               </button>
               @if (submissionPreview(); as preview) {
                 <div class="privacy">
-                  <h4>Vorschau der einzureichenden Fassung</h4>
+                  <h4>{{ uiLanguage.t('Vorschau der einzureichenden Fassung') }}</h4>
                   <p>Herkunft: {{ preview.version.source }}</p>
                   @for (block of preview.version.prompt; track $index) {
                     @if (block.kind === 'text') {
@@ -314,39 +328,46 @@ type SubmissionPreview = {
                     }
                   </ol>
                   <label
-                    >Inhaltslizenz
-                    <select [(ngModel)]="publicLicense">
-                      <option value="">Bitte bewusst auswählen</option>
-                      <option value="CC BY 4.0">CC BY 4.0</option>
-                      <option value="CC BY-SA 4.0">CC BY-SA 4.0</option>
-                      <option value="CC0 1.0">CC0 1.0</option>
+                    >{{ uiLanguage.t('Inhaltslizenz')
+                    }}<select [(ngModel)]="publicLicense">
+                      <option value="">{{ uiLanguage.t('Bitte bewusst auswählen') }}</option>
+                      <option value="CC BY 4.0">{{ uiLanguage.t('CC BY 4.0') }}</option>
+                      <option value="CC BY-SA 4.0">{{ uiLanguage.t('CC BY-SA 4.0') }}</option>
+                      <option value="CC0 1.0">{{ uiLanguage.t('CC0 1.0') }}</option>
                     </select>
                   </label>
                   <label
-                    >Urheberangabe <input [(ngModel)]="authorAttribution" maxlength="120"
+                    >{{ uiLanguage.t('Urheberangabe')
+                    }}<input [(ngModel)]="authorAttribution" maxlength="120"
                   /></label>
                   <label
-                    >Alterserklärung
-                    <select [(ngModel)]="ageDeclaration">
-                      <option value="">Bitte auswählen</option>
-                      <option value="adult">Volljährig</option>
-                      <option value="minor">Minderjährig (gesonderte Prüfung ohne Freigabe)</option>
+                    >{{ uiLanguage.t('Alterserklärung')
+                    }}<select [(ngModel)]="ageDeclaration">
+                      <option value="">{{ uiLanguage.t('Bitte auswählen') }}</option>
+                      <option value="adult">{{ uiLanguage.t('Volljährig') }}</option>
+                      <option value="minor">
+                        {{ uiLanguage.t('Minderjährig (gesonderte Prüfung ohne Freigabe)') }}
+                      </option>
                     </select>
                   </label>
                   <label
-                    ><input type="checkbox" [(ngModel)]="rightsConfirmed" /> Ich besitze die nötigen
-                    Rechte an Text und Antworten und stimme der gewählten öffentlichen Lizenz
-                    zu.</label
+                    ><input type="checkbox" [(ngModel)]="rightsConfirmed" />{{
+                      uiLanguage.t(
+                        'Ich besitze die nötigen Rechte an Text und Antworten und stimme der gewählten öffentlichen Lizenz zu.'
+                      )
+                    }}</label
                   >
                   @if (preview.hasImages) {
                     <label
-                      ><input type="checkbox" [(ngModel)]="imageRightsConfirmed" /> Ich besitze die
-                      nötigen Bildrechte und habe persönliche Daten geprüft. Schulbuchfotos ohne
-                      Rechte darf ich nicht einreichen.</label
+                      ><input type="checkbox" [(ngModel)]="imageRightsConfirmed" />{{
+                        uiLanguage.t(
+                          'Ich besitze die nötigen Bildrechte und habe persönliche Daten geprüft. Schulbuchfotos ohne Rechte darf ich nicht einreichen.'
+                        )
+                      }}</label
                     >
                   }
                   <button type="button" [disabled]="busy()" (click)="submitForReview()">
-                    Diese Fassung zur Moderation einreichen
+                    {{ uiLanguage.t('Diese Fassung zur Moderation einreichen') }}
                   </button>
                 </div>
               }
@@ -362,6 +383,7 @@ type SubmissionPreview = {
   styleUrl: './question-editor.css',
 })
 export class QuestionEditor implements OnInit, OnDestroy {
+  readonly uiLanguage = inject(LanguageService);
   readonly catalogs = signal<Catalog[]>([]);
   readonly drafts = signal<Draft[]>([]);
   readonly questionId = signal('');
@@ -382,7 +404,7 @@ export class QuestionEditor implements OnInit, OnDestroy {
   imageRightsConfirmed = false;
   subject = '';
   topic = '';
-  language = 'de';
+  language: string = this.uiLanguage.current();
   source = '';
   license = '';
   selectionMode: 'single' | 'multiple' = 'single';
@@ -504,7 +526,7 @@ export class QuestionEditor implements OnInit, OnDestroy {
     this.catalogId = this.activeCatalog()?.id ?? '';
     this.subject = '';
     this.topic = '';
-    this.language = 'de';
+    this.language = this.uiLanguage.current();
     this.source = '';
     this.license = '';
     this.selectionMode = 'single';

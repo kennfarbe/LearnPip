@@ -109,6 +109,7 @@ public static class AiKeyVault
 public interface IAiProvider
 {
     Task<string> GenerateAsync(string prompt, CancellationToken cancellationToken);
+    Task<string> TranslateAsync(string prompt, CancellationToken cancellationToken);
     Task<string> AnalyzeImageAsync(string instruction, byte[] image, string mediaType,
         CancellationToken cancellationToken);
 }
@@ -117,6 +118,8 @@ public sealed class DisabledAiProvider : IAiProvider
 {
     public Task<string> GenerateAsync(string prompt, CancellationToken cancellationToken) =>
         throw new InvalidOperationException("AI is disabled.");
+    public Task<string> TranslateAsync(string prompt, CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("AI is disabled.");
     public Task<string> AnalyzeImageAsync(string instruction, byte[] image, string mediaType,
         CancellationToken cancellationToken) => throw new InvalidOperationException("AI is disabled.");
 }
@@ -124,6 +127,8 @@ public sealed class DisabledAiProvider : IAiProvider
 public sealed class ChatCompletionProvider(Uri endpoint, string model, string? key,
     HttpClient client) : IAiProvider
 {
+    public Task<string> TranslateAsync(string prompt, CancellationToken cancellationToken) =>
+        CompleteAsync(new { role = "user", content = (object)prompt }, 2048, cancellationToken);
     public async Task<string> GenerateAsync(string prompt, CancellationToken cancellationToken)
         => await CompleteAsync(new { role = "user", content = (object)prompt }, 512,
             cancellationToken);

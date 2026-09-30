@@ -9,20 +9,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
 
-public sealed record StartLearningRequest(Guid? CatalogId, int Count = 5);
+public sealed record StartLearningRequest(Guid? CatalogId, int Count = 5, string Language = "de");
 public sealed record LearningAnswerRequest(IReadOnlyList<Guid> SelectedOptionIds, bool WasGuessed = false);
 public sealed record ExplanationViewRequest(Guid AttemptId);
 public sealed record LearningOption(Guid Id, IReadOnlyList<ContentBlockOutput> Blocks);
 public sealed record LearningQuestion(Guid QuestionId, Guid VersionId, string SelectionMode,
     IReadOnlyList<ContentBlockOutput> Prompt, IReadOnlyList<LearningOption> Answers,
-    string? Hint, string? NextStep);
+    string? Hint, string? NextStep, string Language, string RequestedLanguage,
+    bool TranslationMissing, Guid? TranslationId, int VersionNumber);
 public sealed record LearningSessionView(Guid Id, int Total, int Answered, int Skipped,
     bool Completed, LearningQuestion? Current);
 public sealed record LearningFeedback(Guid AttemptId, Guid ContentId, bool IsCorrect,
     IReadOnlyList<Guid> CorrectOptionIds,
     IReadOnlyList<ContentBlockOutput> Explanation, string? ShortExplanation);
 
-internal sealed record LearningPlanItem(Guid QuestionId, Guid VersionId, Guid[] OptionIds, string State);
+internal sealed record LearningPlanItem(Guid QuestionId, Guid VersionId, Guid[] OptionIds,
+    string State, string Language = "de", Guid? TranslationId = null);
 
 public static class LearningSessionEndpoints
 {
@@ -42,7 +44,8 @@ public static class LearningSessionEndpoints
         ClaimsPrincipal user, CancellationToken cancellationToken)
     {
         if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
-        if (request.Count is < 1 or > 10) return Results.BadRequest();
+        if (request.Count is < 1 or > 10 || !TranslationEndpoints.ValidLanguage(request.Language))
+            return Results.BadRequest();
         if (request.CatalogId.HasValue && !await db.PrivateCatalogs.AnyAsync(item =>
                 item.Id == request.CatalogId && item.OwnerAccountId == accountId, cancellationToken))
             return Results.NotFound();
@@ -70,8 +73,17 @@ public static class LearningSessionEndpoints
                 .Where(option => option.QuestionVersionId == candidate.VersionId)
                 .Select(option => option.Id).ToListAsync(cancellationToken);
             Shuffle(optionIds);
+            var baseLanguage = await db.QuestionVersions.Where(version =>
+                version.Id == candidate.VersionId).Select(version => version.Language)
+                .SingleAsync(cancellationToken);
+            var translationId = baseLanguage == request.Language ? null :
+                await db.QuestionTranslations.AsNoTracking().Where(item =>
+                    item.QuestionVersionId == candidate.VersionId &&
+                    item.Language == request.Language && item.Status == "approved")
+                    .OrderByDescending(item => item.Revision).Select(item => (Guid?)item.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
             plan.Add(new LearningPlanItem(candidate.QuestionId, candidate.VersionId,
-                optionIds.ToArray(), "pending"));
+                optionIds.ToArray(), "pending", request.Language, translationId));
         }
         if (plan.Count == 0) return Results.Conflict(new { message = "No published questions available." });
         var session = new StudySession { AccountId = accountId, PlanJson = JsonSerializer.Serialize(plan) };
@@ -132,6 +144,8 @@ public static class LearningSessionEndpoints
         CompleteItem(session, plan, current, "answered");
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        version = await TranslationEndpoints.Localize(version, current.TranslationId, db,
+            cancellationToken);
         var shortText = version.Explanation.FirstOrDefault(block => block.Kind == "text")?.Text;
         var shortExplanation = shortText is { Length: > 160 } ? shortText[..160] + "…" : shortText;
         var contentId = await db.Questions.Where(question => question.Id == current.QuestionId)
@@ -203,13 +217,17 @@ public static class LearningSessionEndpoints
             var version = await QuestionEndpoints.LoadVersion(db, current.VersionId, cancellationToken);
             if (version != null)
             {
+                version = await TranslationEndpoints.Localize(version, current.TranslationId, db,
+                    cancellationToken);
                 var guidance = Guidance(version.Explanation, version.Answers);
                 question = new LearningQuestion(current.QuestionId, current.VersionId,
                     version.SelectionMode, version.Prompt, current.OptionIds.Select(id =>
                     {
                         var option = version.Answers.Single(answer => answer.Id == id);
                         return new LearningOption(id, option.Blocks);
-                    }).ToArray(), guidance.Hint, guidance.NextStep);
+                    }).ToArray(), guidance.Hint, guidance.NextStep,
+                    version.Language, current.Language, version.Language != current.Language,
+                    current.TranslationId, version.Version);
             }
         }
         return new LearningSessionView(session.Id, plan.Count,

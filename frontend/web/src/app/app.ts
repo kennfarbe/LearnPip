@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { PrivateMedia } from './private-media';
 import { QuestionEditor } from './question-editor';
@@ -12,6 +12,8 @@ import { ExamPlan } from './exam-plan';
 import { ExamProfiles } from './exam-profiles';
 import { AiAssistant } from './ai-assistant';
 import { PhotoDraft } from './photo-draft';
+import { Translations } from './translations';
+import { LanguageService } from './language';
 
 @Component({
   imports: [
@@ -28,6 +30,7 @@ import { PhotoDraft } from './photo-draft';
     ExamProfiles,
     AiAssistant,
     PhotoDraft,
+    Translations,
   ],
   selector: 'app-root',
   styleUrl: './app.css',
@@ -35,4 +38,8 @@ import { PhotoDraft } from './photo-draft';
 })
 export class App {
   protected readonly title = 'LearnPip';
+  protected readonly language = inject(LanguageService);
+  constructor() {
+    this.language.set(this.language.current());
+  }
 }

@@ -1,4 +1,5 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { LanguageService } from './language';
 
 interface Topic {
   subject: string;
@@ -28,36 +29,45 @@ interface Progress {
     <section class="progress-panel" aria-labelledby="progress-title">
       <div class="heading">
         <div>
-          <h2 id="progress-title">Dein Lernweg</h2>
-          <p>Jeder kleine Schritt zählt. Eine Pause nimmt dir keinen Fortschritt weg.</p>
+          <h2 id="progress-title">{{ language.t('Dein Lernweg') }}</h2>
+          <p>
+            {{
+              language.t('Jeder kleine Schritt zählt. Eine Pause nimmt dir keinen Fortschritt weg.')
+            }}
+          </p>
         </div>
-        <button type="button" class="secondary" (click)="refresh()">Aktualisieren</button>
+        <button type="button" class="secondary" (click)="refresh()">
+          {{ language.t('Aktualisieren') }}
+        </button>
       </div>
       @if (progress(); as data) {
         <div class="highlights">
           <div>
             <strong>{{ data.masteredContents }} / {{ data.totalContents }}</strong
-            ><span>Lerninhalte sicher</span>
+            ><span>{{ language.t('Lerninhalte sicher') }}</span>
           </div>
           <div>
             <strong>{{ data.improvedContents }}</strong
-            ><span>Schwierigkeiten überwunden</span>
+            ><span>{{ language.t('Schwierigkeiten überwunden') }}</span>
           </div>
           <div>
             <strong>{{ data.learningDays }}</strong
-            ><span>Lerntage insgesamt</span>
+            ><span>{{ language.t('Lerntage insgesamt') }}</span>
           </div>
           <div>
             <strong>{{ data.participationPoints }}</strong
-            ><span>Mitmachpunkte</span>
+            ><span>{{ language.t('Mitmachpunkte') }}</span>
           </div>
         </div>
         <p class="note">
-          Punkte gibt es für bewusstes Üben und Erklärungen, begrenzt pro Inhalt und Tag. Die
-          Antwortgeschwindigkeit zählt nicht.
+          {{
+            language.t(
+              'Punkte gibt es für bewusstes Üben und Erklärungen, begrenzt pro Inhalt und Tag. Die Antwortgeschwindigkeit zählt nicht.'
+            )
+          }}
         </p>
         @if (data.topics.length) {
-          <h3>Deine Themen</h3>
+          <h3>{{ language.t('Deine Themen') }}</h3>
           <ul class="topics">
             @for (topic of data.topics; track topic.subject + ':' + topic.topic) {
               <li>
@@ -85,9 +95,13 @@ interface Progress {
             }
           </ul>
         } @else {
-          <p>Erstelle und veröffentliche eine Frage, um deinen Lernweg zu beginnen.</p>
+          <p>
+            {{
+              language.t('Erstelle und veröffentliche eine Frage, um deinen Lernweg zu beginnen.')
+            }}
+          </p>
         }
-        <h3>Kurze Einheiten in den letzten vier Wochen</h3>
+        <h3>{{ language.t('Kurze Einheiten in den letzten vier Wochen') }}</h3>
         <div class="weeks">
           @for (week of data.recentWeeks; track week.label) {
             <div>
@@ -98,8 +112,11 @@ interface Progress {
           }
         </div>
         <p class="note">
-          Hier gibt es keine tägliche Serie, die nach einer Pause verloren geht. Deine Ergebnisse
-          bleiben erhalten.
+          {{
+            language.t(
+              'Hier gibt es keine tägliche Serie, die nach einer Pause verloren geht. Deine Ergebnisse bleiben erhalten.'
+            )
+          }}
         </p>
       } @else if (error()) {
         <p role="status">{{ error() }}</p>
@@ -109,6 +126,7 @@ interface Progress {
   styleUrl: './learning-progress.css',
 })
 export class LearningProgress implements OnInit, OnDestroy {
+  readonly language = inject(LanguageService);
   readonly progress = signal<Progress | null>(null);
   readonly error = signal('');
   private readonly onChanged = () => void this.refresh();

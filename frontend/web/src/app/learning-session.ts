@@ -1,5 +1,6 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { LanguageService } from './language';
 
 interface Block {
   kind: string;
@@ -19,6 +20,11 @@ interface LearningQuestion {
   answers: Option[];
   hint: string | null;
   nextStep: string | null;
+  language: string;
+  requestedLanguage: string;
+  translationMissing: boolean;
+  translationId: string | null;
+  versionNumber: number;
 }
 interface Session {
   id: string;
@@ -69,7 +75,7 @@ const sessionKey = 'learnpip-learning-session';
   imports: [FormsModule],
   template: `
     <section class="learning" aria-labelledby="learning-title">
-      <h2 id="learning-title">Kurz lernen</h2>
+      <h2 id="learning-title">{{ language.t('Kurz lernen') }}</h2>
       <p>
         Übe mit deinen veröffentlichten privaten Fragen. Jede Frage erscheint in dieser Sitzung nur
         einmal.
@@ -102,7 +108,9 @@ const sessionKey = 'learnpip-learning-session';
               <option [ngValue]="10">Bis zu 10</option>
             </select>
           </label>
-          <button type="button" [disabled]="busy()" (click)="start()">Sitzung starten</button>
+          <button type="button" [disabled]="busy()" (click)="start()">
+            {{ language.t('Sitzung starten') }}
+          </button>
         </div>
       } @else {
         <p class="progress">
@@ -111,7 +119,13 @@ const sessionKey = 'learnpip-learning-session';
         </p>
         @if (feedback(); as result) {
           <div class="feedback" role="status">
-            <h3>{{ result.isCorrect ? 'Richtig beantwortet' : 'Noch nicht richtig' }}</h3>
+            <h3>
+              {{
+                result.isCorrect
+                  ? language.t('Richtig beantwortet')
+                  : language.t('Noch nicht richtig')
+              }}
+            </h3>
             @if (contentFor(result.contentId); as content) {
               <p class="review-state">
                 {{ content.mastered ? 'Sicher beherrscht' : 'Weiter üben' }} ·
@@ -145,7 +159,11 @@ const sessionKey = 'learnpip-learning-session';
                 <p>{{ result.shortExplanation }}</p>
               }
               <button type="button" class="secondary" (click)="toggleExplanation(result)">
-                {{ showFull() ? 'Erklärung einklappen' : 'Ausführliche Erklärung' }}
+                {{
+                  showFull()
+                    ? language.t('Erklärung einklappen')
+                    : language.t('Ausführliche Erklärung')
+                }}
               </button>
               @if (showFull()) {
                 <div class="blocks">
@@ -162,10 +180,21 @@ const sessionKey = 'learnpip-learning-session';
             } @else {
               <p>Zu dieser Frage ist keine Erklärung hinterlegt.</p>
             }
-            <button type="button" [disabled]="busy()" (click)="next()">Weiter</button>
+            <button type="button" [disabled]="busy()" (click)="next()">
+              {{ language.t('Weiter') }}
+            </button>
           </div>
         } @else if (session()!.current; as question) {
           <div class="question">
+            @if (question.translationMissing) {
+              <p role="status">
+                {{
+                  language.current() === 'en'
+                    ? 'Translation missing. Original language shown: '
+                    : 'Übersetzung fehlt. Originalsprache wird angezeigt: '
+                }}{{ question.language }}
+              </p>
+            }
             <div class="blocks">
               @for (block of question.prompt; track $index) {
                 @if (block.kind === 'text') {
@@ -190,7 +219,7 @@ const sessionKey = 'learnpip-learning-session';
                 (click)="guidanceLevel.set(1)"
                 [disabled]="guidanceLevel() >= 1"
               >
-                Hinweis anzeigen
+                {{ language.t('Hinweis anzeigen') }}
               </button>
               @if (guidanceLevel() >= 1) {
                 <p class="hint" role="status">{{ question.hint }}</p>
@@ -203,7 +232,7 @@ const sessionKey = 'learnpip-learning-session';
                 (click)="guidanceLevel.set(2)"
                 [disabled]="guidanceLevel() >= 2"
               >
-                Nächsten Schritt anzeigen
+                {{ language.t('Nächsten Schritt anzeigen') }}
               </button>
               @if (guidanceLevel() >= 2) {
                 <p class="hint" role="status">{{ question.nextStep }}</p>
@@ -231,12 +260,26 @@ const sessionKey = 'learnpip-learning-session';
                 </label>
               }
             </div>
+            @if (question.translationId) {
+              <label
+                >{{ language.t('Übersetzungsfehler melden') }}
+                <textarea [(ngModel)]="translationReport" maxlength="2000"></textarea>
+              </label>
+              <button
+                type="button"
+                class="secondary"
+                [disabled]="busy() || !translationReport.trim()"
+                (click)="reportTranslation(question)"
+              >
+                {{ language.t('Übersetzungsfehler melden') }}
+              </button>
+            }
             <div class="actions">
               <button type="button" [disabled]="busy() || !selected().length" (click)="answer()">
-                Prüfen
+                {{ language.t('Prüfen') }}
               </button>
               <button type="button" class="secondary" [disabled]="busy()" (click)="skip()">
-                Ohne Wertung überspringen
+                {{ language.t('Ohne Wertung überspringen') }}
               </button>
             </div>
             <label class="guess"
@@ -250,7 +293,7 @@ const sessionKey = 'learnpip-learning-session';
               {{ session()!.answered }} beantwortet, {{ session()!.skipped }} ohne Wertung
               übersprungen.
             </p>
-            <button type="button" (click)="reset()">Neue Sitzung</button>
+            <button type="button" (click)="reset()">{{ language.t('Neue Sitzung') }}</button>
           </div>
         }
       }
@@ -324,6 +367,7 @@ const sessionKey = 'learnpip-learning-session';
   styleUrl: './learning-session.css',
 })
 export class LearningSession implements OnInit {
+  readonly language = inject(LanguageService);
   readonly catalogs = signal<Catalog[]>([]);
   readonly session = signal<Session | null>(null);
   readonly selected = signal<string[]>([]);
@@ -338,6 +382,7 @@ export class LearningSession implements OnInit {
   variantId = '';
   contentTargetId = '';
   wasGuessed = false;
+  translationReport = '';
 
   ngOnInit(): void {
     void this.loadCatalogs();
@@ -380,7 +425,11 @@ export class LearningSession implements OnInit {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ catalogId: this.catalogId || null, count: this.count }),
+        body: JSON.stringify({
+          catalogId: this.catalogId || null,
+          count: this.count,
+          language: this.language.current(),
+        }),
       });
       if (!response.ok) {
         this.message.set(
@@ -481,6 +530,7 @@ export class LearningSession implements OnInit {
     this.guidanceLevel.set(0);
     this.selected.set([]);
     this.wasGuessed = false;
+    this.translationReport = '';
     await this.load(id);
   }
 
@@ -491,6 +541,25 @@ export class LearningSession implements OnInit {
     this.selected.set([]);
     this.guidanceLevel.set(0);
     this.wasGuessed = false;
+    this.translationReport = '';
+  }
+
+  async reportTranslation(question: LearningQuestion): Promise<void> {
+    if (!question.translationId || !this.translationReport.trim()) return;
+    const response = await fetch(
+      `/api/v1/questions/${question.questionId}/versions/${question.versionNumber}/translations/${question.translationId}/reports`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ details: this.translationReport.trim() }),
+      },
+    );
+    this.message.set(
+      response.ok
+        ? 'Übersetzungsfehler gemeldet / Translation error reported.'
+        : 'Meldung fehlgeschlagen / Report failed.',
+    );
+    if (response.ok) this.translationReport = '';
   }
 
   async toggleExplanation(result: Feedback): Promise<void> {
