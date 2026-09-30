@@ -10,7 +10,7 @@ temporary="$(mktemp "$backup_dir/.learnpip-backup-XXXXXXXX.dump")"
 trap 'rm -f "$temporary"' EXIT
 
 docker compose --env-file "$repo_root/deploy/.env.production" \
-  --file "$repo_root/deploy/${LEARNPIP_COMPOSE_FILE:-compose.prod.yaml}" \
+  --file "$repo_root/deploy/compose.prod.yaml" \
   exec -T db sh -c 'pg_dump --format=custom --username "$POSTGRES_USER" "$POSTGRES_DB"' \
   > "$temporary"
 

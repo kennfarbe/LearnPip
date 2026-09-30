@@ -1,58 +1,61 @@
 # LearnPip aus einem GitHub Release installieren und aktualisieren
 
-Ein Release enthält eine Installationsdatei `learnpip-install-vX.Y.Z.tar.gz`, eine zugehörige
-SHA-256-Datei, die Versionshinweise und die drei gleich versionierten Container-Images
-`ghcr.io/kennfarbe/learnpip-{api,worker,web}:X.Y.Z`. API und Migrationslauf verwenden dasselbe
-Image. PostgreSQL und Caddy werden von Docker Compose als externe Images bezogen. Docker Engine
-mit Compose-Plugin, Internetzugang, eine Domain und eine VM mit dauerhaftem Speicher werden benötigt.
-Die Images müssen in GitHub Packages öffentlich lesbar sein; andernfalls ist vor `pull` eine
-GHCR-Anmeldung erforderlich. Informationen zu Proxmox und DNS: [PROXMOX.md](PROXMOX.md).
+Jedes GitHub Release bietet automatisch ein vollständiges Quellcodearchiv (`tar.gz` oder `zip`)
+für den Versionstag. Es enthält Dockerfiles, produktive Compose-Datei, Initialisierungs- und
+Backup-Skripte und die Dokumentation. Docker baut die API, Worker und Web-App aus **diesem Tag**
+auf der eigenen VM; es müssen keine großen versionierten Container-Images in GitHub Packages
+aufbewahrt werden. Voraussetzung: Docker Engine mit Compose-Plugin, Internetzugang für Basisimages
+und Paketabhängigkeiten, genügend Speicher, Domain und DNS. Die [Proxmox-Anleitung](PROXMOX.md)
+beschreibt die VM, Docker, Firewall, Mail und OIDC.
 
 ## Erstinstallation
 
-Als Administrator in der Docker-VM das gewünschte **veröffentlichte** Release auf GitHub
-herunterladen, beide Anlagen in dasselbe Verzeichnis legen und die veröffentlichte Prüfsumme
-prüfen. Für `X.Y.Z` die tatsächliche Versionsnummer einsetzen:
+In den folgenden Befehlen `X.Y.Z` durch die gewünschte veröffentlichte Version ersetzen.
+Die Quellen werden pro Version in einem eigenen Verzeichnis entpackt. Geheimnisse liegen
+außerhalb dieser Verzeichnisse und dürfen bei Updates nicht ersetzt werden.
 
 ```sh
-mkdir -p /opt/learnpip && cd /opt/learnpip
-curl -fL -O https://github.com/kennfarbe/LearnPip/releases/download/vX.Y.Z/learnpip-install-vX.Y.Z.tar.gz
-curl -fL -O https://github.com/kennfarbe/LearnPip/releases/download/vX.Y.Z/learnpip-install-vX.Y.Z.tar.gz.sha256
-sha256sum -c learnpip-install-vX.Y.Z.tar.gz.sha256
-tar -xzf learnpip-install-vX.Y.Z.tar.gz
+sudo -i
+mkdir -p /opt/learnpip/shared/secrets /opt/learnpip/releases/vX.Y.Z
+curl -fL https://github.com/kennfarbe/LearnPip/archive/refs/tags/vX.Y.Z.tar.gz \
+  -o /tmp/learnpip-vX.Y.Z.tar.gz
+tar -xzf /tmp/learnpip-vX.Y.Z.tar.gz --strip-components=1 \
+  -C /opt/learnpip/releases/vX.Y.Z
+cd /opt/learnpip/releases/vX.Y.Z
+ln -s /opt/learnpip/shared/secrets deploy/secrets
+ln -s /opt/learnpip/shared/.env.production deploy/.env.production
 ./scripts/prod-init.sh
+nano deploy/.env.production
 ```
 
-`deploy/.env.production` editieren: `LEARNPIP_DOMAIN` auf die eigene Domain und
-`LEARNPIP_VERSION=X.Y.Z` setzen. Die von `prod-init.sh` erzeugten Geheimnisse bleiben auf
-dieser VM und dürfen bei Updates nicht neu erzeugt oder überschrieben werden. Optional SMTP,
-OIDC und KI nach [PROXMOX.md](PROXMOX.md) einrichten. Danach:
+`LEARNPIP_DOMAIN` auf die eigene Domain setzen; optionale Integrationen nach [PROXMOX.md](PROXMOX.md)
+konfigurieren. Das Root-Verzeichnis `/opt/learnpip/shared` und die PostgreSQL- und Caddy-Volumes
+regelmäßig extern sichern. Anschließend:
 
 ```sh
-cd /opt/learnpip
-docker compose --env-file deploy/.env.production -f deploy/compose.release.yaml config --quiet
-docker compose --env-file deploy/.env.production -f deploy/compose.release.yaml pull
-docker compose --env-file deploy/.env.production -f deploy/compose.release.yaml up -d db
-docker compose --env-file deploy/.env.production -f deploy/compose.release.yaml --profile ops run --rm migrate
-docker compose --env-file deploy/.env.production -f deploy/compose.release.yaml up -d
-docker compose --env-file deploy/.env.production -f deploy/compose.release.yaml ps
+docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml config --quiet
+docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml build api worker web migrate
+docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml up -d db
+docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml --profile ops run --rm migrate
+docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml up -d --no-build
+docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml ps
 ```
 
-Erst nach erfolgreicher Migration wird die API gestartet. `https://<domain>/health/ready`
-prüfen. Sicherungen von PostgreSQL, `deploy/secrets/`, `deploy/.env.production` und den Docker
-Volumes für die Proxy-Zertifikate außerhalb der VM aufbewahren.
+Die Migration muss erfolgreich enden, bevor die API neu gestartet wird. Anschließend
+`https://<domain>/health/ready` prüfen.
 
-## Update und Rückfall
+## Aktualisieren
 
-Vor dem Update Datenbank und VM sichern und die Release Notes auf Migrationshinweise prüfen.
-`LEARNPIP_COMPOSE_FILE=compose.release.yaml ./scripts/backup-prod.sh` erzeugt einen Dump.
-Die neue Installationsdatei samt Prüfsumme wie oben herunterladen und **im bestehenden**
-`/opt/learnpip` entpacken. Danach ausschließlich `LEARNPIP_VERSION` in
-`deploy/.env.production` auf die neue Nummer ändern und die fünf Compose-Befehle oben ab
-`config --quiet` ausführen. Die lokale `.env.production` und `deploy/secrets/` sind nicht im
-Release-Paket enthalten und bleiben erhalten.
+Die Release Notes auf Migrationshinweise prüfen. Im aktuellen Release-Verzeichnis vor dem
+Wechsel `./scripts/backup-prod.sh` ausführen und die VM samt Secrets sichern. Den neuen
+Versionstag in einem neuen `/opt/learnpip/releases/vX.Y.Z` wie oben entpacken und dieselben
+beiden symbolischen Links auf `/opt/learnpip/shared` anlegen. **`prod-init.sh` nicht erneut
+benötigt**, da die Geheimnisse erhalten bleiben. Aus dem neuen Release-Verzeichnis die sechs
+Compose-Befehle oben ausführen. Das Compose-Projekt hat den festen Namen `learnpip`, sodass
+benannte PostgreSQL- und Caddy-Volumes über Versionswechsel erhalten bleiben.
 
-Für einen Rückfall die zuvor verwendete Versionsnummer in `.env.production` eintragen und
-Images erneut starten. Eine Datenbankmigration kann nicht gefahrlos durch ein älteres Image
-rückgängig gemacht werden; bei inkompatibler Schemaänderung zuerst die zur alten Version
-gehörende Datenbanksicherung zurückspielen. Postgres-Hauptversionswechsel separat planen.
+Das vorige Quellverzeichnis und dessen lokal gebaute Images für einen möglichen Rückfall zunächst
+aufbewahren. Bei inkompatibler Schemaänderung ist ein Rückfall nur zusammen mit der passenden
+Datenbanksicherung sicher. Alte Release-Verzeichnisse und ungenutzte Images später lokal
+bereinigen; sie verbrauchen keinen GitHub-Speicher. PostgreSQL-Hauptversionen benötigen einen
+separaten Upgradeprozess.
