@@ -4,10 +4,10 @@
 .learning {
   margin-top: 3rem;
   padding: clamp(1rem, 3vw, 2rem);
-  border: 1px solid #dfe9df;
+  border: 1px solid var(--border);
   border-radius: 1rem;
-  background: #f8fbf7;
-  color: #1d3a32;
+  background: var(--panel);
+  color: var(--text);
 }
 .learning h2 {
   margin: 0 0 0.5rem;
@@ -33,19 +33,19 @@ select {
   min-width: 11rem;
   max-width: 100%;
   padding: 0.7rem;
-  border: 1px solid #98afa4;
+  border: 1px solid var(--border-strong);
   border-radius: 0.5rem;
-  background: white;
-  color: #1d3a32;
+  background: var(--surface);
+  color: var(--text);
   font: inherit;
 }
 button {
   min-height: 2.75rem;
   padding: 0.6rem 0.9rem;
-  border: 1px solid #205d45;
+  border: 1px solid var(--accent);
   border-radius: 0.5rem;
-  background: #205d45;
-  color: white;
+  background: var(--accent);
+  color: var(--on-accent);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -57,24 +57,24 @@ button:disabled {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 3px solid #e5a44c;
+  outline: 3px solid var(--warning);
   outline-offset: 2px;
 }
 .secondary {
-  background: white;
-  color: #205d45;
+  background: var(--surface);
+  color: var(--accent-text);
 }
 .question,
 .feedback {
   margin-top: 1rem;
   padding: clamp(1rem, 3vw, 1.5rem);
-  border: 1px solid #dfe9df;
+  border: 1px solid var(--border);
   border-radius: 0.8rem;
-  background: white;
+  background: var(--surface);
 }
 .progress,
 .hint {
-  color: #3c6252;
+  color: var(--muted);
 }
 .options {
   display: grid;
@@ -86,13 +86,13 @@ select:focus-visible {
   gap: 0.8rem;
   min-width: 0;
   padding: 0.8rem;
-  border: 1px solid #b6cdbd;
+  border: 1px solid var(--border-strong);
   border-radius: 0.65rem;
   cursor: pointer;
 }
 .option:has(input:checked) {
-  background: #e4f3e7;
-  border-color: #205d45;
+  background: var(--soft);
+  border-color: var(--accent-text);
 }
 .option input {
   margin-top: 0.35rem;
@@ -117,10 +117,10 @@ select:focus-visible {
   margin: 0.2rem 0.4rem 0.2rem 0;
   padding: 0.2rem 0.5rem;
   border-radius: 0.4rem;
-  background: #e4f3e7;
+  background: var(--soft);
 }
 .message {
-  color: #7c3626;
+  color: var(--danger);
 }
 .review-summary {
   display: flex;
@@ -129,11 +129,11 @@ select:focus-visible {
   margin: 1rem 0;
   padding: 0.9rem 1rem;
   border-radius: 0.65rem;
-  background: #e4f3e7;
+  background: var(--soft);
 }
 .review-state {
   font-weight: 650;
-  color: #205d45;
+  color: var(--accent-text);
 }
 .guess {
   display: flex;
@@ -148,9 +148,9 @@ select:focus-visible {
 .content-panel {
   margin-top: 1.2rem;
   padding: 1rem;
-  border: 1px solid #dfe9df;
+  border: 1px solid var(--border);
   border-radius: 0.8rem;
-  background: white;
+  background: var(--surface);
 }
 .content-panel ul {
   list-style: none;
@@ -163,7 +163,7 @@ select:focus-visible {
   flex-wrap: wrap;
   gap: 0.6rem;
   padding: 0.65rem 0;
-  border-top: 1px solid #dfe9df;
+  border-top: 1px solid var(--border);
 }
 @media (max-width: 35rem) {
   .settings,

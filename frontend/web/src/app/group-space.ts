@@ -129,10 +129,10 @@ interface Api<T> {
     .groups {
       margin-top: 3rem;
       padding: 1.5rem;
-      border: 1px solid #dfe9df;
+      border: 1px solid var(--border);
       border-radius: 1rem;
-      background: #f8fbf7;
-      color: #1d3a32;
+      background: var(--panel);
+      color: var(--text);
     }
     .actions {
       display: flex;
@@ -156,18 +156,18 @@ interface Api<T> {
       max-width: 18rem;
     }
     button {
-      border: 1px solid #205d45;
+      border: 1px solid var(--accent);
       border-radius: 0.5rem;
-      background: white;
-      color: #205d45;
+      background: var(--surface);
+      color: var(--accent-text);
       cursor: pointer;
     }
     button:focus-visible {
-      outline: 3px solid #e5a44c;
+      outline: 3px solid var(--warning);
       outline-offset: 2px;
     }
     article {
-      border-top: 1px solid #dfe9df;
+      border-top: 1px solid var(--border);
       padding: 1rem 0;
     }
     li {

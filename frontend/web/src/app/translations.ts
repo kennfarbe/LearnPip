@@ -288,7 +288,7 @@ type Mode = {
     .translations {
       margin: 2rem 0;
       padding: 1.5rem;
-      border: 1px solid #dfe9df;
+      border: 1px solid var(--border);
       border-radius: 1rem;
     }
     label {
@@ -313,7 +313,7 @@ type Mode = {
     input:focus-visible,
     textarea:focus-visible,
     select:focus-visible {
-      outline: 3px solid #e5a44c;
+      outline: 3px solid var(--warning);
     }
   `,
 })

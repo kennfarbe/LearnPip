@@ -4,10 +4,10 @@
 .editor {
   margin-top: 3rem;
   padding: clamp(1rem, 3vw, 2rem);
-  border: 1px solid #dfe9df;
+  border: 1px solid var(--border);
   border-radius: 1rem;
-  background: #f8fbf7;
-  color: #1d3a32;
+  background: var(--panel);
+  color: var(--text);
 }
 .editor h2 {
   margin: 0 0 0.5rem;
@@ -30,9 +30,9 @@ aside,
 .form-panel {
   min-width: 0;
   padding: 1.25rem;
-  border: 1px solid #dfe9df;
+  border: 1px solid var(--border);
   border-radius: 0.8rem;
-  background: white;
+  background: var(--surface);
 }
 aside {
   align-self: start;
@@ -48,10 +48,10 @@ select {
   width: 100%;
   min-width: 0;
   padding: 0.7rem;
-  border: 1px solid #98afa4;
+  border: 1px solid var(--border-strong);
   border-radius: 0.5rem;
-  background: white;
-  color: #1d3a32;
+  background: var(--surface);
+  color: var(--text);
   font: inherit;
   font-size: 1rem;
 }
@@ -61,22 +61,22 @@ textarea {
 button {
   min-height: 2.75rem;
   padding: 0.6rem 0.8rem;
-  border: 1px solid #205d45;
+  border: 1px solid var(--accent);
   border-radius: 0.5rem;
-  background: #205d45;
-  color: white;
+  background: var(--accent);
+  color: var(--on-accent);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
 }
 button:hover {
-  background: #174635;
+  background: var(--accent-hover);
 }
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  outline: 3px solid #e5a44c;
+  outline: 3px solid var(--warning);
   outline-offset: 2px;
 }
 button:disabled {
@@ -84,11 +84,11 @@ button:disabled {
   cursor: not-allowed;
 }
 .secondary {
-  background: white;
-  color: #205d45;
+  background: var(--surface);
+  color: var(--accent-text);
 }
 .secondary:hover {
-  background: #edf6ec;
+  background: var(--soft);
 }
 .row,
 .actions,
@@ -115,11 +115,11 @@ aside > button {
 .draft-list button {
   width: 100%;
   text-align: left;
-  background: #edf6ec;
-  color: #205d45;
+  background: var(--soft);
+  color: var(--accent-text);
 }
 .draft-list button[aria-current='true'] {
-  border: 2px solid #205d45;
+  border: 2px solid var(--accent);
 }
 .draft-list small {
   display: block;
@@ -132,7 +132,7 @@ aside > button {
 }
 .privacy {
   margin: 0;
-  color: #486658;
+  color: var(--muted);
 }
 .two-column {
   display: grid;
@@ -154,14 +154,14 @@ fieldset {
   gap: 1rem;
   min-width: 0;
   padding: 1rem;
-  border: 1px solid #dfe9df;
+  border: 1px solid var(--border);
   border-radius: 0.6rem;
 }
 .answer {
   display: grid;
   gap: 0.65rem;
   padding: 1rem;
-  border: 1px solid #dfe9df;
+  border: 1px solid var(--border);
   border-radius: 0.6rem;
 }
 .answer-heading {
@@ -180,12 +180,12 @@ fieldset {
   flex-wrap: wrap;
 }
 .publish {
-  background: #174635;
+  background: var(--accent-hover);
 }
 .status {
   padding: 0.75rem;
   border-radius: 0.5rem;
-  background: #edf6ec;
+  background: var(--soft);
 }
 @media (max-width: 46rem) {
   .workspace,

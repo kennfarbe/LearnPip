@@ -68,9 +68,9 @@ interface MediaResponse {
     .media-panel {
       margin-top: 2.5rem;
       padding: 1.5rem;
-      border: 1px solid #dfe9df;
+      border: 1px solid var(--border);
       border-radius: 0.9rem;
-      background: #fff;
+      background: var(--surface);
     }
     form {
       display: grid;
