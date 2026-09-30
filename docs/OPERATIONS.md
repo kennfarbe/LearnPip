@@ -63,3 +63,83 @@ curl --fail --silent --show-error "https://$(sed -n 's/^LEARNPIP_DOMAIN=//p' dep
 ```
 
 PostgreSQL, API, Worker, Web und Proxy haben Healthchecks. Die API meldet bei erreichbarer Datenbank Bereitschaft; die Migration muss vor dem Anwendungsstart explizit ausgeführt werden. Der Worker prüft seinen regelmäßig geschriebenen Heartbeat; Web und Proxy haben interne HTTP-Probes. Bei einem Proxy-Startfehler zuerst DNS und die Erreichbarkeit von 80/443 prüfen. Sicherungen enthalten private Lerninhalte; Zugriffsrechte und externe Aufbewahrung entsprechend festlegen. Der spätere private Mediendateispeicher ist noch nicht implementiert und muss vor produktiven Datei-Uploads gesondert gesichert werden.
+
+## Backup und Restore-Test (LP-33)
+
+`scripts/backup-prod.sh` schreibt täglich einen PostgreSQL-Dump und eine gleichnamige
+`.manifest`-Datei mit SHA-256 und Kontrollwerten für `MediaBlobs` und `StudyAttempts`.
+Private Bilder liegen als Bytes in PostgreSQL; der Dump umfasst sie und den Lernstand.
+Der lokale Satz wird nach 30 Tagen gelöscht. Ein gleichzeitig veränderter Lernstand
+kann die Kontrollwerte ungültig machen; in diesem Fall beendet sich die Sicherung
+mit Fehler und muss in einer ruhigen Phase erneut laufen. Eine erfolgreiche Sicherung
+muss **mit beiden Dateien** verschlüsselt und zugriffsgeschützt auf ein anderes
+System übertragen werden. Zusätzlich separat `deploy/.env.production` und
+`deploy/secrets/` geschützt sichern: ohne den AI-Schlüssel können verschlüsselte
+Benutzerschlüssel nicht wiederhergestellt werden. Niemals Backups oder Zugangsdaten
+in Git, Webroot oder unverschlüsseltem öffentlichen Objektspeicher ablegen.
+
+Regelmäßig (mindestens monatlich und vor einem größeren Update) auf dem Betreiberhost:
+
+```sh
+backup="$(find /root/learnpip-backups -maxdepth 1 -name 'learnpip-*.dump' -type f | sort | tail -1)"
+./scripts/restore-test-prod.sh "$backup"
+```
+
+Der Test startet einen isolierten, kurzlebigen PostgreSQL-18-Container ohne
+Netzwerk und Host-Port, prüft den SHA-256-Wert, spielt den Dump mit `--exit-on-error`
+ein, vergleicht Bildanzahl, Bild-Bytes und Lernversuche und entfernt den Container.
+Er prüft den Datenbestand, nicht die Anmeldung und Darstellung im Browser. Der
+CI-Test `tests/ops/restore-smoke.sh` verwendet künstliche Bildbytes und einen
+künstlichen Lernversuch. Für die Abnahme auf einem **frischen VM-Gast** zusätzlich:
+
+1. Denselben Release-Tag und dieselbe PostgreSQL-Hauptversion installieren,
+   `deploy/.env.production` und `deploy/secrets/` aus der geschützten Sicherung
+   übernehmen und die Dateirechte 0600/0700 setzen. Kein `prod-init.sh` mit
+   neuen Schlüsseln über bestehende Daten laufen lassen.
+2. Nur die Datenbank starten (`docker compose --env-file deploy/.env.production
+   -f deploy/compose.prod.yaml up -d db`). Den gesicherten Dump mit
+   `docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml
+   exec -T db sh -c 'pg_restore --exit-on-error --clean --if-exists --no-owner
+   --username "$POSTGRES_USER" --dbname "$POSTGRES_DB"' < "$backup"` einspielen.
+   Für einen wirklich leeren Datenbankcontainer `--clean --if-exists` weglassen.
+3. Die API noch nicht öffentlich starten. `docker compose --env-file
+   deploy/.env.production -f deploy/compose.prod.yaml run --rm worker --run-once`
+   ausführen, damit nach dem Backup inzwischen fällige Kontolöschungen erneut
+   angewendet werden. Dieser Befehl kann auch E-Mails versenden; auf der
+   Test-VM SMTP-Zugang deaktivieren. Danach Migration nur für einen neueren
+   kompatiblen Release-Stand durchführen.
+4. Stack starten, HTTPS `/health/ready` und im Browser mit einem Testkonto
+   **ein privates Bild und den Lernstand** prüfen. Ergebnis, Dump-Zeitpunkt,
+   Release-Stand und Prüfer ohne personenbezogene Daten protokollieren.
+
+Backups können bis zu 30 Tage lang bereits gelöschte Daten enthalten. Auch externe
+Kopien, Proxmox-Snapshots und archivierte VM-Backups nach derselben dokumentierten
+Frist entfernen; nach Restore vor öffentlicher Freigabe den Löschlauf ausführen.
+Über die Backup-Frist hinaus aufbewahrte Offline-Kopien brauchen eine eigene
+rechtliche und technische Bewertung.
+
+## Alarmierung und Metriken
+
+`./scripts/monitor-prod.sh` prüft HTTPS und Datenbankbereitschaft sowie ob Dump
+und Manifest jünger als 26 Stunden sind. Alle Container haben Healthchecks;
+Docker-Logs sind pro Dienst auf 3 × 10 MB begrenzt. Den Monitor alle 15 Minuten
+per systemd-Timer oder externem Monitoring ausführen und bei Exit-Code ungleich 0
+sowie bei ausgefallenem Timer den Betreiber alarmieren (z. B. systemd `OnFailure=`
+mit lokalem Mail-Relay). Alarmziele und Versand regelmäßig testen; insbesondere
+einen absichtlich gestoppten API-Container und einen fehlenden Dump simulieren.
+Operative Metriken: HTTPS-Erreichbarkeit, Datenbankbereitschaft, Zeitpunkt des
+letzten erfolgreichen Dumps und Restore-Tests, Größe des Dump-Verzeichnisses,
+freier Plattenplatz, Docker-Restart-Zähler und Container-Health. Die Probes
+veröffentlichen keine persönlichen Lernmetriken oder Zugangsdaten. Eine
+externe HTTPS-Probe erkennt zusätzlich Ausfälle von DNS, Router und VM.
+
+Keine HTTP-Abfrageparameter, Tokens, E-Mail-Adressen, privaten Fragen oder
+Secret-Dateiinhalte in Logs ausgeben. Zugriff auf Host- und Container-Logs
+beschränken; Fehlerausgaben vor Weitergabe prüfen. Bei Alarm zuerst
+`docker compose ... ps` und `logs --tail=100 <dienst>` lokal prüfen, danach
+Datenbankplatz, letzten Dump und Migrationsstatus. Ein Upgrade-Rollback nimmt
+zunächst die zuletzt bekannte Anwendungsversion wieder in Betrieb **nur wenn**
+deren Schema mit der neuen Migration kompatibel ist; andernfalls vor öffentlicher
+Freigabe den vor dem Upgrade geprüften Dump auf einem frischen Volume zurückspielen.
+Dabei gehen Änderungen seit dem Dump verloren: Wartungsfenster und Zeitpunkt
+mit den Nutzern abstimmen.
