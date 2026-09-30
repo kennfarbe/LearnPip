@@ -119,3 +119,12 @@ docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml ps
 ```
 
 Neue PostgreSQL-Hauptversionen erfordern einen geplanten Datenbank-Upgradeprozess; das Image-Tag allein genügt nicht. Bei Fehlern zuerst `docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml ps` und `logs --tail=100 db api web proxy worker` ausführen. Wenn Caddy kein Zertifikat erhält, DNS-A/AAAA, Portweiterleitung und Firewall **von außerhalb des Heimnetzes** testen. Wenn die API nicht gesund wird, den Migrationslauf und Datenbank-Logs prüfen. Nach Host-Neustart starten die Dienste dank `restart: unless-stopped` erneut; auch das mit `ps` und dem HTTPS-Healthcheck kontrollieren.
+
+### Regelmäßiger Restore-Test und Alarm
+
+Auf dem Proxmox-Gast die Schritte in [Backup und Restore-Test](OPERATIONS.md#backup-und-restore-test-lp-33)
+monatlich ausführen. Nach einem erfolgreichen Test auf einer frischen VM ein privates
+Bild und einen Lernversuch im Browser kontrollieren. `scripts/monitor-prod.sh`
+alle 15 Minuten planen und die Fehlermeldungen an ein überwachtes Alarmziel
+schicken. Die Proxmox-Snapshots auf dieselbe 30-Tage-Frist wie Datenbank-Dumps
+begrenzen und zusätzlich den freien Speicher des Hosts überwachen.
