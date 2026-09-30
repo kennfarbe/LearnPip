@@ -8,6 +8,10 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
     public DbSet<AdministrationAuditEvent> AdministrationAuditEvents => Set<AdministrationAuditEvent>();
     public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<ReminderPreference> ReminderPreferences => Set<ReminderPreference>();
+    public DbSet<FamilyLink> FamilyLinks => Set<FamilyLink>();
+    public DbSet<FamilyLinkEvent> FamilyLinkEvents => Set<FamilyLinkEvent>();
+    public DbSet<FamilyGoal> FamilyGoals => Set<FamilyGoal>();
     public DbSet<AccountInactivityWarning> AccountInactivityWarnings => Set<AccountInactivityWarning>();
     public DbSet<ExternalIdentity> ExternalIdentities => Set<ExternalIdentity>();
     public DbSet<RoleDefinition> Roles => Set<RoleDefinition>();
@@ -54,6 +58,48 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<ReminderPreference>(entity =>
+        {
+            entity.HasKey(x => x.AccountId);
+            entity.Property(x => x.TimeZoneId).HasMaxLength(100).IsRequired();
+            entity.HasOne<Account>().WithOne().HasForeignKey<ReminderPreference>(x => x.AccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<FamilyLink>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.InviteHash).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.Status).HasMaxLength(16).IsRequired();
+            entity.Property(x => x.VerificationReference).HasMaxLength(120);
+            entity.HasIndex(x => x.InviteHash).IsUnique();
+            entity.HasIndex(x => new { x.ChildAccountId, x.ParentAccountId, x.Status });
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.ChildAccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.ParentAccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.VerifiedByAccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.RevokedByAccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<FamilyLinkEvent>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Action).HasMaxLength(24).IsRequired();
+            entity.HasIndex(x => new { x.FamilyLinkId, x.CreatedAtUtc });
+            entity.HasOne<FamilyLink>().WithMany().HasForeignKey(x => x.FamilyLinkId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.ActorAccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<FamilyGoal>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Title).HasMaxLength(160).IsRequired();
+            entity.HasIndex(x => x.FamilyLinkId);
+            entity.HasOne<FamilyLink>().WithMany().HasForeignKey(x => x.FamilyLinkId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
         modelBuilder.Entity<QuestionTranslation>(entity =>
         {
             entity.HasKey(x => x.Id);
@@ -114,6 +160,7 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
         modelBuilder.Entity<Account>(entity =>
         {
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.AgeBand).HasMaxLength(8).HasDefaultValue("unknown").IsRequired();
             entity.Property(x => x.DisplayName).HasMaxLength(120);
             entity.Property(x => x.CreatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.Property(x => x.UpdatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
@@ -472,6 +519,8 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
             entity.HasOne<Account>().WithMany().HasForeignKey(x => x.AccountId)
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Account>().WithMany().HasForeignKey(x => x.ReviewedByAccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.GuardianApprovedByAccountId)
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(x => new { x.Status, x.SubmittedAtUtc });
         });

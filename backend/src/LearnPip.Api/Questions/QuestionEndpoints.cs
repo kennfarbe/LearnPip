@@ -35,10 +35,12 @@ public static class QuestionEndpoints
             .RequireAuthorization(ApiPolicies.ActiveAccount);
         questions.MapPost("/", (QuestionPublishRequest request, LearnPipDbContext db,
             ClaimsPrincipal user, CancellationToken cancellationToken) =>
-            Publish(null, request, db, user, cancellationToken));
+            Publish(null, request, db, user, cancellationToken))
+            .RequireRateLimiting("content-write");
         questions.MapPost("/{id:guid}/versions", (Guid id, QuestionPublishRequest request,
             LearnPipDbContext db, ClaimsPrincipal user, CancellationToken cancellationToken) =>
-            Publish(id, request, db, user, cancellationToken));
+            Publish(id, request, db, user, cancellationToken))
+            .RequireRateLimiting("content-write");
         questions.MapGet("/{id:guid}/versions/{number:int}", ReadVersion);
         questions.MapPut("/{id:guid}/versions/{number:int}/visibility", SetVisibility);
         questions.MapPost("/{id:guid}/attempts", Grade);

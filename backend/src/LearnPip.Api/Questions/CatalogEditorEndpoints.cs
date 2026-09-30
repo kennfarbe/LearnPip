@@ -30,7 +30,7 @@ public static class CatalogEditorEndpoints
         var drafts = app.MapGroup("/api/v1/questions").WithTags("Question editor")
             .RequireAuthorization(ApiPolicies.ActiveAccount);
         drafts.MapGet("/drafts", ListDrafts);
-        drafts.MapPost("/drafts", CreateDraft)
+        drafts.MapPost("/drafts", CreateDraft).RequireRateLimiting("content-write")
             .WithMetadata(new RequestSizeLimitAttribute(70 * 1024));
         drafts.MapPost("/{id:guid}/variants/drafts", CreateVariantDraft)
             .WithMetadata(new RequestSizeLimitAttribute(70 * 1024));

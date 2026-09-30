@@ -274,7 +274,7 @@ jobs:
   release:
     name: Semantic release
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [repository-policy, backend, web]
+    needs: [repository-policy, backend, web, restore-smoke]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -317,3 +317,14 @@ jobs:
           GIT_COMMITTER_NAME: learnpip-release-bot
           GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
         run: npx semantic-release
+  restore-smoke:
+    name: Backup restore smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Restore synthetic private media and learning data
+        run: ./tests/ops/restore-smoke.sh

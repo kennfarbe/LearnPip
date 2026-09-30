@@ -77,3 +77,5 @@ Du möchtest mithelfen? Sieh dir die [offenen Issues](https://github.com/kennfar
 ## Lizenzhinweis für spätere gehostete Installationen
 
 Das Repository enthält noch keine lauffähige Anwendung. Sobald LearnPip über ein Netzwerk betrieben werden kann, soll die Oberfläche einen gut sichtbaren Link zum passenden Quellcode-Stand und zur Lizenz enthalten. Der Link muss zur Version passen, die der Betreiber tatsächlich einsetzt.
+
+[Datenexport, Selbstlöschung und Missbrauchsschutz](docs/DATA-RIGHTS.md)

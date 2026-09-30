@@ -249,17 +249,10 @@ public sealed class VisibilityTests
                 $"/api/v1/questions/{questionId}/versions/2/submission-preview");
             var minorPreview = (await minorPreviewResponse.Content
                 .ReadFromJsonAsync<ApiResponse<PublicPreview>>())!.Data;
-            Assert.Equal(HttpStatusCode.Accepted, (await ownerClient.PostAsJsonAsync(
+            Assert.Equal(HttpStatusCode.BadRequest, (await ownerClient.PostAsJsonAsync(
                 $"/api/v1/questions/{questionId}/versions/2/submission",
                 new PublicSubmissionInput(minorPreview.PreviewToken, "CC BY-SA 4.0", "Eigener Name",
                     true, false, "minor"))).StatusCode);
-            Assert.Equal(HttpStatusCode.Conflict, (await adminClient.PostAsJsonAsync(
-                $"/api/v1/moderation/submissions/{secondId}/decision",
-                new PublicReviewInput("approve", true, true, true, true, ""))).StatusCode);
-            Assert.Equal(HttpStatusCode.NoContent, (await moderatorClient.PostAsJsonAsync(
-                $"/api/v1/moderation/submissions/{secondId}/decision",
-                new PublicReviewInput("reject", true, true, true, true,
-                    "Für Minderjährige fehlt ein Freigabeverfahren."))).StatusCode);
             Assert.Equal(HttpStatusCode.OK, (await memberClient.GetAsync(
                 $"/api/v1/questions/{questionId}/versions/1")).StatusCode);
             Assert.Equal(HttpStatusCode.NoContent, (await ownerClient.DeleteAsync(

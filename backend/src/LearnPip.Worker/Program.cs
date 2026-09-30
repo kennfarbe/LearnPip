@@ -17,6 +17,7 @@ var connectionString = builder.Configuration.GetConnectionString("LearnPip")
     ?? throw new InvalidOperationException("ConnectionStrings:LearnPip must be configured.");
 builder.Services.AddDbContext<LearnPipDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddScoped<AccountLifecycleService>();
+builder.Services.AddScoped<LearningReminderService>();
 builder.Services.AddSingleton<IInactivityNoticeSender, SmtpInactivityNoticeSender>();
 builder.Services.AddHostedService<Worker>();
 
@@ -25,6 +26,8 @@ if (runOnce)
 {
     await using var scope = host.Services.CreateAsyncScope();
     await scope.ServiceProvider.GetRequiredService<AccountLifecycleService>()
+        .RunOnceAsync(DateTimeOffset.UtcNow);
+    await scope.ServiceProvider.GetRequiredService<LearningReminderService>()
         .RunOnceAsync(DateTimeOffset.UtcNow);
     return;
 }
