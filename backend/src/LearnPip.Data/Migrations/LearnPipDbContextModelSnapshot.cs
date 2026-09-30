@@ -82,7 +82,864 @@ namespace LearnPip.Data.Migrations
                     b.Property<DateTimeOffset?>("DisabledAtUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTimeOffset>("La…11497 tokens truncated…eOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset>("LastActivityAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("AgeBand").IsRequired().HasMaxLength(8)
+                        .HasColumnType("character varying(8)").HasDefaultValue("unknown");
+
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LastActivityAtUtc");
+
+                    b.ToTable("Accounts");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.ReminderPreference", b =>
+                {
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<bool>("Enabled").HasColumnType("boolean");
+                    b.Property<int>("IntervalDays").HasColumnType("integer");
+                    b.Property<int>("QuietStartMinute").HasColumnType("integer");
+                    b.Property<int>("QuietEndMinute").HasColumnType("integer");
+                    b.Property<string>("TimeZoneId").IsRequired().HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+                    b.Property<DateTimeOffset?>("LastNotifiedActivityAtUtc")
+                        .HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset?>("LastSentAtUtc")
+                        .HasColumnType("timestamp with time zone");
+                    b.HasKey("AccountId");
+                    b.ToTable("ReminderPreferences");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.FamilyLink", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<DateTimeOffset?>("ActivatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<Guid>("ChildAccountId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset>("InviteExpiresAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<string>("InviteHash").IsRequired().HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+                    b.Property<Guid?>("ParentAccountId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset?>("RevokedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<Guid?>("RevokedByAccountId").HasColumnType("uuid");
+                    b.Property<string>("Status").IsRequired().HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+                    b.Property<DateTimeOffset?>("VerifiedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<Guid?>("VerifiedByAccountId").HasColumnType("uuid");
+                    b.Property<string>("VerificationReference").HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+                    b.HasKey("Id");
+                    b.HasIndex("ChildAccountId", "ParentAccountId", "Status");
+                    b.HasIndex("ParentAccountId");
+                    b.HasIndex("VerifiedByAccountId");
+                    b.HasIndex("RevokedByAccountId");
+                    b.HasIndex("InviteHash").IsUnique();
+                    b.ToTable("FamilyLinks");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.FamilyLinkEvent", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<string>("Action").IsRequired().HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+                    b.Property<Guid>("ActorAccountId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<Guid>("FamilyLinkId").HasColumnType("uuid");
+                    b.HasKey("Id");
+                    b.HasIndex("ActorAccountId");
+                    b.HasIndex("FamilyLinkId", "CreatedAtUtc");
+                    b.ToTable("FamilyLinkEvents");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.FamilyGoal", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<Guid>("FamilyLinkId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset?>("TargetAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<string>("Title").IsRequired().HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+                    b.HasKey("Id");
+                    b.HasIndex("FamilyLinkId");
+                    b.ToTable("FamilyGoals");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.AccountInactivityWarning", b =>
+                {
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<int>("PhaseDays").HasColumnType("integer");
+                    b.Property<DateTimeOffset>("ActivityAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset>("ClaimedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset?>("SentAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<string>("DeliveryStatus").IsRequired().HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+                    b.HasKey("AccountId", "PhaseDays", "ActivityAtUtc");
+                    b.ToTable("AccountInactivityWarnings");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.ReminderPreference", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithOne().HasForeignKey("LearnPip.Data.Domain.ReminderPreference", "AccountId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.UserAiCredential", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.AiDailyUsage", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
+                });
+
+
+            modelBuilder.Entity("LearnPip.Data.Domain.AccountSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("RevokedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId", "ExpiresAtUtc");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.ToTable("AccountSessions");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.EmailLoginCode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset?>("ConsumedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTimeOffset>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("FailedAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("InitiatingSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("Email", "Purpose", "CreatedAtUtc");
+
+                    b.HasIndex("InitiatingSessionId");
+
+                    b.ToTable("EmailLoginCodes");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.RecoveryCredential", b =>
+                {
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SecretHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("AccountId");
+
+                    b.HasIndex("SecretHash")
+                        .IsUnique();
+
+                    b.ToTable("RecoveryCredentials");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.AccountRole", b =>
+                {
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RoleDefinitionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("GrantedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("AccountId", "RoleDefinitionId");
+
+                    b.HasIndex("RoleDefinitionId");
+
+                    b.ToTable("AccountRoles");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.AnswerOption", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCorrect")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("QuestionVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionVersionId", "SortOrder")
+                        .IsUnique();
+
+                    b.ToTable("AnswerOptions");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.OfficialCatalogEdition", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<string>("Code").IsRequired().HasMaxLength(80).HasColumnType("character varying(80)");
+                    b.Property<string>("Title").IsRequired().HasMaxLength(200).HasColumnType("character varying(200)");
+                    b.Property<string>("Revision").IsRequired().HasMaxLength(80).HasColumnType("character varying(80)");
+                    b.Property<string>("SourceUrl").IsRequired().HasMaxLength(1000).HasColumnType("character varying(1000)");
+                    b.Property<string>("License").IsRequired().HasMaxLength(80).HasColumnType("character varying(80)");
+                    b.Property<string>("Attribution").IsRequired().HasMaxLength(500).HasColumnType("character varying(500)");
+                    b.Property<DateOnly>("ChangedOn").HasColumnType("date");
+                    b.Property<DateTimeOffset>("ImportedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<string>("QuestionsJson").IsRequired().HasColumnType("text");
+                    b.HasKey("Id");
+                    b.HasIndex("Code", "Revision").IsUnique();
+                    b.ToTable("OfficialCatalogEditions");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.ExamProfileVersion", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<string>("Code").IsRequired().HasMaxLength(80).HasColumnType("character varying(80)");
+                    b.Property<string>("Title").IsRequired().HasMaxLength(200).HasColumnType("character varying(200)");
+                    b.Property<string>("AmateurClass").IsRequired().HasMaxLength(1).HasColumnType("character varying(1)");
+                    b.Property<int>("Version").HasColumnType("integer");
+                    b.Property<Guid>("CatalogEditionId").HasColumnType("uuid");
+                    b.Property<string>("PartsJson").IsRequired().HasColumnType("text");
+                    b.Property<string>("ScheduleJson").IsRequired().HasColumnType("text");
+                    b.Property<string>("RulesSourceUrl").HasColumnType("text");
+                    b.Property<DateOnly?>("RulesCheckedOn").HasColumnType("date");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("Id");
+                    b.HasIndex("CatalogEditionId");
+                    b.HasIndex("Code", "Version").IsUnique();
+                    b.ToTable("ExamProfileVersions");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.ExamSimulation", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<Guid>("ProfileVersionId").HasColumnType("uuid");
+                    b.Property<string>("SnapshotJson").IsRequired().HasColumnType("text");
+                    b.Property<string>("AnswersJson").IsRequired().HasColumnType("text");
+                    b.Property<int>("CurrentPartIndex").HasColumnType("integer");
+                    b.Property<DateTimeOffset>("StartedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset>("PartStartedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset?>("CompletedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<string>("ResultJson").HasColumnType("text");
+                    b.HasKey("Id");
+                    b.HasIndex("AccountId", "StartedAtUtc");
+                    b.HasIndex("ProfileVersionId");
+                    b.ToTable("ExamSimulations");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.AccountExamCredit", b =>
+                {
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<string>("Code").HasMaxLength(16).HasColumnType("character varying(16)");
+                    b.Property<DateTimeOffset>("ReportedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("AccountId", "Code");
+                    b.ToTable("AccountExamCredits");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.ExamObjective", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("ExamObjectives");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.ExternalIdentity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("Provider", "Subject")
+                        .IsUnique();
+
+                    b.ToTable("ExternalIdentities");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.GroupCatalogShare", b =>
+                {
+                    b.Property<Guid>("StudyGroupId").HasColumnType("uuid");
+                    b.Property<Guid>("PrivateCatalogId").HasColumnType("uuid");
+                    b.Property<Guid>("SharedByAccountId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("SharedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("StudyGroupId", "PrivateCatalogId");
+                    b.HasIndex("PrivateCatalogId");
+                    b.HasIndex("SharedByAccountId");
+                    b.ToTable("GroupCatalogShares");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.GroupInvitation", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<string>("CodeHash").IsRequired().HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+                    b.Property<Guid>("CreatedByAccountId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset>("ExpiresAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<int>("MaxUses").HasColumnType("integer");
+                    b.Property<int>("UsedCount").HasColumnType("integer");
+                    b.Property<DateTimeOffset?>("RevokedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<Guid>("StudyGroupId").HasColumnType("uuid");
+                    b.HasKey("Id");
+                    b.HasIndex("CodeHash").IsUnique();
+                    b.HasIndex("CreatedByAccountId");
+                    b.HasIndex("StudyGroupId");
+                    b.ToTable("GroupInvitations");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.GroupMembership", b =>
+                {
+                    b.Property<Guid>("StudyGroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("JoinedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RoleDefinitionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("StudyGroupId", "AccountId");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("RoleDefinitionId");
+
+                    b.ToTable("GroupMemberships");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.GroupVersionShare", b =>
+                {
+                    b.Property<Guid>("StudyGroupId").HasColumnType("uuid");
+                    b.Property<Guid>("QuestionVersionId").HasColumnType("uuid");
+                    b.Property<Guid>("PrivateCatalogId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("SharedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("StudyGroupId", "QuestionVersionId");
+                    b.HasIndex("PrivateCatalogId");
+                    b.HasIndex("QuestionVersionId");
+                    b.ToTable("GroupVersionShares");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.GroupQuestionShare", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("QuestionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("RevokedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("SharedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SharedByAccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("StudyGroupId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionId");
+
+                    b.HasIndex("SharedByAccountId");
+
+                    b.HasIndex("StudyGroupId", "QuestionId")
+                        .IsUnique()
+                        .HasFilter("\"RevokedAtUtc\" IS NULL");
+
+                    b.ToTable("GroupQuestionShares");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.MediaBlob", b =>
+                {
+                    b.Property<Guid>("MediaAssetId").HasColumnType("uuid");
+                    b.Property<byte[]>("Data").IsRequired().HasColumnType("bytea");
+                    b.HasKey("MediaAssetId");
+                    b.ToTable("MediaBlobs");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.MediaAsset", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AltText")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<long>("ByteLength")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("MediaType")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<Guid>("OwnerAccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("QuestionVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionVersionId");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique();
+
+                    b.HasIndex("OwnerAccountId", "CreatedAtUtc");
+
+                    b.ToTable("MediaAssets", t =>
+                        {
+                            t.HasCheckConstraint("CK_MediaAssets_ByteLength", "\"ByteLength\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.PrivateCatalog", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<Guid>("OwnerAccountId").HasColumnType("uuid");
+                    b.Property<string>("Name").IsRequired().HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("Id");
+                    b.HasIndex("OwnerAccountId", "Name").IsUnique();
+                    b.ToTable("PrivateCatalogs");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.LearningContent", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<Guid>("OwnerAccountId").HasColumnType("uuid");
+                    b.Property<string>("Title").IsRequired().HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+                    b.HasKey("Id");
+                    b.HasIndex("OwnerAccountId");
+                    b.ToTable("LearningContents");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.FrequentLearningContent", b =>
+                {
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<Guid>("LearningContentId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("AccountId", "LearningContentId");
+                    b.HasIndex("LearningContentId");
+                    b.ToTable("FrequentLearningContents");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionDraft", b =>
+                {
+                    b.Property<Guid>("QuestionId").HasColumnType("uuid");
+                    b.Property<string>("PayloadJson").IsRequired().HasMaxLength(65536)
+                        .HasColumnType("character varying(65536)");
+                    b.Property<DateTimeOffset>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("QuestionId");
+                    b.ToTable("QuestionDrafts");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.Question", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PrivateCatalogId").HasColumnType("uuid");
+
+                    b.Property<Guid?>("LearningContentId").HasColumnType("uuid");
+
+                    b.Property<Guid>("OwnerAccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerAccountId", "UpdatedAtUtc");
+
+                    b.HasIndex("PrivateCatalogId");
+
+                    b.HasIndex("LearningContentId");
+
+                    b.ToTable("Questions");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionObjective", b =>
+                {
+                    b.Property<Guid>("QuestionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ExamObjectiveId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("QuestionId", "ExamObjectiveId");
+
+                    b.HasIndex("ExamObjectiveId");
+
+                    b.ToTable("QuestionObjectives");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionContentBlock", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<Guid?>("QuestionVersionId").HasColumnType("uuid");
+                    b.Property<Guid?>("AnswerOptionId").HasColumnType("uuid");
+                    b.Property<string>("Section").IsRequired().HasMaxLength(16).HasColumnType("character varying(16)");
+                    b.Property<int>("SortOrder").HasColumnType("integer");
+                    b.Property<string>("Kind").IsRequired().HasMaxLength(16).HasColumnType("character varying(16)");
+                    b.Property<string>("Text").HasMaxLength(4000).HasColumnType("character varying(4000)");
+                    b.Property<Guid?>("MediaAssetId").HasColumnType("uuid");
+                    b.HasKey("Id");
+                    b.HasIndex("QuestionVersionId", "Section", "SortOrder").IsUnique()
+                        .HasFilter("\"QuestionVersionId\" IS NOT NULL");
+                    b.HasIndex("AnswerOptionId", "SortOrder").IsUnique()
+                        .HasFilter("\"AnswerOptionId\" IS NOT NULL");
+                    b.HasIndex("MediaAssetId");
+                    b.ToTable("QuestionContentBlocks", t =>
+                        t.HasCheckConstraint("CK_QuestionContentBlocks_Owner",
+                            "(\"QuestionVersionId\" IS NOT NULL AND \"AnswerOptionId\" IS NULL) OR " +
+                            "(\"QuestionVersionId\" IS NULL AND \"AnswerOptionId\" IS NOT NULL)"));
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.PublicSubmission", b =>
+                {
+                    b.Property<Guid>("QuestionVersionId").HasColumnType("uuid");
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<string>("Status").IsRequired().HasMaxLength(24).HasColumnType("character varying(24)");
+                    b.Property<string>("LicenseChoice").IsRequired().HasMaxLength(40).HasColumnType("character varying(40)");
+                    b.Property<string>("AuthorAttribution").IsRequired().HasMaxLength(120).HasColumnType("character varying(120)");
+                    b.Property<string>("AgeDeclaration").IsRequired().HasMaxLength(16).HasColumnType("character varying(16)");
+                    b.Property<Guid?>("GuardianApprovedByAccountId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset?>("GuardianApprovedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+                    b.Property<bool>("RightsConfirmed").HasColumnType("boolean");
+                    b.Property<bool>("ImageRightsConfirmed").HasColumnType("boolean");
+                    b.Property<DateTimeOffset>("SubmittedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset?>("ReviewedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<Guid?>("ReviewedByAccountId").HasColumnType("uuid");
+                    b.Property<string>("ReviewNote").HasMaxLength(1000).HasColumnType("character varying(1000)");
+                    b.HasKey("QuestionVersionId");
+                    b.HasIndex("AccountId");
+                    b.HasIndex("ReviewedByAccountId");
+                    b.HasIndex("GuardianApprovedByAccountId");
+                    b.HasIndex("Status", "SubmittedAtUtc");
+                    b.ToTable("PublicSubmissions");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.PublicSubmissionPreview", b =>
+                {
+                    b.Property<Guid>("QuestionVersionId").HasColumnType("uuid");
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<string>("TokenHash").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
+                    b.Property<DateTimeOffset>("ExpiresAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("QuestionVersionId");
+                    b.HasIndex("AccountId");
+                    b.ToTable("PublicSubmissionPreviews");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.PublicSubmissionReview", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<Guid>("QuestionVersionId").HasColumnType("uuid");
+                    b.Property<Guid>("ModeratorAccountId").HasColumnType("uuid");
+                    b.Property<string>("Decision").IsRequired().HasMaxLength(24).HasColumnType("character varying(24)");
+                    b.Property<bool>("CorrectnessChecked").HasColumnType("boolean");
+                    b.Property<bool>("ImageRightsChecked").HasColumnType("boolean");
+                    b.Property<bool>("PersonalDataChecked").HasColumnType("boolean");
+                    b.Property<bool>("DuplicateChecked").HasColumnType("boolean");
+                    b.Property<string>("Note").IsRequired().HasMaxLength(1000).HasColumnType("character varying(1000)");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("Id");
+                    b.HasIndex("QuestionVersionId");
+                    b.HasIndex("ModeratorAccountId");
+                    b.ToTable("PublicSubmissionReviews");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionReport", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<Guid>("QuestionVersionId").HasColumnType("uuid");
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<string>("Reason").IsRequired().HasMaxLength(32).HasColumnType("character varying(32)");
+                    b.Property<string>("Details").IsRequired().HasMaxLength(2000).HasColumnType("character varying(2000)");
+                    b.Property<string>("Status").IsRequired().HasMaxLength(16).HasColumnType("character varying(16)");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset?>("ClosedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("Id");
+                    b.HasIndex("AccountId");
+                    b.HasIndex("QuestionVersionId");
+                    b.HasIndex("Status", "QuestionVersionId");
+                    b.ToTable("QuestionReports");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionComment", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<Guid>("QuestionVersionId").HasColumnType("uuid");
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<string>("Text").IsRequired().HasMaxLength(2000).HasColumnType("character varying(2000)");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset?>("RemovedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("Id");
+                    b.HasIndex("AccountId");
+                    b.HasIndex("QuestionVersionId", "CreatedAtUtc");
+                    b.ToTable("QuestionComments");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionHelpfulVote", b =>
+                {
+                    b.Property<Guid>("QuestionVersionId").HasColumnType("uuid");
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<bool>("Helpful").HasColumnType("boolean");
+                    b.Property<DateTimeOffset>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("QuestionVersionId", "AccountId");
+                    b.HasIndex("AccountId");
+                    b.ToTable("QuestionHelpfulVotes");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionModerationEvent", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<Guid>("QuestionVersionId").HasColumnType("uuid");
+                    b.Property<Guid>("ModeratorAccountId").HasColumnType("uuid");
+                    b.Property<string>("Action").IsRequired().HasMaxLength(32).HasColumnType("character varying(32)");
+                    b.Property<string>("Note").IsRequired().HasMaxLength(1000).HasColumnType("character varying(1000)");
+                    b.Property<Guid?>("ReplacementVersionId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.HasKey("Id");
+                    b.HasIndex("ModeratorAccountId");
+                    b.HasIndex("QuestionVersionId", "CreatedAtUtc");
+                    b.ToTable("QuestionModerationEvents");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionReport", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.QuestionVersion", "QuestionVersion")
+                        .WithMany().HasForeignKey("QuestionVersionId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.Navigation("QuestionVersion");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionComment", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.QuestionVersion", "QuestionVersion")
+                        .WithMany().HasForeignKey("QuestionVersionId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.Navigation("QuestionVersion");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionHelpfulVote", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.QuestionVersion", "QuestionVersion")
+                        .WithMany().HasForeignKey("QuestionVersionId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.Navigation("QuestionVersion");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionModerationEvent", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.QuestionVersion", null)
+                        .WithMany().HasForeignKey("QuestionVersionId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("ModeratorAccountId")
+                        .OnDelete(DeleteBehavior.Restrict).IsRequired();
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.QuestionTranslation", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<DateTimeOffset?>("ApprovedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<Guid>("CreatedByAccountId").HasColumnType("uuid");
+                    b.Property<string>("Language").IsRequired().HasMaxLength(8).HasColumnType("character varying(8)");
+                    b.Property<string>("License").IsRequired().HasMaxLength(120).HasColumnType("character varying(120)");
+                    b.Property<string>("PayloadJson").IsRequired().HasMaxLength(65536).HasColumnType("character varying(65536)");
+                    b.Property<string>("Provenance").IsRequired().HasMaxLength(24).HasColumnType("character varying(24)");
+                    b.Property<Guid>("QuestionVersionId").HasColumnType("uuid");
+                    b.Property<int>("Revision").HasColumnType("integer");
+                    b.Property<string>("Source").IsRequired().HasMaxLength(500).HasColumnType("character varying(500)");
+                    b.Property<string>("Status").IsRequired().HasMaxLength(16).HasColumnType("character varying(16)");
+                    b.HasKey("Id");
+                    b.HasIndex("CreatedByAccountId");
+                    b.HasIndex("QuestionVersionId", "Language", "Revision").IsUnique();
+                    b.ToTable("QuestionTranslations");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.TranslationReport", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<Guid>("AccountId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
                     b.Property<string>("Details").IsRequired().HasMaxLength(2000).HasColumnType("character varying(2000)");
                     b.Property<Guid>("QuestionTranslationId").HasColumnType("uuid");
                     b.HasKey("Id");
