@@ -13,6 +13,7 @@ import { ExamProfiles } from './exam-profiles';
 import { AiAssistant } from './ai-assistant';
 import { PhotoDraft } from './photo-draft';
 import { Translations } from './translations';
+import { FamilySpace } from './family-space';
 import { LanguageService } from './language';
 
 @Component({
@@ -31,6 +32,7 @@ import { LanguageService } from './language';
     AiAssistant,
     PhotoDraft,
     Translations,
+    FamilySpace,
   ],
   selector: 'app-root',
   styleUrl: './app.css',

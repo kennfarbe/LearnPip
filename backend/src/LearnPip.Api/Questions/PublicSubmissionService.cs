@@ -68,6 +68,12 @@ public sealed class PublicSubmissionService(LearnPipDbContext db)
                 question.Id == questionId && question.OwnerAccountId == accountId &&
                 question.DeletedAtUtc == null, cancellationToken)) return "missing";
         if (version.Visibility != "private" || string.IsNullOrWhiteSpace(version.Source)) return "invalid";
+        await db.Accounts.Where(item => item.Id == accountId && item.AgeBand == "unknown")
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.AgeBand,
+                input.AgeDeclaration), cancellationToken);
+        var ageBand = await db.Accounts.Where(item => item.Id == accountId)
+            .Select(item => item.AgeBand).SingleAsync(cancellationToken);
+        if (ageBand != input.AgeDeclaration) return "invalid";
         var preview = await db.PublicSubmissionPreviews.SingleOrDefaultAsync(item =>
             item.QuestionVersionId == version.Id && item.AccountId == accountId,
             cancellationToken);
@@ -92,6 +98,8 @@ public sealed class PublicSubmissionService(LearnPipDbContext db)
         submission.RightsConfirmed = true;
         submission.ImageRightsConfirmed = input.ImageRightsConfirmed;
         submission.AgeDeclaration = input.AgeDeclaration;
+        submission.GuardianApprovedByAccountId = null;
+        submission.GuardianApprovedAtUtc = null;
         submission.Status = input.AgeDeclaration == "minor" ? "minor_hold" : "pending";
         submission.SubmittedAtUtc = DateTimeOffset.UtcNow;
         submission.ReviewedAtUtc = null;
@@ -121,8 +129,15 @@ public sealed class PublicSubmissionService(LearnPipDbContext db)
             item.QuestionVersionId == versionId, cancellationToken);
         if (submission == null || submission.Status is not ("pending" or "minor_hold") ||
             submission.AccountId == moderatorId) return "conflict";
-        // A separate guardian/age procedure is required before any minor's content can be published.
-        if (submission.Status == "minor_hold" && input.Decision == "approve") return "minor_hold";
+        // A guardian approves this exact version; the active link must still exist at publication.
+        if (submission.Status == "minor_hold" && input.Decision == "approve" &&
+            (submission.GuardianApprovedByAccountId == null ||
+             submission.GuardianApprovedAtUtc == null ||
+             !await db.FamilyLinks.AnyAsync(link => link.ChildAccountId == submission.AccountId &&
+                 link.ParentAccountId == submission.GuardianApprovedByAccountId &&
+                 link.Status == "active" && link.RevokedAtUtc == null &&
+                 link.VerifiedByAccountId != null && link.ActivatedAtUtc != null,
+                 cancellationToken))) return "minor_hold";
         if (version.Visibility != "private" || !submission.RightsConfirmed ||
             string.IsNullOrWhiteSpace(version.Source) ||
             version.License != submission.LicenseChoice ||
