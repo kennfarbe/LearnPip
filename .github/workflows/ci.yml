@@ -270,3 +270,42 @@ jobs:
           npm test --if-present
           npm run format:check
           npm run build --if-present
+
+  release:
+    name: Semantic release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [repository-policy, backend, web]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Require release bot token
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          if [ -z "$RELEASE_TOKEN" ]; then
+            echo 'Configure RELEASE_TOKEN with a release bot permitted to push CHANGELOG.md to protected main.' >&2
+            exit 1
+          fi
+      - name: Check out full history and tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }}
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install release tooling
+        run: npm ci
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GIT_AUTHOR_NAME: learnpip-release-bot
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: learnpip-release-bot
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: npx semantic-release
