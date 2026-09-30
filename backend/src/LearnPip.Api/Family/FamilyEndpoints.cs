@@ -22,6 +22,8 @@ public static class FamilyEndpoints
         var family = app.MapGroup("/api/v1/family").WithTags("Family")
             .RequireAuthorization(ApiPolicies.ActiveAccount);
         family.MapGet("/me", Me);
+        family.MapGet("/reminders", GetReminders);
+        family.MapPut("/reminders", SetReminders);
         family.MapPut("/age-band", SetAgeBand);
         family.MapPost("/invites", Invite).RequireRateLimiting("auth");
         family.MapPost("/invites/redeem", Redeem).RequireRateLimiting("auth");
@@ -39,6 +41,56 @@ public static class FamilyEndpoints
 
     private static bool Actor(ClaimsPrincipal user, out Guid id) =>
         AccountIdentity.TryGetAccountId(user, out id);
+
+    public sealed record ReminderInput(bool Enabled, int IntervalDays, int QuietStartMinute,
+        int QuietEndMinute, string TimeZoneId);
+
+    private static async Task<IResult> GetReminders(ClaimsPrincipal user, LearnPipDbContext db,
+        CancellationToken ct)
+    {
+        if (!Actor(user, out var id)) return Results.Unauthorized();
+        var preference = await db.ReminderPreferences.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.AccountId == id, ct);
+        return Results.Ok(new ApiResponse<object>(new
+        {
+            enabled = preference?.Enabled ?? false,
+            intervalDays = preference?.IntervalDays ?? 7,
+            quietStartMinute = preference?.QuietStartMinute ?? 1320,
+            quietEndMinute = preference?.QuietEndMinute ?? 480,
+            timeZoneId = preference?.TimeZoneId ?? "Europe/Berlin"
+        }));
+    }
+
+    private static async Task<IResult> SetReminders(ReminderInput input, ClaimsPrincipal user,
+        LearnPipDbContext db, CancellationToken ct)
+    {
+        if (!Actor(user, out var id)) return Results.Unauthorized();
+        if (input.IntervalDays is < 1 or > 30 || input.QuietStartMinute is < 0 or > 1439 ||
+            input.QuietEndMinute is < 0 or > 1439 ||
+            input.QuietStartMinute == input.QuietEndMinute ||
+            string.IsNullOrWhiteSpace(input.TimeZoneId) || input.TimeZoneId.Length > 100)
+            return Results.BadRequest();
+        try { _ = TimeZoneInfo.FindSystemTimeZoneById(input.TimeZoneId); }
+        catch (TimeZoneNotFoundException) { return Results.BadRequest(); }
+        catch (InvalidTimeZoneException) { return Results.BadRequest(); }
+        if (input.Enabled && !await db.ExternalIdentities.AnyAsync(item =>
+                item.AccountId == id && item.Provider == "email", ct))
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+                { ["email"] = ["Link an email address before enabling reminders."] });
+        var preference = await db.ReminderPreferences.SingleOrDefaultAsync(item => item.AccountId == id, ct);
+        if (preference == null)
+        {
+            preference = new ReminderPreference { AccountId = id };
+            db.ReminderPreferences.Add(preference);
+        }
+        preference.Enabled = input.Enabled;
+        preference.IntervalDays = input.IntervalDays;
+        preference.QuietStartMinute = input.QuietStartMinute;
+        preference.QuietEndMinute = input.QuietEndMinute;
+        preference.TimeZoneId = input.TimeZoneId;
+        await db.SaveChangesAsync(ct);
+        return Results.NoContent();
+    }
 
     private static async Task<IResult> Me(ClaimsPrincipal user, LearnPipDbContext db,
         CancellationToken ct)

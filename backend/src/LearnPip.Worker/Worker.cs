@@ -9,11 +9,27 @@ public class Worker(ILogger<Worker> logger, IServiceScopeFactory scopeFactory) :
         logger.LogInformation("LearnPip background worker started.");
         var heartbeat = WriteHeartbeat(stoppingToken);
         var nextRun = DateTimeOffset.MinValue;
+        var nextReminderRun = DateTimeOffset.MinValue;
         try
         {
             using var timer = new PeriodicTimer(TimeSpan.FromHours(1));
             do
             {
+                if (DateTimeOffset.UtcNow >= nextReminderRun)
+                {
+                    nextReminderRun = DateTimeOffset.UtcNow.AddHours(1);
+                    try
+                    {
+                        await using var reminderScope = scopeFactory.CreateAsyncScope();
+                        var count = await reminderScope.ServiceProvider.GetRequiredService<LearningReminderService>()
+                            .RunOnceAsync(DateTimeOffset.UtcNow, stoppingToken);
+                        logger.LogInformation("Learning reminders sent: {Count}.", count);
+                    }
+                    catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
+                    {
+                        logger.LogError(exception, "Learning reminder run failed.");
+                    }
+                }
                 if (DateTimeOffset.UtcNow < nextRun) continue;
                 nextRun = DateTimeOffset.UtcNow.AddHours(1);
                 try

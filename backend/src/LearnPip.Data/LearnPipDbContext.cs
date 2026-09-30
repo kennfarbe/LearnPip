@@ -8,6 +8,7 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
     public DbSet<AdministrationAuditEvent> AdministrationAuditEvents => Set<AdministrationAuditEvent>();
     public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<ReminderPreference> ReminderPreferences => Set<ReminderPreference>();
     public DbSet<FamilyLink> FamilyLinks => Set<FamilyLink>();
     public DbSet<FamilyLinkEvent> FamilyLinkEvents => Set<FamilyLinkEvent>();
     public DbSet<FamilyGoal> FamilyGoals => Set<FamilyGoal>();
@@ -57,6 +58,13 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<ReminderPreference>(entity =>
+        {
+            entity.HasKey(x => x.AccountId);
+            entity.Property(x => x.TimeZoneId).HasMaxLength(100).IsRequired();
+            entity.HasOne<Account>().WithOne().HasForeignKey<ReminderPreference>(x => x.AccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
         modelBuilder.Entity<FamilyLink>(entity =>
         {
             entity.HasKey(x => x.Id);

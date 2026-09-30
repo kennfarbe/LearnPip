@@ -32,3 +32,16 @@ Moderationsentscheidung blockiert die Veröffentlichung erneut. Das ist keine pa
 Freigabe zukünftiger Beiträge. Ohne erfolgreiches externes Prüfverfahren keine
 Familienverknüpfung aktivieren. Die Speicherung der Fallreferenz setzt ein lokales Verfahren
 für Belegaufbewahrung und Löschung voraus.
+
+## Freiwillige Lernerinnerungen
+
+Unter „Familie und Lernziele“ kann jedes angemeldete Konto E-Mail-Erinnerungen selbst
+aktivieren oder abmelden. Vor Aktivierung muss eine E-Mail-Adresse mit dem Konto
+verknüpft sein und SMTP konfiguriert sein. Die Einstellung umfasst 1–30 Tage ohne
+Lernaktivität und Ruhezeiten mit IANA-Zeitzone; der Worker prüft stündlich.
+Standard ist deaktiviert. Pro Zeitraum ohne erneute Aktivität wird maximal eine
+Erinnerung beansprucht. Ein ignorierter Hinweis löst keine weiteren Hinweise aus;
+erst eine neue Aktivität eröffnet einen neuen Zeitraum. Die E-Mail enthält keine
+Fragen, Antworten, Ziele oder sonstige privaten Aufgabeninhalte. Der Anspruch wird
+vor dem Versand gespeichert, deshalb wird eine fehlgeschlagene Zustellung nicht
+automatisch erneut versucht. Web-Push und App-Push sind hier nicht enthalten.
