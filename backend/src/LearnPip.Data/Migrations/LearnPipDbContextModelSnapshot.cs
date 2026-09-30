@@ -87,6 +87,9 @@ namespace LearnPip.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<string>("AgeBand").IsRequired().HasMaxLength(8)
+                        .HasColumnType("character varying(8)").HasDefaultValue("unknown");
+
                     b.Property<string>("DisplayName")
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
@@ -101,6 +104,60 @@ namespace LearnPip.Data.Migrations
                     b.HasIndex("LastActivityAtUtc");
 
                     b.ToTable("Accounts");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.FamilyLink", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<DateTimeOffset?>("ActivatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<Guid>("ChildAccountId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset>("InviteExpiresAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<string>("InviteHash").IsRequired().HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+                    b.Property<Guid?>("ParentAccountId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset?>("RevokedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<Guid?>("RevokedByAccountId").HasColumnType("uuid");
+                    b.Property<string>("Status").IsRequired().HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+                    b.Property<DateTimeOffset?>("VerifiedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<Guid?>("VerifiedByAccountId").HasColumnType("uuid");
+                    b.Property<string>("VerificationReference").HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+                    b.HasKey("Id");
+                    b.HasIndex("ChildAccountId", "ParentAccountId", "Status");
+                    b.HasIndex("ParentAccountId");
+                    b.HasIndex("VerifiedByAccountId");
+                    b.HasIndex("RevokedByAccountId");
+                    b.HasIndex("InviteHash").IsUnique();
+                    b.ToTable("FamilyLinks");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.FamilyLinkEvent", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<string>("Action").IsRequired().HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+                    b.Property<Guid>("ActorAccountId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<Guid>("FamilyLinkId").HasColumnType("uuid");
+                    b.HasKey("Id");
+                    b.HasIndex("ActorAccountId");
+                    b.HasIndex("FamilyLinkId", "CreatedAtUtc");
+                    b.ToTable("FamilyLinkEvents");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.FamilyGoal", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<Guid>("FamilyLinkId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset?>("TargetAtUtc").HasColumnType("timestamp with time zone");
+                    b.Property<string>("Title").IsRequired().HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+                    b.HasKey("Id");
+                    b.HasIndex("FamilyLinkId");
+                    b.ToTable("FamilyGoals");
                 });
 
             modelBuilder.Entity("LearnPip.Data.Domain.AccountInactivityWarning", b =>
@@ -688,6 +745,9 @@ namespace LearnPip.Data.Migrations
                     b.Property<string>("LicenseChoice").IsRequired().HasMaxLength(40).HasColumnType("character varying(40)");
                     b.Property<string>("AuthorAttribution").IsRequired().HasMaxLength(120).HasColumnType("character varying(120)");
                     b.Property<string>("AgeDeclaration").IsRequired().HasMaxLength(16).HasColumnType("character varying(16)");
+                    b.Property<Guid?>("GuardianApprovedByAccountId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset?>("GuardianApprovedAtUtc")
+                        .HasColumnType("timestamp with time zone");
                     b.Property<bool>("RightsConfirmed").HasColumnType("boolean");
                     b.Property<bool>("ImageRightsConfirmed").HasColumnType("boolean");
                     b.Property<DateTimeOffset>("SubmittedAtUtc").HasColumnType("timestamp with time zone");
@@ -697,6 +757,7 @@ namespace LearnPip.Data.Migrations
                     b.HasKey("QuestionVersionId");
                     b.HasIndex("AccountId");
                     b.HasIndex("ReviewedByAccountId");
+                    b.HasIndex("GuardianApprovedByAccountId");
                     b.HasIndex("Status", "SubmittedAtUtc");
                     b.ToTable("PublicSubmissions");
                 });
@@ -1365,6 +1426,32 @@ namespace LearnPip.Data.Migrations
                     b.Navigation("MediaAsset");
                 });
 
+            modelBuilder.Entity("LearnPip.Data.Domain.FamilyLink", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.Account", null).WithMany()
+                        .HasForeignKey("ChildAccountId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                    b.HasOne("LearnPip.Data.Domain.Account", null).WithMany()
+                        .HasForeignKey("ParentAccountId").OnDelete(DeleteBehavior.Restrict);
+                    b.HasOne("LearnPip.Data.Domain.Account", null).WithMany()
+                        .HasForeignKey("VerifiedByAccountId").OnDelete(DeleteBehavior.Restrict);
+                    b.HasOne("LearnPip.Data.Domain.Account", null).WithMany()
+                        .HasForeignKey("RevokedByAccountId").OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.FamilyLinkEvent", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.FamilyLink", null).WithMany()
+                        .HasForeignKey("FamilyLinkId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                    b.HasOne("LearnPip.Data.Domain.Account", null).WithMany()
+                        .HasForeignKey("ActorAccountId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.FamilyGoal", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.FamilyLink", null).WithMany()
+                        .HasForeignKey("FamilyLinkId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                });
+
             modelBuilder.Entity("LearnPip.Data.Domain.PublicSubmission", b =>
                 {
                     b.HasOne("LearnPip.Data.Domain.QuestionVersion", "QuestionVersion")
@@ -1375,6 +1462,9 @@ namespace LearnPip.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict).IsRequired();
                     b.HasOne("LearnPip.Data.Domain.Account", null)
                         .WithMany().HasForeignKey("ReviewedByAccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                    b.HasOne("LearnPip.Data.Domain.Account", null)
+                        .WithMany().HasForeignKey("GuardianApprovedByAccountId")
                         .OnDelete(DeleteBehavior.Restrict);
                     b.Navigation("QuestionVersion");
                 });

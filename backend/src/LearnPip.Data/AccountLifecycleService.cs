@@ -178,6 +178,23 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
             item.QuestionVersion.Question.OwnerAccountId == id).ExecuteDeleteAsync(cancellationToken);
         await db.GroupMemberships.Where(item => item.AccountId == id ||
             item.StudyGroup.OwnerAccountId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.FamilyLinkEvents.Where(item => item.ActorAccountId == id ||
+            db.FamilyLinks.Any(link => link.Id == item.FamilyLinkId &&
+                (link.ChildAccountId == id || link.ParentAccountId == id ||
+                 link.VerifiedByAccountId == id || link.RevokedByAccountId == id)))
+            .ExecuteDeleteAsync(cancellationToken);
+        await db.FamilyGoals.Where(item => db.FamilyLinks.Any(link =>
+            link.Id == item.FamilyLinkId && (link.ChildAccountId == id ||
+                link.ParentAccountId == id || link.VerifiedByAccountId == id ||
+                link.RevokedByAccountId == id))).ExecuteDeleteAsync(cancellationToken);
+        await db.FamilyLinks.Where(item => item.ChildAccountId == id ||
+            item.ParentAccountId == id || item.VerifiedByAccountId == id ||
+            item.RevokedByAccountId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.PublicSubmissions.Where(item => item.GuardianApprovedByAccountId == id)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(item => item.GuardianApprovedByAccountId, (Guid?)null)
+                .SetProperty(item => item.GuardianApprovedAtUtc, (DateTimeOffset?)null),
+                cancellationToken);
         await db.StudyAttemptSelections.Where(item => item.StudyAttempt.StudySession.AccountId == id ||
             item.StudyAttempt.QuestionVersion.Question.OwnerAccountId == id)
             .ExecuteDeleteAsync(cancellationToken);
