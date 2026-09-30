@@ -187,10 +187,10 @@ type Overview = {
     .family {
       margin-top: 3rem;
       padding: clamp(1rem, 3vw, 2rem);
-      border: 1px solid #dfe9df;
+      border: 1px solid var(--border);
       border-radius: 1rem;
-      background: #f8fbf7;
-      color: #1d3a32;
+      background: var(--panel);
+      color: var(--text);
     }
     .family label,
     .family article {

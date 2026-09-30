@@ -10,8 +10,13 @@ if (!isDevMode() && 'serviceWorker' in navigator) {
     // The hashed entry bundle gives each production build a new worker URL.
     const entry = document.querySelector<HTMLScriptElement>('script[type="module"][src]')?.src;
     const workerUrl = new URL('service-worker.js', document.baseURI);
-    workerUrl.searchParams.set('build', entry ? new URL(entry).pathname.split('/').pop() || 'app' : 'app');
-    navigator.serviceWorker.register(workerUrl.href, { scope: document.baseURI }).catch(console.error);
+    workerUrl.searchParams.set(
+      'build',
+      entry ? new URL(entry).pathname.split('/').pop() || 'app' : 'app',
+    );
+    navigator.serviceWorker
+      .register(workerUrl.href, { scope: document.baseURI })
+      .catch(console.error);
   };
 
   if (document.readyState === 'complete') {

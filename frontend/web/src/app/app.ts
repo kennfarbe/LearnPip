@@ -14,6 +14,7 @@ import { AiAssistant } from './ai-assistant';
 import { PhotoDraft } from './photo-draft';
 import { Translations } from './translations';
 import { FamilySpace } from './family-space';
+import { ThemeService } from './theme';
 import { LanguageService } from './language';
 
 @Component({
@@ -39,6 +40,7 @@ import { LanguageService } from './language';
   templateUrl: './app.html',
 })
 export class App {
+  protected readonly theme = inject(ThemeService);
   protected readonly title = 'LearnPip';
   protected readonly language = inject(LanguageService);
   constructor() {

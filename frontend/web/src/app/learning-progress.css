@@ -4,10 +4,10 @@
 .progress-panel {
   margin-top: 3rem;
   padding: clamp(1rem, 3vw, 2rem);
-  border: 1px solid #dfe9df;
+  border: 1px solid var(--border);
   border-radius: 1rem;
-  background: #f8fbf7;
-  color: #1d3a32;
+  background: var(--panel);
+  color: var(--text);
 }
 .heading,
 .topic-head {
@@ -41,17 +41,17 @@ p {
   display: grid;
   gap: 0.4rem;
   padding: 1rem;
-  border: 1px solid #dfe9df;
+  border: 1px solid var(--border);
   border-radius: 0.7rem;
-  background: white;
+  background: var(--surface);
 }
 .highlights strong {
   font-size: 1.5rem;
-  color: #205d45;
+  color: var(--accent-text);
 }
 .highlights span,
 .note {
-  color: #476457;
+  color: var(--muted);
   font-size: 0.92rem;
 }
 .topics {
@@ -62,26 +62,26 @@ p {
 .topics li {
   padding: 1rem;
   margin: 0.6rem 0;
-  border: 1px solid #dfe9df;
+  border: 1px solid var(--border);
   border-radius: 0.7rem;
-  background: white;
+  background: var(--surface);
 }
 .bar {
   height: 0.75rem;
   margin-top: 0.75rem;
   overflow: hidden;
   border-radius: 1rem;
-  background: #e5ece5;
+  background: var(--soft);
 }
 .bar span {
   display: block;
   height: 100%;
   border-radius: 1rem;
-  background: #39785e;
+  background: var(--accent-text);
 }
 .improved {
   margin: 0.7rem 0 0;
-  color: #205d45;
+  color: var(--accent-text);
 }
 .weeks {
   display: grid;
@@ -89,21 +89,21 @@ p {
   gap: 0.7rem;
 }
 .weeks small {
-  color: #476457;
+  color: var(--muted);
 }
 button {
   min-height: 2.75rem;
   padding: 0.6rem 0.8rem;
-  border: 1px solid #205d45;
+  border: 1px solid var(--accent);
   border-radius: 0.5rem;
-  background: white;
-  color: #205d45;
+  background: var(--surface);
+  color: var(--accent-text);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
 }
 button:focus-visible {
-  outline: 3px solid #e5a44c;
+  outline: 3px solid var(--warning);
   outline-offset: 2px;
 }
 @media (max-width: 42rem) {

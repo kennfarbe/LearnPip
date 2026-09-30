@@ -4,6 +4,7 @@ const prefix = 'learnpip-shell-';
 const build = new URL(self.location.href).searchParams.get('build') || 'initial';
 const cacheName = prefix + encodeURIComponent(build);
 const coreAssets = [
+  new URL('theme-init.js', scope),
   new URL('manifest.webmanifest', scope),
   new URL('favicon.svg', scope),
   new URL('icons/icon-192.png', scope),
@@ -16,18 +17,17 @@ self.addEventListener('install', (event) => {
       const page = await fetch(scope.href, { cache: 'reload' });
       if (!page.ok) throw new Error('Could not cache the LearnPip app shell');
       const html = await page.clone().text();
-      const bundles = [...html.matchAll(/<(?:script|link)\\b[^>]*\\b(?:src|href)=["']([^"']+)["']/gi)]
+      const bundles = [...html.matchAll(/<(?:script|link)\b[^>]*\b(?:src|href)=["']([^"']+)["']/gi)]
         .map((match) => new URL(match[1], scope))
         .filter(
           (url) =>
             url.origin === scope.origin &&
             url.pathname.startsWith(scope.pathname) &&
-            /\\.(?:js|css)$/.test(url.pathname),
+            /\.(?:js|css)$/.test(url.pathname),
         );
       const cache = await caches.open(cacheName);
       await cache.addAll([...coreAssets, ...bundles].map((url) => url.href));
       await cache.put(scope.href, page);
-      await self.skipWaiting();
     })(),
   );
 });
@@ -37,7 +37,9 @@ self.addEventListener('activate', (event) => {
     (async () => {
       const names = await caches.keys();
       await Promise.all(
-        names.filter((name) => name.startsWith(prefix) && name !== cacheName).map((name) => caches.delete(name)),
+        names
+          .filter((name) => name.startsWith(prefix) && name !== cacheName)
+          .map((name) => caches.delete(name)),
       );
       await self.clients.claim();
     })(),

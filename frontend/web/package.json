@@ -6,7 +6,8 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "format:check": "prettier --check src angular.json tsconfig.json tsconfig.app.json"
+    "format:check": "prettier --check src angular.json tsconfig.json tsconfig.app.json",
+    "test:pwa": "node --test tests/pwa.test.cjs"
   },
   "private": true,
   "packageManager": "npm@11.9.0",

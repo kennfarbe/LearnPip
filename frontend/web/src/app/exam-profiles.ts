@@ -406,7 +406,7 @@ interface Catalog {
     .exams {
       margin: 2rem 0;
       padding: 1.5rem;
-      border: 1px solid #dfe9df;
+      border: 1px solid var(--border);
       border-radius: 1rem;
     }
     label {
@@ -415,7 +415,7 @@ interface Catalog {
     }
     fieldset {
       margin: 1rem 0;
-      border: 1px solid #dfe9df;
+      border: 1px solid var(--border);
     }
     textarea {
       display: block;
@@ -430,7 +430,7 @@ interface Catalog {
     button:focus-visible,
     input:focus-visible,
     select:focus-visible {
-      outline: 3px solid #e5a44c;
+      outline: 3px solid var(--warning);
     }
   `,
 })

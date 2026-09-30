@@ -147,7 +147,7 @@ interface Detail {
     .feedback {
       margin: 2rem 0;
       padding: 1.5rem;
-      border: 1px solid #dfe9df;
+      border: 1px solid var(--border);
       border-radius: 1rem;
     }
     label,
@@ -167,10 +167,10 @@ interface Detail {
       cursor: pointer;
     }
     button:focus-visible {
-      outline: 3px solid #e5a44c;
+      outline: 3px solid var(--warning);
     }
     article {
-      border-top: 1px solid #dfe9df;
+      border-top: 1px solid var(--border);
       padding: 1rem 0;
     }
   `,

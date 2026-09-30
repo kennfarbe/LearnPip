@@ -11,6 +11,14 @@
         <option value="en">English</option>
       </select>
     </label>
+    <label class="theme-control">
+      {{ language.current() === 'en' ? 'Appearance' : 'Design' }}
+      <select [value]="theme.preference()" (change)="theme.set($any($event.target).value)">
+        <option value="system">System</option>
+        <option value="light">{{ language.current() === 'en' ? 'Light' : 'Hell' }}</option>
+        <option value="dark">{{ language.current() === 'en' ? 'Dark' : 'Dunkel' }}</option>
+      </select>
+    </label>
     <span class="phase-label">{{ language.t('Technischer Aufbau') }}</span>
   </header>
 

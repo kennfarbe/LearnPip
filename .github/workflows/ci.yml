@@ -269,6 +269,7 @@ jobs:
         run: |
           npm test --if-present
           npm run format:check
+          npm run test:pwa
           npm run build --if-present
 
   restore-smoke:
