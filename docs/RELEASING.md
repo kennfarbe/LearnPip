@@ -24,17 +24,20 @@ Versionstags und GitHub Releases danach nicht manuell für dieselbe Reihe erstel
 
 ## Einmalige Einrichtung in GitHub
 
-1. Einen dedizierten Release-Bot mit einem rotierbaren, eng berechtigten Fine-grained Token
-   (**Contents: Read and write** für nur dieses Repository) einrichten.
-2. In der `main`-Ruleset nur dem dedizierten Release-Bot einen Bypass für den automatisch
-   erzeugten `CHANGELOG.md`-Commit erlauben. Rulesets können keinen Bypass auf eine einzelne
-   Datei begrenzen: den Bot deshalb nur für Releases verwenden.
-3. Das Token als Secret `RELEASE_TOKEN` unter **Settings → Secrets and variables → Actions**
-   hinterlegen. Bei einem fehlenden oder nicht zum Push berechtigten Token scheitert der
-   Release-Job sichtbar; Build-Checks bleiben davon unabhängig. Tokens werden nie in PR-Jobs geladen.
-4. Der Bot benötigt auch das Recht, Tags und GitHub Releases zu erstellen. Falls weitere
-   Tag-Rulesets aktiv sind, `v*` entsprechend freigeben. Ein Testmerge mit Conventional Commit
-   prüft den kompletten Ablauf.
+1. Unter den GitHub-Entwicklereinstellungen eine eigene **GitHub App** für Releases anlegen.
+   Nur **Contents: Read and write** für `kennfarbe/LearnPip` gewähren und die App genau
+   in diesem Repository installieren. Die App muss Tags und GitHub Releases erstellen dürfen.
+2. In der `main`-Ruleset unter **Bypass list** nur diese installierte App mit **Always allow**
+   aufnehmen. **For pull requests only** genügt nicht für den automatisch geschriebenen
+   `CHANGELOG.md`-Commit. GitHub kann den Bypass nicht auf eine einzelne Datei begrenzen;
+   die App deshalb nur für Releases verwenden.
+3. Die **Client ID** als Repository-Variable `RELEASE_APP_CLIENT_ID` und den heruntergeladenen
+   privaten App-Schlüssel als Repository-Secret `RELEASE_APP_PRIVATE_KEY` unter
+   **Settings → Secrets and variables → Actions** hinterlegen. Der Workflow erzeugt daraus
+   nur bei erfolgreichen Builds auf `main` ein kurzlebiges Installationstoken für dieses
+   Repository. Ohne diese Werte scheitert der Release-Job sichtbar; PR-Jobs erhalten sie nicht.
+4. Falls weitere Tag-Rulesets aktiv sind, `v*` für die App freigeben. Ein Testmerge mit
+   Conventional Commit prüft den vollständigen Ablauf.
 
 Der Release-Commit enthält `[skip ci]`, damit dessen erneuter Push keine Endlosschleife auslöst.
 Die Changelog-Datei wird nur bei einer tatsächlich ermittelten neuen Version ergänzt.
