@@ -150,6 +150,32 @@ h2 {
 }
 
 @media (max-width: 42rem) {
+  .page-shell {
+    width: min(100% - 1.25rem, 68rem);
+    padding-top: 0.75rem;
+  }
+
+  .site-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .language-control {
+    margin-left: 0;
+  }
+
+  .phase-label {
+    flex-basis: 100%;
+  }
+
+  .hero {
+    padding: 3rem 0 2rem;
+  }
+
+  .status-card {
+    max-width: 100%;
+  }
+
   .next-steps {
     grid-template-columns: 1fr;
   }
