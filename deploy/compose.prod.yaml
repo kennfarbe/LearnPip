@@ -29,9 +29,7 @@ services:
 
   migrate:
     profiles: [ops]
-    build:
-      context: ..
-      dockerfile: backend/Dockerfile
+    image: kennfarbe/learnpip:api-${LEARNPIP_VERSION:?Set LEARNPIP_VERSION in deploy/.env.production}
     restart: "no"
     command: ["--migrate"]
     environment:
@@ -45,9 +43,7 @@ services:
         condition: service_healthy
 
   api:
-    build:
-      context: ..
-      dockerfile: backend/Dockerfile
+    image: kennfarbe/learnpip:api-${LEARNPIP_VERSION:?Set LEARNPIP_VERSION in deploy/.env.production}
     restart: unless-stopped
     logging:
       driver: json-file
@@ -95,9 +91,7 @@ services:
       start_period: 45s
 
   worker:
-    build:
-      context: ..
-      dockerfile: backend/src/LearnPip.Worker/Dockerfile
+    image: kennfarbe/learnpip:worker-${LEARNPIP_VERSION:?Set LEARNPIP_VERSION in deploy/.env.production}
     restart: unless-stopped
     logging:
       driver: json-file
@@ -127,9 +121,7 @@ services:
       start_period: 45s
 
   web:
-    build:
-      context: ..
-      dockerfile: frontend/web/Dockerfile
+    image: kennfarbe/learnpip:web-${LEARNPIP_VERSION:?Set LEARNPIP_VERSION in deploy/.env.production}
     restart: unless-stopped
     logging:
       driver: json-file
