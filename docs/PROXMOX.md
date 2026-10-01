@@ -1,6 +1,6 @@
 # LearnPip auf Proxmox VE installieren
 
-Diese Anleitung installiert den produktiven Compose-Stack in einer **Debian-13-VM** auf Proxmox VE. Sie setzt eine öffentlich erreichbare Domain voraus. Die vorhandene Host-Kernelkennung `7.0.14-14-pve` ist kein Debian-Versionsname und wird **nicht** in der VM installiert. Auf dem Proxmox-Host mit `uname -r` und `pveversion -v` Kernel und VE-Version getrennt prüfen. Docker läuft in der VM, nicht auf dem Proxmox-Host oder in einem LXC-Container. Die Proxmox-[FAQ](https://pve.proxmox.com/pve-docs/chapter-pve-faq.html) empfiehlt eine QEMU-VM für Docker-Anwendungen.
+Diese Anleitung installiert den produktiven Compose-Stack in einer **Debian-13-VM** auf Proxmox VE. Sie unterstützt sowohl eine öffentlich erreichbare Domain als auch den internen LAN-/VPN-Modus mit Caddys lokaler CA. Die vorhandene Host-Kernelkennung `7.0.14-14-pve` ist kein Debian-Versionsname und wird **nicht** in der VM installiert. Auf dem Proxmox-Host mit `uname -r` und `pveversion -v` Kernel und VE-Version getrennt prüfen. Docker läuft in der VM, nicht auf dem Proxmox-Host oder in einem LXC-Container. Die Proxmox-[FAQ](https://pve.proxmox.com/pve-docs/chapter-pve-faq.html) empfiehlt eine QEMU-VM für Docker-Anwendungen.
 
 Alle folgenden Linux-Befehle, außer den ausdrücklich als Proxmox-Host bezeichneten, werden **in der Debian-VM** ausgeführt. Beispielwerte `learn.example.org`, `192.168.1.50` und VM-ID `125` ersetzen. Die Ressourcenvorschläge sind Ausgangswerte, keine gemessenen Mindestanforderungen.
 
@@ -10,7 +10,7 @@ Alle folgenden Linux-Befehle, außer den ausdrücklich als Proxmox-Host bezeichn
 - Eine Domain mit DNS-A-Record auf die öffentliche IPv4-Adresse; einen AAAA-Record nur setzen, wenn IPv6 bis zur VM funktioniert. Bei Heimanschluss TCP **80** und **443** am Router zur VM weiterleiten. Optional UDP **443** für HTTP/3. Auf Proxmox-/VM-Firewalls diese Ports zur VM zulassen; SSH **22** nur für eigene Administrationsnetze. Proxmox-Webzugang **8006** wird für LearnPip nicht veröffentlicht.
 - Ein externer Ort für Datenbank-Dumps und eine Proxmox-VM-Sicherung. Ein Dump ausschließlich auf derselben VM schützt nicht bei Ausfall ihres Datenträgers.
 
-Bei CGNAT oder fehlender Portweiterleitung kann Caddy mit dieser Konfiguration kein öffentliches Zertifikat über die normalen HTTP/TLS-Prüfungen beziehen. Dann zuerst einen öffentlich erreichbaren Reverse Proxy oder eine andere Zertifikatslösung bereitstellen; diese Anleitung setzt die direkte Erreichbarkeit voraus. [Caddy: HTTPS-Voraussetzungen](https://caddyserver.com/docs/quick-starts/https).
+Für eine ausschließlich interne Installation sind öffentliche DNS-Einträge und Portweiterleitungen nicht erforderlich. Den Installer mit `--internal` starten und den gewählten Hostnamen im lokalen DNS direkt auf die VM-IP auflösen lassen. Für öffentliches HTTPS benötigt Caddy dagegen die beschriebenen DNS-/Port-Voraussetzungen. [Caddy: HTTPS-Voraussetzungen](https://caddyserver.com/docs/quick-starts/https).
 
 ## 2. Debian-VM in Proxmox anlegen
 
