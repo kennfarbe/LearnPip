@@ -4,7 +4,7 @@ set -euo pipefail
 umask 077
 
 usage() {
-  echo 'Usage: install-release.sh [prepare|install|update] [--version latest|vX.Y.Z] [--domain HOST] [--directory PATH] [--yes]'
+  echo 'Usage: install-release.sh [prepare|install|update] [--version latest|vX.Y.Z] [--domain HOST] [--internal] [--directory PATH] [--yes]'
   echo 'Default: prepare only. Docker/Compose must already be installed for install/update.'
 }
 die() { echo "Error: $*" >&2; exit 1; }
@@ -13,6 +13,7 @@ version=latest
 if [[ $EUID == 0 ]]; then install_dir=/opt/learnpip; else install_dir="$HOME/learnpip"; fi
 rootless=false
 domain=''
+internal=false
 confirmed=false
 if [[ ${1:-} =~ ^(prepare|install|update)$ ]]; then action=$1; shift; fi
 while (($#)); do
@@ -25,6 +26,7 @@ while (($#)); do
         --directory) install_dir=$2 ;;
       esac
       shift 2 ;;
+    --internal) internal=true; shift ;;
     --yes) confirmed=true; shift ;;
     --help|-h) usage; exit 0 ;;
     *) usage; die "Unknown argument: $1" ;;
@@ -69,6 +71,7 @@ if [[ -n $current ]]; then
     [[ -s $shared/$file ]] || die "Existing configuration is incomplete: $file. Restore it from backup."
   done
   [[ -z $domain ]] || die 'Updates must reuse the existing domain/configuration.'
+  [[ $internal == false ]] || die 'Updates reuse the stored deployment mode; omit --internal.'
 fi
 if [[ $version == latest ]]; then
   release_endpoint=latest
@@ -120,7 +123,7 @@ with tarfile.open(sys.argv[1], 'r:gz') as archive:
         raise SystemExit('Expected one archive root')
     archive.extractall(sys.argv[2], filter='data')
 root = Path(sys.argv[2]) / next(iter(roots))
-for required in ['deploy/compose.prod.yaml', 'deploy/.env.production.example', 'scripts/prod-init.sh']:
+for required in ['deploy/compose.prod.yaml', 'deploy/compose.rootless.yaml', 'deploy/compose.internal.yaml', 'deploy/Caddyfile.internal', 'deploy/.env.production.example', 'scripts/prod-init.sh']:
     if not (root / required).is_file():
         raise SystemExit('Incomplete release: ' + required)
 PY
@@ -141,16 +144,20 @@ for link in secrets .env.production; do
   fi
 done
 if [[ -z $current ]]; then bash "$target/scripts/prod-init.sh"; fi
-python3 - "$shared/.env.production" "$version" "$domain" <<'PY'
+python3 - "$shared/.env.production" "$version" "$domain" "$internal" <<'PY'
 import sys
 from pathlib import Path
 p = Path(sys.argv[1])
-version, domain = sys.argv[2], sys.argv[3]
+version, domain, internal = sys.argv[2], sys.argv[3], sys.argv[4]
 lines = p.read_text().splitlines()
-lines = [line for line in lines if not line.startswith('LEARNPIP_VERSION=')]
+lines = [line for line in lines if not line.startswith('LEARNPIP_VERSION=') and not line.startswith('LEARNPIP_INTERNAL=')]
 if domain:
     lines = [line for line in lines if not line.startswith('LEARNPIP_DOMAIN=')]
 lines.append('LEARNPIP_VERSION=' + version)
+if internal == 'true':
+    lines.append('LEARNPIP_INTERNAL=true')
+elif not any(line.startswith('LEARNPIP_INTERNAL=') for line in lines):
+    lines.append('LEARNPIP_INTERNAL=false')
 if domain:
     lines.append('LEARNPIP_DOMAIN=' + domain)
 p.write_text('\n'.join(lines) + '\n')
@@ -164,6 +171,11 @@ domain=$(sed -n 's/^LEARNPIP_DOMAIN=//p' "$shared/.env.production")
 [[ -n $domain && $domain != learn.example.org && $domain != *example.com* ]] || die 'Set your actual domain in shared/.env.production first.'
 cd "$target"
 compose=(docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml)
+internal_mode=$(sed -n 's/^LEARNPIP_INTERNAL=//p' "$shared/.env.production")
+if [[ $internal_mode == true ]]; then
+  [[ -f deploy/compose.internal.yaml && -f deploy/Caddyfile.internal ]] || die 'This release does not support internal/LAN deployment.'
+  compose+=(-f deploy/compose.internal.yaml)
+fi
 if [[ $rootless == true ]]; then
   [[ -f deploy/compose.rootless.yaml ]] || die 'This release does not support rootless deployment.'
   compose+=(-f deploy/compose.rootless.yaml)
@@ -177,8 +189,13 @@ fi
 "${compose[@]}" --profile ops run --rm migrate
 "${compose[@]}" up -d
 "${compose[@]}" ps
-curl -fsS --proto '=https' --retry 12 --retry-delay 5 --retry-all-errors --connect-timeout 10 --max-time 20 \
-  "https://$domain/health/ready" >/dev/null
+if [[ $internal_mode == true ]]; then
+  curl -fkSs --proto '=https' --retry 12 --retry-delay 5 --retry-all-errors --connect-timeout 10 --max-time 20 \
+    "https://$domain/health/ready" >/dev/null
+else
+  curl -fsS --proto '=https' --retry 12 --retry-delay 5 --retry-all-errors --connect-timeout 10 --max-time 20 \
+    "https://$domain/health/ready" >/dev/null
+fi
 ln -s "$target" "$staging/current"
 mv -Tf "$staging/current" "$install_dir/current"
 echo "Running $version. Verify sign-in in the browser; schedule external backups."
