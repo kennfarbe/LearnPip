@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/kennfarbe/LearnPip/compare/v1.2.0...v1.2.1) (2026-10-01)
+
+
+### Bug Fixes
+
+* **ops:** bootstrap installer dependencies ([06d3749](https://github.com/kennfarbe/LearnPip/commit/06d37491c7206c07d348a05d6831f075b3dc3625))
+
 # [1.2.0](https://github.com/kennfarbe/LearnPip/compare/v1.1.1...v1.2.0) (2026-10-01)
 
 
