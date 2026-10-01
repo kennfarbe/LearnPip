@@ -3,7 +3,7 @@
 set -euo pipefail
 umask 077
 # Debian keeps administrative system tools in sbin, which may be absent from a normal user's PATH.
-export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${PATH:-}"
+export PATH="${PATH:-/usr/local/bin:/usr/bin:/bin}:/usr/local/sbin:/usr/sbin:/sbin"
 
 usage() {
   echo 'Usage: install-release.sh [prepare|install|update] [--version latest|vX.Y.Z] [--domain HOST] [--internal] [--rootless-standard-ports] [--directory PATH] [--yes]'
