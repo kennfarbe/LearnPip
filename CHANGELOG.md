@@ -1,3 +1,12 @@
+## [1.3.1](https://github.com/kennfarbe/LearnPip/compare/v1.3.0...v1.3.1) (2026-10-01)
+
+
+### Bug Fixes
+
+* **api:** include PostgreSQL GSSAPI runtime library ([9f372d4](https://github.com/kennfarbe/LearnPip/commit/9f372d40da22d4b82b05748ae100b0fa33251187))
+* **ops:** find and bootstrap system tools ([c3ce10e](https://github.com/kennfarbe/LearnPip/commit/c3ce10eda8d8ec4e5ff55d1afc5226da0c87d07c))
+* **worker:** include PostgreSQL GSSAPI runtime library ([1f7cb8c](https://github.com/kennfarbe/LearnPip/commit/1f7cb8c23a075118c076a500ef87430751fa15a1))
+
 # [1.3.0](https://github.com/kennfarbe/LearnPip/compare/v1.2.1...v1.3.0) (2026-10-01)
 
 
