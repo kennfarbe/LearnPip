@@ -63,64 +63,16 @@ Bei einer schon laufenden Git-Clone-Installation zuerst den
 [Wechselpfad für vorhandene Konfiguration und Secrets](RELEASE-INSTALL.md#wechsel-von-einer-bisherigen-git-clone-installation)
 verwenden; danach nach dem Updatepfad vorgehen.
 
-Im Gast als Administrator das **neueste stabile GitHub Release** laden. Ein Git-Clone,
-Git-Historie oder ein GitHub-Konto sind nicht erforderlich. Docker baut die Container aus
-dem vollständigen Quellcode dieser Version; Basisimages und Paketabhängigkeiten benötigen
-weiterhin Internetzugang. Die [stabile Release-Seite](https://github.com/kennfarbe/LearnPip/releases/latest)
-zeigt automatisch auf das neueste veröffentlichte stabile Release. GitHub verwaltet diesen
-Link; Semantic Release muss dafür keinen zusätzlichen `latest`-Tag erzeugen.
+LearnPip wird aus den bereits veröffentlichten Docker-Hub-Images installiert. Auf der VM müssen
+weder Git noch Node.js noch das .NET SDK installiert werden und die Anwendung wird dort nicht
+kompiliert. Die Images für API, Worker und Web werden von der Release-Pipeline für denselben
+stabilen Versions-Tag erzeugt. Die vollständige Vorgehensweise einschließlich Versionswahl,
+Konfiguration und Wechsel von älteren Installationen steht in
+[Release-Installation](RELEASE-INSTALL.md).
 
-Die folgenden Befehle nutzen `curl` und `jq` aus Schritt 2. Bei einem Fehler stoppen und
-zuerst die Ursache beheben. Insbesondere niemals in ein unvollständig entpacktes Release wechseln.
-
-```sh
-sudo -i
-# Bei einem fehlgeschlagenen Befehl diese Root-Shell beenden.
-set -e
-install -d -m 700 /opt/learnpip/shared/secrets
-install -d /opt/learnpip/releases
-
-# GitHub latest enthält keine Drafts oder Vorabversionen.
-release_json=$(curl --fail --silent --show-error --location \
-  -H 'Accept: application/vnd.github+json' \
-  https://api.github.com/repos/kennfarbe/LearnPip/releases/latest)
-release_tag=$(printf '%s' "$release_json" | jq -er \
-  'select(.draft == false and .prerelease == false) | .tag_name')
-# Nur die vom Projekt verwendeten stabilen Versionstags akzeptieren.
-printf '%s\n' "$release_tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || exit 1
-release_dir="/opt/learnpip/releases/$release_tag"
-# Ein vorhandenes Verzeichnis niemals überschreiben.
-[ ! -e "$release_dir" ] || { echo "Bereits vorhanden: $release_dir"; exit 1; }
-archive_file=$(mktemp /tmp/learnpip-release-XXXXXXXX.tar.gz)
-curl --fail --show-error --location \
-  "https://github.com/kennfarbe/LearnPip/archive/refs/tags/$release_tag.tar.gz" \
-  -o "$archive_file"
-mkdir "$release_dir"
-tar -xzf "$archive_file" --strip-components=1 -C "$release_dir"
-rm "$archive_file"
-cd "$release_dir"
-printf 'Heruntergeladen: %s\n' "$release_tag"
-```
-
-Nur bei der **Erstinstallation** die gemeinsame Konfiguration und Secrets vorbereiten:
-
-```sh
-# Die gemeinsame Konfiguration vor dem Link anlegen (kein leerer Symlink).
-[ -f /opt/learnpip/shared/.env.production ] || \
-  cp deploy/.env.production.example /opt/learnpip/shared/.env.production
-chmod 600 /opt/learnpip/shared/.env.production
-ln -s /opt/learnpip/shared/secrets deploy/secrets
-ln -s /opt/learnpip/shared/.env.production deploy/.env.production
-./scripts/prod-init.sh
-nano deploy/.env.production
-```
-
-Die Versionsnummer wird einmal ermittelt; der Download bleibt auf genau diesen Tag
-festgelegt, auch wenn zwischenzeitlich ein weiteres Release erscheint. Ein fehlendes
-Release, HTTP-Fehler oder GitHub-API-Limit werden sichtbar gemeldet. Bereits vorhandene
-Versionsverzeichnisse werden nicht überschrieben. Den Download bei Fehlern nicht weiterverwenden.
-Eine bestimmte ältere Version lässt sich über [Release-Installation](RELEASE-INSTALL.md)
-auswählen. `shared/.env.production` und `shared/secrets/` bleiben bei Updates erhalten.
+Die Produktionskonfiguration und Secrets bleiben dauerhaft unter /opt/learnpip erhalten.
+Setze LEARNPIP_VERSION immer auf einen konkreten stabilen Tag wie v1.2.3; die produktive
+Installation verwendet absichtlich nicht die beweglichen *-latest-Tags.
 
 In `deploy/.env.production` `LEARNPIP_DOMAIN=learn.example.org` durch **deine** öffentliche Domain ersetzen (ohne `https://` und ohne abschließenden Slash). Die Datei enthält optional die nicht geheimen SMTP- und OIDC-Angaben. `prod-init.sh` legt die Datenbank-Zugangsdaten, einen festen E-Mail-Code-Schlüssel und optionale leere Secret-Dateien unter `deploy/secrets/` an. Diese Dateien niemals in Git übernehmen oder nach dem ersten Datenbankstart neu erzeugen. Vor dem Start prüfen:
 
@@ -137,10 +89,10 @@ Wenn E-Mail-Codes gebraucht werden, `LEARNPIP_MAIL_HOST`, `LEARNPIP_MAIL_FROM`, 
 Noch im heruntergeladenen Release-Verzeichnis (`/opt/learnpip/releases/vX.Y.Z`) und in der Root-Shell der **VM**:
 
 ```sh
-docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml build api worker web migrate
+docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml pull
 docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml up -d db
 docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml --profile ops run --rm migrate
-docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml up -d --no-build
+docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml up -d
 docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml ps
 ```
 
