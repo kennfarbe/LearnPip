@@ -33,9 +33,57 @@ while (($#)); do
   esac
 done
 ! command -v pveversion >/dev/null || die 'Do not run this on the Proxmox host. Use a Debian VM.'
-for command in curl python3 tar realpath flock openssl; do
-  command -v "$command" >/dev/null || die "Missing dependency: $command"
-done
+
+ensure_dependencies() {
+  local missing=() packages=() command package answer
+  local -a dependencies=(
+    'curl:curl'
+    'python3:python3'
+    'tar:tar'
+    'realpath:coreutils'
+    'flock:util-linux'
+    'openssl:openssl'
+  )
+  for entry in "${dependencies[@]}"; do
+    command=${entry%%:*}
+    package=${entry#*:}
+    if ! command -v "$command" >/dev/null; then
+      missing+=("$command")
+      packages+=("$package")
+    fi
+  done
+  (("${#missing[@]}" == 0)) && return 0
+
+  echo "Missing required dependencies: ${missing[*]}" >&2
+  if [[ $action != prepare ]]; then
+    die 'Run prepare first to install/check system dependencies.'
+  fi
+  if [[ ! -r /etc/os-release ]]; then
+    die "Install these dependencies manually: ${packages[*]}"
+  fi
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  if [[ ${ID:-} != debian && ${ID:-} != ubuntu && " ${ID_LIKE:-} " != *" debian "* ]]; then
+    die "Install these dependencies manually: ${packages[*]}"
+  fi
+  if [[ $confirmed == false ]]; then
+    printf 'Install missing system packages with apt: %s\n' "${packages[*]}" >&2
+    read -r -p 'Continue? [y/N] ' answer
+    [[ $answer =~ ^[Yy]$ ]] || die 'Cancelled.'
+  fi
+
+  local -a elevate=()
+  if [[ $EUID != 0 ]]; then
+    command -v sudo >/dev/null || die "sudo is required once to install: ${packages[*]}"
+    elevate=(sudo)
+  fi
+  "${elevate[@]}" apt-get update
+  "${elevate[@]}" apt-get install -y --no-install-recommends "${packages[@]}"
+  for command in "${missing[@]}"; do
+    command -v "$command" >/dev/null || die "Dependency installation did not provide: $command"
+  done
+}
+ensure_dependencies
 [[ $install_dir == /* ]] || die 'Installation directory must be absolute.'
 install_dir=$(realpath -m "$install_dir")
 [[ $install_dir != / && $install_dir != /root && $install_dir != /home ]] || die 'Use a dedicated installation directory.'
@@ -150,14 +198,16 @@ from pathlib import Path
 p = Path(sys.argv[1])
 version, domain, internal = sys.argv[2], sys.argv[3], sys.argv[4]
 lines = p.read_text().splitlines()
+existing_internal = next(
+    (line.split('=', 1)[1] for line in lines if line.startswith('LEARNPIP_INTERNAL=')),
+    'false',
+)
 lines = [line for line in lines if not line.startswith('LEARNPIP_VERSION=') and not line.startswith('LEARNPIP_INTERNAL=')]
 if domain:
     lines = [line for line in lines if not line.startswith('LEARNPIP_DOMAIN=')]
 lines.append('LEARNPIP_VERSION=' + version)
-if internal == 'true':
-    lines.append('LEARNPIP_INTERNAL=true')
-elif not any(line.startswith('LEARNPIP_INTERNAL=') for line in lines):
-    lines.append('LEARNPIP_INTERNAL=false')
+internal_mode = 'true' if internal == 'true' else existing_internal
+lines.append('LEARNPIP_INTERNAL=' + internal_mode)
 if domain:
     lines.append('LEARNPIP_DOMAIN=' + domain)
 p.write_text('\n'.join(lines) + '\n')
