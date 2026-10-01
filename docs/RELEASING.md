@@ -22,6 +22,13 @@ Verlauf. Die erste Veröffentlichung ohne vorhandenen Versionstag startet bei `v
 Festlegung vor dem ersten Merge bewusst bestätigen. Es gibt zunächst keinen Prerelease-Kanal.
 Versionstags und GitHub Releases danach nicht manuell für dieselbe Reihe erstellen.
 
+## Stabile Latest-Adresse
+
+GitHub führt <https://github.com/kennfarbe/LearnPip/releases/latest> automatisch auf das
+neueste stabile Release. Die [Installationsanleitung](RELEASE-INSTALL.md) fragt dessen
+Metadaten ab und lädt das Quellcodearchiv des konkreten Tags. Semantic Release braucht
+keinen weiteren Plugin-Schritt, keinen beweglichen Tag und keine zusätzlichen Assets.
+
 ## Einmalige Einrichtung in GitHub
 
 1. Unter den GitHub-Entwicklereinstellungen eine eigene **GitHub App** für Releases anlegen.
