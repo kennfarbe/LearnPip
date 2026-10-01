@@ -29,6 +29,13 @@ Auf Debian/Ubuntu erkennt `prepare` fehlende Basisabhängigkeiten wie `python3`,
 `apt` zu installieren. Dafür kann `sudo` erforderlich sein; spätere LearnPip-Updates mit
 Rootless Docker benötigen keine erhöhten Rechte.
 
+Für Rootless Docker verwendet LearnPip standardmäßig die Host-Ports 8080/8443. Auf einer dedizierten
+VM kann `prepare --rootless-standard-ports` einmalig die Standardports 80/443 freigeben. Das setzt
+`net.ipv4.ip_unprivileged_port_start=80` systemweit und benötigt deshalb einmalig `sudo`; anschließend
+werden `LEARNPIP_HTTP_PORT=80` und `LEARNPIP_HTTPS_PORT=443` persistent gespeichert. Die Änderung
+bedeutet, dass alle unprivilegierten Prozesse auf diesem Host Ports ab 80 binden dürfen. Verwende diese
+Option daher nur auf einer dafür vorgesehenen VM.
+
 Ein reguläres Update erfolgt anschließend mit:
 
 ```sh

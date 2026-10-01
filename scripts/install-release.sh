@@ -4,7 +4,7 @@ set -euo pipefail
 umask 077
 
 usage() {
-  echo 'Usage: install-release.sh [prepare|install|update] [--version latest|vX.Y.Z] [--domain HOST] [--internal] [--directory PATH] [--yes]'
+  echo 'Usage: install-release.sh [prepare|install|update] [--version latest|vX.Y.Z] [--domain HOST] [--internal] [--rootless-standard-ports] [--directory PATH] [--yes]'
   echo 'Default: prepare only. Docker/Compose must already be installed for install/update.'
 }
 die() { echo "Error: $*" >&2; exit 1; }
@@ -14,6 +14,7 @@ if [[ $EUID == 0 ]]; then install_dir=/opt/learnpip; else install_dir="$HOME/lea
 rootless=false
 domain=''
 internal=false
+rootless_standard_ports=false
 confirmed=false
 if [[ ${1:-} =~ ^(prepare|install|update)$ ]]; then action=$1; shift; fi
 while (($#)); do
@@ -27,6 +28,7 @@ while (($#)); do
       esac
       shift 2 ;;
     --internal) internal=true; shift ;;
+    --rootless-standard-ports) rootless_standard_ports=true; shift ;;
     --yes) confirmed=true; shift ;;
     --help|-h) usage; exit 0 ;;
     *) usage; die "Unknown argument: $1" ;;
@@ -84,6 +86,28 @@ ensure_dependencies() {
   done
 }
 ensure_dependencies
+
+configure_rootless_standard_ports() {
+  [[ $rootless_standard_ports == true ]] || return 0
+  [[ $action == prepare ]] || die '--rootless-standard-ports is only valid with prepare.'
+  [[ $EUID != 0 ]] || die 'Rootless standard-port setup must be run from the unprivileged Docker user.'
+  command -v sudo >/dev/null || die 'sudo is required once to configure rootless standard ports.'
+  current_low_port=$(sysctl -n net.ipv4.ip_unprivileged_port_start)
+  if (( current_low_port <= 80 )); then
+    echo "Unprivileged low ports are already enabled (net.ipv4.ip_unprivileged_port_start=$current_low_port)."
+    return 0
+  fi
+  if [[ $confirmed == false ]]; then
+    echo 'This host-wide setting allows unprivileged processes to bind TCP/UDP ports 80 and above.' >&2
+    read -r -p 'Configure rootless Docker for standard ports 80/443? [y/N] ' answer
+    [[ $answer =~ ^[Yy]$ ]] || die 'Cancelled.'
+  fi
+  printf '%s\n' 'net.ipv4.ip_unprivileged_port_start=80' | sudo tee /etc/sysctl.d/90-learnpip-rootless-ports.conf >/dev/null
+  sudo sysctl --system >/dev/null
+  [[ $(sysctl -n net.ipv4.ip_unprivileged_port_start) -le 80 ]] || die 'Failed to enable unprivileged ports 80/443.'
+  echo 'Configured rootless standard ports 80/443.'
+}
+configure_rootless_standard_ports
 [[ $install_dir == /* ]] || die 'Installation directory must be absolute.'
 install_dir=$(realpath -m "$install_dir")
 [[ $install_dir != / && $install_dir != /root && $install_dir != /home ]] || die 'Use a dedicated installation directory.'
@@ -120,6 +144,7 @@ if [[ -n $current ]]; then
   done
   [[ -z $domain ]] || die 'Updates must reuse the existing domain/configuration.'
   [[ $internal == false ]] || die 'Updates reuse the stored deployment mode; omit --internal.'
+  [[ $rootless_standard_ports == false ]] || die 'Updates reuse the stored port configuration; omit --rootless-standard-ports.'
 fi
 if [[ $version == latest ]]; then
   release_endpoint=latest
@@ -192,22 +217,28 @@ for link in secrets .env.production; do
   fi
 done
 if [[ -z $current ]]; then bash "$target/scripts/prod-init.sh"; fi
-python3 - "$shared/.env.production" "$version" "$domain" "$internal" <<'PY'
+python3 - "$shared/.env.production" "$version" "$domain" "$internal" "$rootless_standard_ports" <<'PY'
 import sys
 from pathlib import Path
 p = Path(sys.argv[1])
-version, domain, internal = sys.argv[2], sys.argv[3], sys.argv[4]
+version, domain, internal, standard_ports = sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5]
 lines = p.read_text().splitlines()
 existing_internal = next(
     (line.split('=', 1)[1] for line in lines if line.startswith('LEARNPIP_INTERNAL=')),
     'false',
 )
-lines = [line for line in lines if not line.startswith('LEARNPIP_VERSION=') and not line.startswith('LEARNPIP_INTERNAL=')]
+existing_http_port = next((line.split('=', 1)[1] for line in lines if line.startswith('LEARNPIP_HTTP_PORT=')), '8080')
+existing_https_port = next((line.split('=', 1)[1] for line in lines if line.startswith('LEARNPIP_HTTPS_PORT=')), '8443')
+lines = [line for line in lines if not line.startswith(('LEARNPIP_VERSION=', 'LEARNPIP_INTERNAL=', 'LEARNPIP_HTTP_PORT=', 'LEARNPIP_HTTPS_PORT='))]
 if domain:
     lines = [line for line in lines if not line.startswith('LEARNPIP_DOMAIN=')]
 lines.append('LEARNPIP_VERSION=' + version)
 internal_mode = 'true' if internal == 'true' else existing_internal
 lines.append('LEARNPIP_INTERNAL=' + internal_mode)
+if standard_ports == 'true':
+    lines.extend(['LEARNPIP_HTTP_PORT=80', 'LEARNPIP_HTTPS_PORT=443'])
+else:
+    lines.extend(['LEARNPIP_HTTP_PORT=' + existing_http_port, 'LEARNPIP_HTTPS_PORT=' + existing_https_port])
 if domain:
     lines.append('LEARNPIP_DOMAIN=' + domain)
 p.write_text('\n'.join(lines) + '\n')
@@ -228,6 +259,14 @@ if [[ $internal_mode == true ]]; then
 fi
 if [[ $rootless == true ]]; then
   [[ -f deploy/compose.rootless.yaml ]] || die 'This release does not support rootless deployment.'
+  http_port=$(sed -n 's/^LEARNPIP_HTTP_PORT=//p' "$shared/.env.production")
+  https_port=$(sed -n 's/^LEARNPIP_HTTPS_PORT=//p' "$shared/.env.production")
+  http_port=${http_port:-8080}
+  https_port=${https_port:-8443}
+  if [[ $http_port == 80 || $https_port == 443 ]]; then
+    low_port_start=$(sysctl -n net.ipv4.ip_unprivileged_port_start)
+    (( low_port_start <= 80 )) || die 'Standard ports require prepare --rootless-standard-ports first.'
+  fi
   compose+=(-f deploy/compose.rootless.yaml)
 fi
 "${compose[@]}" config --quiet

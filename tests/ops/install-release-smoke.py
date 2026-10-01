@@ -64,6 +64,8 @@ if [[ "$*" == *'run --rm migrate'* && "${MOCK_FAIL_MIGRATE:-}" == 1 ]]; then exi
     run('install', '--domain', 'learn.test.invalid', '--internal', '--yes')
     assert (target / 'current').resolve() == target / 'releases/v1.0.0'
     assert 'LEARNPIP_INTERNAL=true' in (target / 'shared/.env.production').read_text()
+    assert 'LEARNPIP_HTTP_PORT=8080' in (target / 'shared/.env.production').read_text()
+    assert 'LEARNPIP_HTTPS_PORT=8443' in (target / 'shared/.env.production').read_text()
     assert '-f deploy/compose.internal.yaml' in log.read_text()
     run('install', '--yes', success=False)
     run('update', '--yes')  # same version is a no-op
@@ -71,6 +73,8 @@ if [[ "$*" == *'run --rm migrate'* && "${MOCK_FAIL_MIGRATE:-}" == 1 ]]; then exi
     assert (target / 'current').resolve() == target / 'releases/v1.0.1'
     assert (target / 'shared/secrets/postgres_password').read_bytes() == password
     assert 'LEARNPIP_INTERNAL=true' in (target / 'shared/.env.production').read_text()
+    assert 'LEARNPIP_HTTP_PORT=8080' in (target / 'shared/.env.production').read_text()
+    assert 'LEARNPIP_HTTPS_PORT=8443' in (target / 'shared/.env.production').read_text()
     commands = log.read_text()
     command_lines = commands.splitlines()
     backup_index = max(i for i, line in enumerate(command_lines) if line == 'backup')
