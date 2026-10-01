@@ -36,3 +36,9 @@ Passwort wird nicht in GitHub gespeichert.
 Der Workflow verwendet gepinnte offizielle Docker-Actions für Login, QEMU, Buildx und Build/Push.
 Die Images werden erst nach dem Semantic Release gebaut; normale Pull Requests und Commits ohne
 neuen Release veröffentlichen nichts nach Docker Hub.
+
+## Pull Requests mergen
+
+Für Änderungen, die einen Release auslösen sollen, **Squash and merge** verwenden und den Conventional-Commit-Titel des Pull Requests als Squash-Commit-Titel beibehalten, zum Beispiel `feat(ops): add release installer` oder `fix(web): correct login redirect`.
+
+Ein normaler GitHub-Merge erzeugt standardmäßig einen Commit mit `Merge pull request ...`. Semantic Release wertet diesen Merge-Titel nicht als `feat:` oder `fix:` aus. Dadurch kann die CI erfolgreich sein, ohne dass ein neuer Release-Tag und die zugehörigen Docker-Images erzeugt werden.
