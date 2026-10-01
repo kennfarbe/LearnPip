@@ -13,7 +13,7 @@ Die Produktionsumgebung steht in [`deploy/compose.prod.yaml`](../deploy/compose.
 # Die Dateien und das Verzeichnis bleiben lokal (Rechte 0600 bzw. 0700).
 
 # Images bauen, Datenbank starten und Schema explizit migrieren:
-docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml build api worker web migrate
+docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml pull
 docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml up -d db
 docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml --profile ops run --rm migrate
 # Danach API, Worker, Web und HTTPS-Proxy starten:
@@ -42,8 +42,8 @@ Vor einem Upgrade Quellstand und Image-Versionen festlegen, eine Datenbanksicher
 
 ```sh
 ./scripts/backup-prod.sh
-# Neue Quellversion auschecken; dann:
-docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml build api worker web migrate
+# LEARNPIP_VERSION auf den neuen Release-Tag setzen; dann:
+docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml pull
 docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml --profile ops run --rm migrate
 docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml up -d --no-build
 ```
