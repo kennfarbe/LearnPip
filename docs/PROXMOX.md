@@ -23,7 +23,7 @@ Bei CGNAT oder fehlender Portweiterleitung kann Caddy mit dieser Konfiguration k
 ```sh
 sudo apt update
 sudo apt full-upgrade
-sudo apt install -y sudo git curl ca-certificates openssl qemu-guest-agent
+sudo apt install -y sudo curl jq ca-certificates openssl qemu-guest-agent
 sudo systemctl enable --now qemu-guest-agent
 ip -br address
 ```
@@ -59,16 +59,68 @@ Wenn bereits `docker.io`, `docker-compose`, `containerd` oder `runc` installiert
 
 ## 4. LearnPip vorbereiten
 
-Im Gast als Administrator:
+Bei einer schon laufenden Git-Clone-Installation zuerst den
+[Wechselpfad für vorhandene Konfiguration und Secrets](RELEASE-INSTALL.md#wechsel-von-einer-bisherigen-git-clone-installation)
+verwenden; danach nach dem Updatepfad vorgehen.
+
+Im Gast als Administrator das **neueste stabile GitHub Release** laden. Ein Git-Clone,
+Git-Historie oder ein GitHub-Konto sind nicht erforderlich. Docker baut die Container aus
+dem vollständigen Quellcode dieser Version; Basisimages und Paketabhängigkeiten benötigen
+weiterhin Internetzugang. Die [stabile Release-Seite](https://github.com/kennfarbe/LearnPip/releases/latest)
+zeigt automatisch auf das neueste veröffentlichte stabile Release. GitHub verwaltet diesen
+Link; Semantic Release muss dafür keinen zusätzlichen `latest`-Tag erzeugen.
+
+Die folgenden Befehle nutzen `curl` und `jq` aus Schritt 2. Bei einem Fehler stoppen und
+zuerst die Ursache beheben. Insbesondere niemals in ein unvollständig entpacktes Release wechseln.
 
 ```sh
 sudo -i
-cd /opt
-git clone https://github.com/kennfarbe/LearnPip.git
-cd /opt/LearnPip
+# Bei einem fehlgeschlagenen Befehl diese Root-Shell beenden.
+set -e
+install -d -m 700 /opt/learnpip/shared/secrets
+install -d /opt/learnpip/releases
+
+# GitHub latest enthält keine Drafts oder Vorabversionen.
+release_json=$(curl --fail --silent --show-error --location \
+  -H 'Accept: application/vnd.github+json' \
+  https://api.github.com/repos/kennfarbe/LearnPip/releases/latest)
+release_tag=$(printf '%s' "$release_json" | jq -er \
+  'select(.draft == false and .prerelease == false) | .tag_name')
+# Nur die vom Projekt verwendeten stabilen Versionstags akzeptieren.
+printf '%s\n' "$release_tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || exit 1
+release_dir="/opt/learnpip/releases/$release_tag"
+# Ein vorhandenes Verzeichnis niemals überschreiben.
+[ ! -e "$release_dir" ] || { echo "Bereits vorhanden: $release_dir"; exit 1; }
+archive_file=$(mktemp /tmp/learnpip-release-XXXXXXXX.tar.gz)
+curl --fail --show-error --location \
+  "https://github.com/kennfarbe/LearnPip/archive/refs/tags/$release_tag.tar.gz" \
+  -o "$archive_file"
+mkdir "$release_dir"
+tar -xzf "$archive_file" --strip-components=1 -C "$release_dir"
+rm "$archive_file"
+cd "$release_dir"
+printf 'Heruntergeladen: %s\n' "$release_tag"
+```
+
+Nur bei der **Erstinstallation** die gemeinsame Konfiguration und Secrets vorbereiten:
+
+```sh
+# Die gemeinsame Konfiguration vor dem Link anlegen (kein leerer Symlink).
+[ -f /opt/learnpip/shared/.env.production ] || \
+  cp deploy/.env.production.example /opt/learnpip/shared/.env.production
+chmod 600 /opt/learnpip/shared/.env.production
+ln -s /opt/learnpip/shared/secrets deploy/secrets
+ln -s /opt/learnpip/shared/.env.production deploy/.env.production
 ./scripts/prod-init.sh
 nano deploy/.env.production
 ```
+
+Die Versionsnummer wird einmal ermittelt; der Download bleibt auf genau diesen Tag
+festgelegt, auch wenn zwischenzeitlich ein weiteres Release erscheint. Ein fehlendes
+Release, HTTP-Fehler oder GitHub-API-Limit werden sichtbar gemeldet. Bereits vorhandene
+Versionsverzeichnisse werden nicht überschrieben. Den Download bei Fehlern nicht weiterverwenden.
+Eine bestimmte ältere Version lässt sich über [Release-Installation](RELEASE-INSTALL.md)
+auswählen. `shared/.env.production` und `shared/secrets/` bleiben bei Updates erhalten.
 
 In `deploy/.env.production` `LEARNPIP_DOMAIN=learn.example.org` durch **deine** öffentliche Domain ersetzen (ohne `https://` und ohne abschließenden Slash). Die Datei enthält optional die nicht geheimen SMTP- und OIDC-Angaben. `prod-init.sh` legt die Datenbank-Zugangsdaten, einen festen E-Mail-Code-Schlüssel und optionale leere Secret-Dateien unter `deploy/secrets/` an. Diese Dateien niemals in Git übernehmen oder nach dem ersten Datenbankstart neu erzeugen. Vor dem Start prüfen:
 
@@ -82,7 +134,7 @@ Wenn E-Mail-Codes gebraucht werden, `LEARNPIP_MAIL_HOST`, `LEARNPIP_MAIL_FROM`, 
 
 ## 5. Start und Kontrolle
 
-Noch in `/opt/LearnPip` und in der Root-Shell der **VM**:
+Noch im heruntergeladenen Release-Verzeichnis (`/opt/learnpip/releases/vX.Y.Z`) und in der Root-Shell der **VM**:
 
 ```sh
 docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml build api worker web migrate
@@ -104,19 +156,42 @@ Die Domain im Beispiel ersetzen. `health/ready` bestätigt die Verbindung der AP
 
 ## 6. Sicherung, Updates und Fehlerbehebung
 
-Für eine sofortige Datenbanksicherung in der Root-Shell `./scripts/backup-prod.sh` ausführen. Standardziel ist `/root/learnpip-backups`; mit `LEARNPIP_BACKUP_DIR=/pfad/auf/anderem/datentraeger ./scripts/backup-prod.sh` kann das Ziel geändert werden. Den Dump **regelmäßig außerhalb der VM** speichern und `deploy/secrets/` geschützt mitsichern. Der Befehl löscht lokale Dumps nach 30 Tagen. Eine tägliche Planung beispielsweise per Root-Crontab: `0 2 * * * /opt/LearnPip/scripts/backup-prod.sh >>/var/log/learnpip-backup.log 2>&1`. Die externe Kopie und deren Aufbewahrungsdauer gesondert einrichten. Zusätzlich eine Proxmox-VM-Sicherung einplanen; einen Wiederherstellungstest durchführen. [Betrieb](OPERATIONS.md) und [Datenbank-Wiederherstellung](DATABASE.md) enthalten weitere Einzelheiten.
+Für eine sofortige Datenbanksicherung in der Root-Shell `./scripts/backup-prod.sh` ausführen. Standardziel ist `/root/learnpip-backups`; mit `LEARNPIP_BACKUP_DIR=/pfad/auf/anderem/datentraeger ./scripts/backup-prod.sh` kann das Ziel geändert werden. Den Dump **regelmäßig außerhalb der VM** speichern und `/opt/learnpip/shared/` geschützt mitsichern. Der Befehl löscht lokale Dumps nach 30 Tagen. Eine tägliche Planung beispielsweise per Root-Crontab: `0 2 * * * /opt/learnpip/current/scripts/backup-prod.sh >>/var/log/learnpip-backup.log 2>&1`. Die externe Kopie und deren Aufbewahrungsdauer gesondert einrichten. Zusätzlich eine Proxmox-VM-Sicherung einplanen; einen Wiederherstellungstest durchführen. [Betrieb](OPERATIONS.md) und [Datenbank-Wiederherstellung](DATABASE.md) enthalten weitere Einzelheiten.
 
-Vor einem Update: Dump und VM-Sicherung prüfen, dann im Repository den gewünschten Release-Tag bzw. freigegebenen Commit auschecken. Für einen einfachen Updatepfad auf `main`:
+Nach erfolgreichem Start und Healthcheck einen festen lokalen Pfad setzen:
 
 ```sh
-cd /opt/LearnPip
-./scripts/backup-prod.sh
-git pull --ff-only origin main
-docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml build api worker web migrate
-docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml --profile ops run --rm migrate
-docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml up -d --no-build
-docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml ps
+ln -sfn "$PWD" /opt/learnpip/current
 ```
+
+`current` zeigt nur auf die tatsächlich installierte und geprüfte Version. Dieser lokale
+Link hat keine Verbindung zur GitHub-Release-Seite. Die obige Backup-Crontab verwendet ihn,
+damit sie nach einem Versionswechsel weiter funktioniert.
+
+Vor einem Update die [Versionshinweise](https://github.com/kennfarbe/LearnPip/releases/latest)
+lesen, einen aktuellen Dump und eine externe VM-Sicherung erstellen:
+
+```sh
+cd /opt/learnpip/current
+./scripts/backup-prod.sh
+```
+
+Dann die Download-Befehle aus Schritt 4 erneut ausführen, um das neue stabile Release in
+ein **neues** Versionsverzeichnis zu entpacken. Die gemeinsamen Dateien verknüpfen;
+`prod-init.sh` beim Update nicht erneut ausführen:
+
+```sh
+ln -s /opt/learnpip/shared/secrets deploy/secrets
+ln -s /opt/learnpip/shared/.env.production deploy/.env.production
+```
+
+Nun die Compose-Befehle und Healthchecks aus Schritt 5 aus dem neuen Verzeichnis ausführen.
+Erst nach erfolgreicher Prüfung `ln -sfn "$PWD" /opt/learnpip/current` setzen. Das feste
+Compose-Projekt `learnpip` erhält die benannten Datenbank- und Caddy-Volumes. Es gibt kein
+unbeaufsichtigtes Auto-Update: Migrationen und Release Notes müssen vor jedem Wechsel
+geprüft werden. Das vorherige Verzeichnis und eine passende Datenbanksicherung zunächst
+aufbewahren; bei inkompatiblen Migrationen reicht ein Zurücksetzen von `current` nicht.
+Weitere Einzelheiten: [Installieren und Aktualisieren aus Releases](RELEASE-INSTALL.md).
 
 Neue PostgreSQL-Hauptversionen erfordern einen geplanten Datenbank-Upgradeprozess; das Image-Tag allein genügt nicht. Bei Fehlern zuerst `docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml ps` und `logs --tail=100 db api web proxy worker` ausführen. Wenn Caddy kein Zertifikat erhält, DNS-A/AAAA, Portweiterleitung und Firewall **von außerhalb des Heimnetzes** testen. Wenn die API nicht gesund wird, den Migrationslauf und Datenbank-Logs prüfen. Nach Host-Neustart starten die Dienste dank `restart: unless-stopped` erneut; auch das mit `ps` und dem HTTPS-Healthcheck kontrollieren.
 
