@@ -11,6 +11,31 @@ Zusätzlich existieren `api-latest`, `worker-latest` und `web-latest`. Produktiv
 verwenden absichtlich immer einen festen `vX.Y.Z`-Tag. PostgreSQL und Caddy verwenden weiterhin
 ihre offiziellen Images. Auf dem Zielsystem werden weder Git noch Node.js noch das .NET SDK benötigt.
 
+## Komfort-Installer
+
+Für Erstinstallation und spätere Updates steht `scripts/install-release.sh` bereit. Das Skript
+lädt nur die kleine Release-Konfiguration aus GitHub; die eigentliche Anwendung kommt als fertige
+versionierte Images aus Docker Hub. Es klont kein Repository und kompiliert LearnPip nicht auf der VM.
+
+Erstinstallation mit dem neuesten stabilen Release:
+
+```sh
+bash scripts/install-release.sh install --domain learn.meine-domain.de
+```
+
+Zum Prüfen und Konfigurieren vor dem ersten Start kann zunächst `prepare` verwendet werden.
+Ein reguläres Update erfolgt anschließend mit:
+
+```sh
+bash "$HOME/learnpip/current/scripts/install-release.sh" update
+```
+
+Bei Rootless Docker läuft dies als normaler Benutzer ohne sudo. Das Skript prüft Stable-Release-
+Metadaten, erhält Secrets und Konfiguration, erstellt vor Updates ein Datenbank-Backup, setzt
+`LEARNPIP_VERSION` auf den neuen Release-Tag, führt `docker compose pull`, Migration und
+Healthcheck aus und schaltet erst danach den `current`-Link um. Ein Datenbank-Rollback erfolgt
+nicht automatisch.
+
 ## Erstinstallation
 
 Die Proxmox-Anleitung beschreibt VM, Docker, Netzwerk und Firewall. Danach reicht das kleine
