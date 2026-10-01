@@ -324,18 +324,7 @@ jobs:
         id: released
         run: |
           git fetch --force --tags origin
-          release_tag="$(git tag --points-at HEAD | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+  restore-smoke:
-    name: Backup restore smoke
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: false
-      - name: Restore synthetic private media and learning data
-        run: ./tests/ops/restore-smoke.sh
- | head -1 || true)"
+          release_tag="$(git tag --points-at HEAD | grep -E '^v[0-9]+[.][0-9]+[.][0-9]+$' | head -1 || true)"
           printf 'release_tag=%s\n' "$release_tag" >> "$GITHUB_OUTPUT"
 
   docker-publish:
@@ -384,6 +373,7 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.component }}
           cache-to: type=gha,mode=max,scope=${{ matrix.component }}
           sbom: true
+
   restore-smoke:
     name: Backup restore smoke
     runs-on: ubuntu-latest
