@@ -1,9 +1,9 @@
-# Rootless Docker: do not grant privileged-port capabilities or lower sysctl limits.
-# Forward public TCP 80->8080 and TCP/UDP 443->8443 to the VM at the router/proxy.
+# Rootless Docker uses high ports by default. Set LEARNPIP_HTTP_PORT=80 and
+# LEARNPIP_HTTPS_PORT=443 only after the host permits unprivileged low ports.
 # Requires Docker Compose 2.24.4+ for !override.
 services:
   proxy:
     ports: !override
-      - "8080:80"
-      - "8443:443"
-      - "8443:443/udp"
+      - "${LEARNPIP_HTTP_PORT:-8080}:80"
+      - "${LEARNPIP_HTTPS_PORT:-8443}:443"
+      - "${LEARNPIP_HTTPS_PORT:-8443}:443/udp"
