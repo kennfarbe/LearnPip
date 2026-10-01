@@ -24,6 +24,11 @@ bash scripts/install-release.sh install --domain learn.meine-domain.de
 ```
 
 Zum Prüfen und Konfigurieren vor dem ersten Start kann zunächst `prepare` verwendet werden.
+Auf Debian/Ubuntu erkennt `prepare` fehlende Basisabhängigkeiten wie `python3`, `curl`, `tar`,
+`openssl` und `flock` gesammelt und bietet an, die zugehörigen Systempakete einmalig per
+`apt` zu installieren. Dafür kann `sudo` erforderlich sein; spätere LearnPip-Updates mit
+Rootless Docker benötigen keine erhöhten Rechte.
+
 Ein reguläres Update erfolgt anschließend mit:
 
 ```sh
