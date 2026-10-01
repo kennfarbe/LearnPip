@@ -59,6 +59,18 @@ Wenn bereits `docker.io`, `docker-compose`, `containerd` oder `runc` installiert
 
 ## 4. LearnPip vorbereiten
 
+**Mit Installationsskript:** Nach Einrichtung von Docker kann die kurze
+[Skript-Anleitung](RELEASE-INSTALL.md#kurzer-weg-installationsskript) Download, Vorbereitung
+und auf Wunsch Start übernehmen. Sie ersetzt die manuellen Befehle in Schritt 4 und 5;
+die Netzwerk-, Backup- und Kontrollschritte bleiben erforderlich. Das Skript ist erst
+ab dem ersten Release mit dieser Funktion enthalten. Die folgenden Befehle bleiben als
+manueller Weg und für v1.0.0 verfügbar.
+
+Für **Updates ohne sudo** den Rootless-Weg in der Skript-Anleitung wählen. Die einmalige
+Einrichtung passt Benutzer-Docker und Router-Ports an; Betrieb und Updates erfolgen
+danach als normaler Benutzer. Nicht nur die `docker`-Gruppe verwenden. Die folgenden
+manuellen Schritte sind der alternativ unterstützte Rootful-Weg und benötigen Root.
+
 Bei einer schon laufenden Git-Clone-Installation zuerst den
 [Wechselpfad für vorhandene Konfiguration und Secrets](RELEASE-INSTALL.md#wechsel-von-einer-bisherigen-git-clone-installation)
 verwenden; danach nach dem Updatepfad vorgehen.

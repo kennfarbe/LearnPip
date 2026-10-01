@@ -275,7 +275,7 @@ jobs:
   release:
     name: Semantic release
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [repository-policy, backend, web, restore-smoke]
+    needs: [repository-policy, backend, web, restore-smoke, installer-smoke]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -329,3 +329,17 @@ jobs:
           persist-credentials: false
       - name: Restore synthetic private media and learning data
         run: ./tests/ops/restore-smoke.sh
+
+  installer-smoke:
+    name: Installer smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Test installer without network or real Docker
+        run: |
+          bash -n scripts/install-release.sh
+          sudo python3 tests/ops/install-release-smoke.py

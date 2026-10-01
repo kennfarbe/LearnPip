@@ -8,6 +8,118 @@ aufbewahrt werden. Voraussetzung: Docker Engine mit Compose-Plugin, Internetzuga
 und Paketabhängigkeiten, genügend Speicher, Domain und DNS. Die [Proxmox-Anleitung](PROXMOX.md)
 beschreibt die VM, Docker, Firewall, Mail und OIDC.
 
+## Kurzer Weg: Installationsskript
+
+Das Skript `scripts/install-release.sh` übernimmt Release-Download, Entpacken,
+gemeinsame Konfiguration/Secrets und auf ausdrücklichen Wunsch Build, Migration und Start.
+**Nur in der Debian-VM ausführen**, niemals auf dem Proxmox-Host. Docker Engine und
+Compose müssen wie in [PROXMOX.md](PROXMOX.md) bereits eingerichtet sein.
+
+### Empfohlen: Einmalige Einrichtung, danach ohne sudo
+
+Für unprivilegierte Installation und Updates **Docker Rootless** als dedizierten
+Linux-Benutzer verwenden. Mitgliedschaft in der normalen `docker`-Gruppe ist keine
+Alternative: sie verleiht praktisch Root-Rechte. Die folgenden Administrationsschritte
+sind einmalig auf einer **frischen VM ohne laufende Container** erforderlich, nachdem
+das offizielle Docker-Repository aus der Proxmox-Anleitung eingerichtet wurde:
+
+```sh
+sudo apt install -y uidmap dbus-user-session slirp4netns docker-ce-rootless-extras
+# Nur auf einer frischen VM: rootful Docker nicht parallel automatisch betreiben.
+sudo systemctl disable --now docker.service docker.socket
+sudo loginctl enable-linger "$USER"
+```
+
+Danach als normaler Benutzer (kein `sudo -i`):
+
+```sh
+dockerd-rootless-setuptool.sh install
+systemctl --user enable --now docker
+docker context use rootless
+docker info
+```
+
+`docker info` muss `rootless` unter Security Options anzeigen. Docker benötigt
+Subuid/Subgid-Bereiche für den Benutzer; bei fehlenden Bereichen die
+[offizielle Rootless-Anleitung](https://docs.docker.com/engine/security/rootless/)
+verwenden. Compose **2.24.4 oder neuer** ist für die Port-Override-Datei erforderlich.
+Der Installer prüft bei einem normalen Benutzer den tatsächlich aktiven Docker-Daemon
+und verweigert Installation/Updates über einen rootful Daemon.
+
+Rootless bindet am VM-Host **8080** und **8443** statt 80/443. Router/Firewall einmalig
+auf öffentlich TCP 80 → VM 8080 und TCP/UDP 443 → VM 8443 einrichten; DNS muss passen.
+Alternativ einen vorhandenen vorgeschalteten Proxy passend konfigurieren. Für Caddys
+normale Zertifikatsprüfung muss die öffentliche Erreichbarkeit weiterhin gegeben sein.
+Es wird weder das systemweite Limit für unprivilegierte Ports abgesenkt noch eine
+zusätzliche Capability vergeben. Siehe [Rootless-Portregeln](https://docs.docker.com/engine/security/rootless/tips/).
+
+Ohne Administratorrechte von Beginn an funktioniert dies nur, wenn Rootless Docker,
+Benutzerbereiche und Netzwerk schon eingerichtet sind. Das Skript selbst braucht dann
+auch bei der Erstinstallation kein sudo. Es verwendet standardmäßig `$HOME/learnpip`.
+Rootful Installationen unter `/opt/learnpip` bleiben unterstützt, erfordern aber weiterhin
+Root-Rechte; sie werden nicht automatisch in Rootless umgewandelt. Datenbank-Volumes
+gehören zum jeweiligen Daemon und müssen beim Wechsel separat gesichert/wiederhergestellt werden.
+
+Das Skript steht ab dem ersten Release mit dieser Änderung zur Verfügung; **v1.0.0 enthält
+es noch nicht**. Bis dahin den manuellen Weg unten verwenden. Nach dem Merge dieses
+Feature-PRs veröffentlicht Semantic Release eine neue Version.
+
+```sh
+sudo apt install -y curl ca-certificates python3 openssl util-linux
+release_tag=$(curl -fsSL https://api.github.com/repos/kennfarbe/LearnPip/releases/latest | \
+  python3 -c 'import json,sys; r=json.load(sys.stdin); assert not r["draft"] and not r["prerelease"]; print(r["tag_name"])')
+printf '%s\n' "$release_tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || exit 1
+installer_file=$(mktemp /tmp/learnpip-installer-XXXXXXXX.sh)
+curl -fSL "https://raw.githubusercontent.com/kennfarbe/LearnPip/$release_tag/scripts/install-release.sh" \
+  -o "$installer_file" || exit 1
+less "$installer_file"
+# Eigene Domain einsetzen. Das Skript fragt vor dem Start nach einer Bestätigung.
+bash "$installer_file" install --version "$release_tag" --domain learn.meine-domain.de
+```
+
+Der Download wird erst angesehen und dann ausgeführt; kein `curl | sudo bash`.
+Ohne Argumente bzw. mit `prepare` wird **nur vorbereitet**, nicht gestartet:
+
+```sh
+bash "$installer_file" prepare --version "$release_tag"
+nano "$HOME/learnpip/shared/.env.production"
+bash "$installer_file" install --version "$release_tag"
+```
+
+Diese Variante erlaubt SMTP/OIDC und weitere Einstellungen vor dem ersten Start.
+Das Skript erzeugt keine Domain, DNS-Einträge, Portweiterleitungen oder Admin-Konten.
+Nach dem Start Anmeldung im Browser testen und externe Backups einrichten.
+
+### Updates per Skript
+
+Release Notes lesen und eine aktuelle **externe VM-Sicherung einschließlich Secrets**
+erstellen. Dann in der VM:
+
+```sh
+bash "$HOME/learnpip/current/scripts/install-release.sh" update
+```
+
+Das Skript fragt vor Änderungen nach, erstellt mit dem bisherigen Release einen
+Datenbank-Dump, baut die neue Version, führt Migrationen aus und prüft den HTTPS-
+Readiness-Endpunkt. Erst danach wird `current` umgeschaltet. Ein schon installiertes
+Release ist ein No-op. Konfiguration und Datenbank-Secrets werden nicht ersetzt.
+`--version vX.Y.Z` wählt ein bestimmtes veröffentlichtes Stable Release;
+`--directory /pfad/learnpip` eine eigene Installationsbasis (bei allen Aufrufen dieselbe
+verwenden). `--yes` überspringt nur die Bestätigungsfrage, nicht Backup oder Prüfungen.
+Updates laufen als derselbe Benutzer und im selben Rootless-Docker-Kontext wie die
+Installation; keine sudo-Passwortabfrage und kein Eintrag in der Docker-Gruppe nötig.
+Diese Befehle gelten für den Rootless-Weg; für den ausdrücklich gewählten alten Rootful-
+Weg `sudo bash` und `/opt/learnpip` verwenden. Die folgenden manuellen Abschnitte
+dokumentieren weiterhin den Rootful-Weg.
+
+Bei Download-, Build-, Backup- oder Migrationsfehlern bricht das Skript ab. Ein
+fehlgeschlagener Healthcheck oder eine Migration kann bereits veränderte Dienste bzw.
+Daten hinterlassen, auch wenn `current` noch auf die vorige Version zeigt. **Kein
+automatischer Datenbank-Rollback.** Logs prüfen und den Wiederherstellungsplan verwenden.
+Der lokale Dump allein schützt nicht vor einem VM-Ausfall. Bestehende Clone-Installationen
+zuerst über den Wechselpfad unten auf gemeinsame Dateien und einen geprüften `current`-
+Link umstellen; das Skript importiert keine laufende fremde Installation automatisch.
+
 ## Fester Link zum neuesten Stable Release
 
 - Release-Seite: <https://github.com/kennfarbe/LearnPip/releases/latest>
