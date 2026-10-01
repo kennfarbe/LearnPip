@@ -1,0 +1,7 @@
+# Internal/LAN mode: use Caddy's local CA instead of public ACME.
+services:
+  proxy:
+    volumes:
+      - ./Caddyfile.internal:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
