@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/kennfarbe/LearnPip/compare/v1.1.0...v1.1.1) (2026-10-01)
+
+
+### Bug Fixes
+
+* **release:** trigger installer release after merge ([a5ec1f0](https://github.com/kennfarbe/LearnPip/commit/a5ec1f0fa366001494c1671a64f7f53dcb2fd185))
+
 # [1.1.0](https://github.com/kennfarbe/LearnPip/compare/v1.0.0...v1.1.0) (2026-10-01)
 
 
