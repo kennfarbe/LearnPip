@@ -1,3 +1,12 @@
+# [1.2.0](https://github.com/kennfarbe/LearnPip/compare/v1.1.1...v1.2.0) (2026-10-01)
+
+
+### Features
+
+* **ops:** add internal deployment override ([68645a3](https://github.com/kennfarbe/LearnPip/commit/68645a3f2c960d3afa965438f634bf80f0393b6f))
+* **ops:** add internal TLS configuration ([1fe1f28](https://github.com/kennfarbe/LearnPip/commit/1fe1f285254270dad845b0de075a3a73057415a9))
+* **ops:** support internal LAN installs ([a88a037](https://github.com/kennfarbe/LearnPip/commit/a88a037a0477818f193721faa59ad39216f59194))
+
 ## [1.1.1](https://github.com/kennfarbe/LearnPip/compare/v1.1.0...v1.1.1) (2026-10-01)
 
 
