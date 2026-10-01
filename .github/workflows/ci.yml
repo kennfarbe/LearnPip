@@ -272,6 +272,52 @@ jobs:
           npm run test:pwa
           npm run build --if-present
 
+  release:
+    name: Semantic release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [repository-policy, backend, web, restore-smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Require release app configuration
+        env:
+          RELEASE_APP_CLIENT_ID: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+        run: |
+          if [ -z "$RELEASE_APP_CLIENT_ID" ] || [ -z "$RELEASE_APP_PRIVATE_KEY" ]; then
+            echo 'Configure RELEASE_APP_CLIENT_ID and RELEASE_APP_PRIVATE_KEY for the release GitHub App.' >&2
+            exit 1
+          fi
+      - name: Create short-lived release token
+        id: release-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+      - name: Check out full history and tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          token: ${{ steps.release-token.outputs.token }}
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install release tooling
+        run: npm ci
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ steps.release-token.outputs.token }}
+          GIT_AUTHOR_NAME: learnpip-release-bot
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: learnpip-release-bot
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: npx semantic-release
   restore-smoke:
     name: Backup restore smoke
     runs-on: ubuntu-latest
