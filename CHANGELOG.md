@@ -1,3 +1,11 @@
+# [1.3.0](https://github.com/kennfarbe/LearnPip/compare/v1.2.1...v1.3.0) (2026-10-01)
+
+
+### Features
+
+* **ops:** configure rootless standard ports ([5b62737](https://github.com/kennfarbe/LearnPip/commit/5b6273783bbf3a8da2821563c286df1b38c6683f))
+* **ops:** make rootless proxy ports configurable ([dac87f5](https://github.com/kennfarbe/LearnPip/commit/dac87f5278ee1b9111af1b96d5fda112fe8981dd))
+
 ## [1.2.1](https://github.com/kennfarbe/LearnPip/compare/v1.2.0...v1.2.1) (2026-10-01)
 
 
