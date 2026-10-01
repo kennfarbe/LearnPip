@@ -66,7 +66,7 @@ verwenden; danach nach dem Updatepfad vorgehen.
 LearnPip wird aus den bereits veröffentlichten Docker-Hub-Images installiert. Auf der VM müssen
 weder Git noch Node.js noch das .NET SDK installiert werden und die Anwendung wird dort nicht
 kompiliert. Die Images für API, Worker und Web werden von der Release-Pipeline für denselben
-stabilen Versions-Tag erzeugt. Die vollständige Vorgehensweise einschließlich Versionswahl,
+stabilen Versions-Tag erzeugt. Die vollständige Vorgehensweise einschließlich des Komfort-Installers für Erstinstallation und Updates, Versionswahl,
 Konfiguration und Wechsel von älteren Installationen steht in
 [Release-Installation](RELEASE-INSTALL.md).
 

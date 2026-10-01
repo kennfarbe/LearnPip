@@ -272,12 +272,26 @@ jobs:
           npm run test:pwa
           npm run build --if-present
 
+  installer-smoke:
+    name: Installer smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Test installer without network or real Docker
+        run: |
+          bash -n scripts/install-release.sh
+          sudo python3 tests/ops/install-release-smoke.py
+
   release:
     name: Semantic release
     outputs:
       release_tag: ${{ steps.released.outputs.release_tag }}
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [repository-policy, backend, web, restore-smoke]
+    needs: [repository-policy, backend, web, restore-smoke, installer-smoke]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
