@@ -39,6 +39,10 @@ neuen Release veröffentlichen nichts nach Docker Hub.
 
 ## Pull Requests mergen
 
-Für Änderungen, die einen Release auslösen sollen, **Squash and merge** verwenden und den Conventional-Commit-Titel des Pull Requests als Squash-Commit-Titel beibehalten, zum Beispiel `feat(ops): add release installer` oder `fix(web): correct login redirect`.
+Pull Requests werden standardmäßig mit **Create a merge commit** zusammengeführt. Squash-Merges sind für den Release-Prozess nicht erforderlich.
 
-Ein normaler GitHub-Merge erzeugt standardmäßig einen Commit mit `Merge pull request ...`. Semantic Release wertet diesen Merge-Titel nicht als `feat:` oder `fix:` aus. Dadurch kann die CI erfolgreich sein, ohne dass ein neuer Release-Tag und die zugehörigen Docker-Images erzeugt werden.
+Jeder Commit eines Pull Requests muss bereits einen Conventional-Commit-Betreff besitzen, zum Beispiel `feat(ops): add release installer`, `fix(web): correct login redirect` oder `docs: explain setup`. Die Repository-Policy prüft diese Commit-Betreffzeilen vor dem Merge.
+
+Der zusätzliche GitHub-Merge-Commit mit einem Betreff wie `Merge pull request ...` ist unproblematisch: Semantic Release betrachtet die vollständige Commit-Historie seit dem letzten Release-Tag und erkennt die darin enthaltenen `feat:`-, `fix:`- und Breaking-Change-Commits. Dadurch bleiben die einzelnen Entwicklungs-Commits erhalten und bestimmen gemeinsam die nächste Release-Version.
+
+Der Pull-Request-Titel bleibt ebenfalls im Conventional-Commit-Format, damit die Änderung in GitHub eindeutig klassifiziert ist; für die Versionsberechnung bei einem normalen Merge sind jedoch die einzelnen Commits maßgeblich.
