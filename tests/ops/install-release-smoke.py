@@ -13,7 +13,7 @@ with tempfile.TemporaryDirectory(prefix='learnpip-installer-test-') as temporary
     work = Path(temporary)
     fixture = work / 'release.tar.gz'
     with tarfile.open(fixture, 'w:gz') as archive:
-        for name in ['deploy/compose.prod.yaml', 'deploy/compose.rootless.yaml', 'deploy/.env.production.example', 'scripts/prod-init.sh']:
+        for name in ['deploy/compose.prod.yaml', 'deploy/compose.rootless.yaml', 'deploy/compose.internal.yaml', 'deploy/Caddyfile.internal', 'deploy/.env.production.example', 'scripts/prod-init.sh']:
             archive.add(repo / name, arcname='LearnPip-1.0.0/' + name)
         data = b'#!/bin/bash\necho backup >> "$MOCK_LOG"\n'
         entry = tarfile.TarInfo('LearnPip-1.0.0/scripts/backup-prod.sh')
@@ -61,8 +61,10 @@ if [[ "$*" == *'run --rm migrate'* && "${MOCK_FAIL_MIGRATE:-}" == 1 ]]; then exi
     assert password
     run('prepare')  # reuse only verified prepared releases
     assert (target / 'shared/secrets/postgres_password').read_bytes() == password
-    run('install', '--domain', 'learn.test.invalid', '--yes')
+    run('install', '--domain', 'learn.test.invalid', '--internal', '--yes')
     assert (target / 'current').resolve() == target / 'releases/v1.0.0'
+    assert 'LEARNPIP_INTERNAL=true' in (target / 'shared/.env.production').read_text()
+    assert '-f deploy/compose.internal.yaml' in log.read_text()
     run('install', '--yes', success=False)
     run('update', '--yes')  # same version is a no-op
     run('update', '--version', 'v1.0.1', '--yes')

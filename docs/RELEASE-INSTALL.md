@@ -36,6 +36,17 @@ Metadaten, erhält Secrets und Konfiguration, erstellt vor Updates ein Datenbank
 Healthcheck aus und schaltet erst danach den `current`-Link um. Ein Datenbank-Rollback erfolgt
 nicht automatisch.
 
+
+### Interne LAN-/VPN-Installation
+
+Für Installationen, die nur im lokalen Netz oder später über VPN erreichbar sein sollen, kann der Installer Caddys interne CA verwenden. Es sind dann keine öffentlichen DNS-Einträge und keine Portweiterleitungen aus dem Internet erforderlich:
+
+```sh
+bash scripts/install-release.sh install --domain learnpip.internal.example --internal
+```
+
+Der Modus wird als `LEARNPIP_INTERNAL=true` in der gemeinsamen Konfiguration gespeichert und bei späteren Updates automatisch wiederverwendet. Caddy stellt für den internen Hostnamen ein Zertifikat über seine lokale CA aus. Clients vertrauen dieser CA zunächst nicht automatisch; importiere das Caddy-Root-Zertifikat nur auf Geräten, die LearnPip verwenden sollen. Der interne DNS muss `learnpip.internal.example` auf die LAN-Adresse der LearnPip-VM auflösen. Keine Ports 80/443 am Internet-Router freigeben.
+
 ## Erstinstallation
 
 Die Proxmox-Anleitung beschreibt VM, Docker, Netzwerk und Firewall. Danach reicht das kleine
