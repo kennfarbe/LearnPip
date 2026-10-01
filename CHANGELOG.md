@@ -1,3 +1,16 @@
+# [1.1.0](https://github.com/kennfarbe/LearnPip/compare/v1.0.0...v1.1.0) (2026-10-01)
+
+
+### Bug Fixes
+
+* **ci:** repair Docker publish workflow ([89995a0](https://github.com/kennfarbe/LearnPip/commit/89995a0bdeb4cf10b8e2ad0bc07c87d2d7c66cb4))
+
+
+### Features
+
+* **deploy:** configure application image version ([0b07949](https://github.com/kennfarbe/LearnPip/commit/0b07949aadbf5842d54f93a74ddcf049e9b84e5a))
+* **deploy:** use published Docker Hub images ([b0b7aed](https://github.com/kennfarbe/LearnPip/commit/b0b7aed8c4b400a81225c3db577055d02ee19210))
+
 # 1.0.0 (2026-10-01)
 
 
