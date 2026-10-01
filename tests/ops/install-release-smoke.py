@@ -72,8 +72,11 @@ if [[ "$*" == *'run --rm migrate'* && "${MOCK_FAIL_MIGRATE:-}" == 1 ]]; then exi
     assert (target / 'shared/secrets/postgres_password').read_bytes() == password
     assert 'LEARNPIP_INTERNAL=true' in (target / 'shared/.env.production').read_text()
     commands = log.read_text()
-    assert commands.index('backup') < commands.rindex('docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml pull')
-    assert 'docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml build' not in commands
+    command_lines = commands.splitlines()
+    backup_index = max(i for i, line in enumerate(command_lines) if line == 'backup')
+    pull_index = max(i for i, line in enumerate(command_lines) if line.startswith('docker compose ') and line.endswith(' pull'))
+    assert backup_index < pull_index
+    assert not any(line.startswith('docker compose ') and line.endswith(' build') for line in command_lines)
     env_text = (target / 'shared/.env.production').read_text()
     assert 'LEARNPIP_VERSION=v1.0.1' in env_text
     run('update', '--version', 'v1.0.2', '--yes', extra={'MOCK_FAIL_MIGRATE': '1'}, success=False)
