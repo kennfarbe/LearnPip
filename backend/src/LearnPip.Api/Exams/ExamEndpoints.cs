@@ -234,7 +234,7 @@ public static class ExamEndpoints
         CancellationToken ct)
     {
         if (!Valid(input.Code, 80) || !Valid(input.Title, 200) ||
-            input.AmateurClass is not (string.Empty or "N" or "E" or "A") ||
+            input.AmateurClass is not ({ Length: 0 } or "N" or "E" or "A") ||
             input.Parts is not { Count: > 0 and <= 20 } ||
             input.Parts.Select(part => part.Code).Distinct(StringComparer.Ordinal).Count() !=
             input.Parts.Count || input.Parts.Any(part =>
