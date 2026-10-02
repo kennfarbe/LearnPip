@@ -37,7 +37,7 @@ public sealed class AdministrationService(LearnPipDbContext db)
     public async Task BootstrapAsync(Guid accountId, CancellationToken cancellationToken = default)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-        await LockAsync(cancellationToken);
+        await this.LockAsync(cancellationToken);
         if (await db.SystemSettings.AnyAsync(item => item.Key == BootstrapKey, cancellationToken) ||
             await db.AccountRoles.AnyAsync(item => item.RoleDefinition.Scope == "system" &&
                 item.RoleDefinition.Code == "admin", cancellationToken))
@@ -45,7 +45,7 @@ public sealed class AdministrationService(LearnPipDbContext db)
         if (!await db.Accounts.AnyAsync(item => item.Id == accountId && item.DeletedAtUtc == null,
                 cancellationToken))
             throw new InvalidOperationException("The target account does not exist or is deleted.");
-        var role = await RoleAsync("system", "admin", cancellationToken);
+        var role = await this.RoleAsync("system", "admin", cancellationToken);
         db.AccountRoles.Add(new AccountRole { AccountId = accountId, RoleDefinitionId = role.Id });
         db.SystemSettings.Add(new SystemSetting { Key = BootstrapKey, Value = "true" });
         db.AdministrationAuditEvents.Add(new AdministrationAuditEvent
@@ -68,11 +68,11 @@ public sealed class AdministrationService(LearnPipDbContext db)
     {
         if (code is not ("moderator" or "admin")) return "invalid_role";
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-        await LockAsync(cancellationToken);
-        if (!await IsAdminAsync(actorId, cancellationToken)) return "forbidden";
+        await this.LockAsync(cancellationToken);
+        if (!await this.IsAdminAsync(actorId, cancellationToken)) return "forbidden";
         if (!await db.Accounts.AnyAsync(item => item.Id == targetId && item.DeletedAtUtc == null,
                 cancellationToken)) return "missing_account";
-        var role = grant ? await RoleAsync("system", code, cancellationToken) :
+        var role = grant ? await this.RoleAsync("system", code, cancellationToken) :
             await db.Roles.SingleOrDefaultAsync(item => item.Scope == "system" && item.Code == code,
                 cancellationToken);
         if (role == null) return "unchanged";
@@ -103,7 +103,7 @@ public sealed class AdministrationService(LearnPipDbContext db)
     {
         if (code is not ("member" or "leader")) return "invalid_role";
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-        await LockAsync(cancellationToken);
+        await this.LockAsync(cancellationToken);
         var group = await db.StudyGroups.SingleOrDefaultAsync(item => item.Id == groupId &&
             item.DeletedAtUtc == null, cancellationToken);
         if (group == null) return "missing_group";
@@ -116,7 +116,7 @@ public sealed class AdministrationService(LearnPipDbContext db)
                 cancellationToken)) return "missing_account";
         // The group owner is always a leader and cannot be demoted through membership changes.
         if (targetId == group.OwnerAccountId) return "forbidden";
-        var role = await RoleAsync("group", code, cancellationToken);
+        var role = await this.RoleAsync("group", code, cancellationToken);
         var membership = await db.GroupMemberships.Include(item => item.RoleDefinition)
             .SingleOrDefaultAsync(item => item.StudyGroupId == groupId && item.AccountId == targetId,
                 cancellationToken);
@@ -147,8 +147,8 @@ public sealed class AdministrationService(LearnPipDbContext db)
     {
         if (value.Length > 1000) return "invalid_value";
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-        await LockAsync(cancellationToken);
-        if (!await IsAdminAsync(actorId, cancellationToken)) return "forbidden";
+        await this.LockAsync(cancellationToken);
+        if (!await this.IsAdminAsync(actorId, cancellationToken)) return "forbidden";
         var setting = await db.SystemSettings.SingleOrDefaultAsync(item => item.Key == "maintenance_notice",
             cancellationToken);
         if (setting?.Value == value) return "unchanged";
