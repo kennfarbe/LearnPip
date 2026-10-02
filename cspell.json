@@ -1,0 +1,32 @@
+{
+  "version": "0.2",
+  "language": "de_DE,en_US",
+  "import": [
+    "@cspell/dict-de-de/cspell-ext.json"
+  ],
+  "files": [
+    "README.md"
+  ],
+  "ignorePaths": [
+    "node_modules/**",
+    "CHANGELOG.md"
+  ],
+  "words": [
+    "LearnPip",
+    "Proxmox",
+    "Docker",
+    "GitHub",
+    "PWA",
+    "Ronsdorf",
+    "PostgreSQL",
+    "Caddy",
+    "AGPL",
+    "OAuth",
+    "OIDC",
+    "API",
+    "SemVer",
+    "rootless",
+    "Frontend",
+    "Backend"
+  ]
+}
