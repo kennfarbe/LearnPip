@@ -1,5 +1,13 @@
-# Tests
+# Tests und Qualitätssicherung
 
-Backend- und Webtests werden jeweils zusammen mit der betroffenen Komponente erstellt und in den unabhängigen CI-Jobs ausgeführt. Für API-Verhalten sind Unit- und Integrationstests vorgesehen; Integrationstests dürfen ihre Testdatenbank isoliert starten und keine gemeinsam genutzte oder produktive Datenbank verwenden.
+Die Projekte enthalten automatisierte Backend-, Web- und Betriebstests. Tests dürfen keine produktive oder gemeinsam genutzte Datenbank verändern. Die CI verwendet für Backend-Integrationstests eine eigene PostgreSQL-Testinstanz.
 
-Bis Testprojekte ergänzt werden, prüft der Backend-CI-Job, dass die Solution einschließlich API und Worker für Release gebaut und getestet werden kann. Webtests laufen über `npm test --if-present`; der Angular-Build ist verpflichtend.
+## Backend
+
+Die .NET-10-Solution wird im Release-Modus getestet. Die zentralen Einstellungen in [`Directory.Build.props`](../Directory.Build.props) aktivieren die SDK-Analyzer, StyleCop mit deutscher Dokumentationskultur (`stylecop.json`) und `SonarAnalyzer.CSharp`. `TreatWarningsAsErrors` ist aktiviert. Die bestehenden, dokumentierten Ausnahmen in [`.editorconfig`](../.editorconfig) bilden den bislang noch nicht bereinigten Altbestand ab und müssen bei einer späteren Aufräumaktion schrittweise reduziert werden.
+
+## Frontend und Markdown
+
+Der Web-CI-Job verwendet `npm ci`, `npm run format:check`, `npm run lint`, `npm run test:pwa` und den Angular-Build. Warnungen im ESLint-Lauf führen zum Fehlschlag; Angular-Build-Warnungen werden ebenfalls als Fehler bewertet.
+
+Ein eigener Markdown-CI-Job verwendet Markdownlint und CSpell mit `de-DE` für die deutsche Projekt-Einführung. Der automatisch von Semantic Release erzeugte `CHANGELOG.md` wird von der manuellen Markdown-Prüfung ausgenommen. Weitere Tests prüfen Installationsablauf, Sicherung und isolierte Wiederherstellung.
