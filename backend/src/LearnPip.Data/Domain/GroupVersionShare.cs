@@ -4,19 +4,43 @@
 
 namespace LearnPip.Data.Domain;
 
+/// <summary>
+/// Beschreibt das LearnPip-Datenmodell GroupVersionShare.
+/// </summary>
 public sealed class GroupVersionShare
 {
+    /// <summary>
+    /// Ruft study group id ab oder legt den Wert fest.
+    /// </summary>
     public Guid StudyGroupId { get; set; }
 
+    /// <summary>
+    /// Ruft question version id ab oder legt den Wert fest.
+    /// </summary>
     public Guid QuestionVersionId { get; set; }
 
+    /// <summary>
+    /// Ruft private catalog id ab oder legt den Wert fest.
+    /// </summary>
     public Guid PrivateCatalogId { get; set; }
 
+    /// <summary>
+    /// Ruft shared at utc ab oder legt den Wert fest.
+    /// </summary>
     public DateTimeOffset SharedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
+    /// <summary>
+    /// Ruft study group ab oder legt den Wert fest.
+    /// </summary>
     public StudyGroup StudyGroup { get; set; } = null!;
 
+    /// <summary>
+    /// Ruft question version ab oder legt den Wert fest.
+    /// </summary>
     public QuestionVersion QuestionVersion { get; set; } = null!;
 
+    /// <summary>
+    /// Ruft private catalog ab oder legt den Wert fest.
+    /// </summary>
     public PrivateCatalog PrivateCatalog { get; set; } = null!;
 }
