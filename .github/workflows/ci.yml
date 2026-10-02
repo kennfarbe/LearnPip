@@ -264,6 +264,14 @@ jobs:
         working-directory: frontend/web
         run: npm ci
 
+      - name: Inspect Angular formatter and linter
+        if: hashFiles('frontend/web/package-lock.json') != ''
+        working-directory: frontend/web
+        run: |
+          npx prettier src/app/admin-updates.ts | sed 's/^/LP_FORMATTED_SOURCE|/'
+          echo LP_FORMATTED_SOURCE_END
+          npm run lint
+
       - name: Test and build web
         if: hashFiles('frontend/web/package-lock.json') != ''
         working-directory: frontend/web
