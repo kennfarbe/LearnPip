@@ -272,7 +272,11 @@ jobs:
           npm run format:check
           npm run lint
           npm run test:pwa
-          npm run build --if-present
+          npm run build --if-present 2>&1 | tee angular-build.log
+          if grep -Eiq '(^|[[:space:]])(warning:|\\[WARNING\\])' angular-build.log; then
+            echo 'Angular build emitted warnings; warnings are treated as errors.' >&2
+            exit 1
+          fi
 
   installer-smoke:
     name: Installer smoke
