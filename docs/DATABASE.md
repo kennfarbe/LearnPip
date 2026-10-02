@@ -12,7 +12,7 @@ Der Datenbankstand verwendet PostgreSQL 18 und Entity Framework Core mit dem Npg
 | `Roles`, `AccountRoles` | Rollenbeschreibung nach Geltungsbereich und Zuordnung von Kontorollen; der Verbundschlüssel verhindert doppelte Zuweisung. |
 | `Questions`, `QuestionVersions` | Frage gehört einem Konto. Jede veröffentlichte Bearbeitung wird als eigene nummerierte Version gespeichert; Frage und Versionsnummer sind eindeutig. |
 | `AnswerOptions` | Antwortoptionen gehören zu einer Frageversion; die Sortierreihenfolge ist pro Version eindeutig. |
-| `MediaAssets` | Private Medienmetadaten mit Besitzer, optionaler Frageversion, nicht öffentlichem Speicherschlüssel, MIME-Typ, Länge und Löschmarkierung. Die Datei selbst liegt später in einem privaten Objektspeicher. |
+| `MediaAssets` | Private Medienmetadaten mit Besitzer, optionaler Frageversion, nicht öffentlichem Speicherschlüssel, MIME-Typ, Länge und Löschmarkierung. Die Bildbytes liegen derzeit in der zugehörigen Tabelle `MediaBlobs` innerhalb von PostgreSQL; ein externer Objektspeicher ist nicht erforderlich. |
 | `StudySessions`, `StudyAttempts` | Lernverlauf gehört einem Konto; jeder Versuch verweist auf die konkrete Frageversion, die beantwortet wurde. |
 | `ExamObjectives`, `QuestionObjectives` | Lernziele mit einer n:m-Zuordnung zu Fragen. Ein Lernziel-Code ist eindeutig. |
 | `StudyGroups`, `GroupMemberships`, `GroupQuestionShares`, `GroupCatalogShares`, `GroupVersionShares` | Geschlossene Gruppen mit unabhängiger Mitgliedschaft und auf konkrete Fassungen beschränkten Katalogfreigaben. Neue Fassungen werden nicht automatisch sichtbar. |
