@@ -98,10 +98,10 @@ public sealed class UpdateService(
             var release = json.RootElement.EnumerateArray()
                 .Where(x => !x.GetProperty("draft").GetBoolean() && !x.GetProperty("prerelease").GetBoolean())
                 .Select(x => new ReleaseInfo(
-                    x.GetProperty("tag_name").GetString() ?? "",
-                    x.GetProperty("name").GetString() ?? x.GetProperty("tag_name").GetString() ?? "",
-                    x.GetProperty("body").GetString() ?? "",
-                    x.GetProperty("html_url").GetString() ?? "",
+                    x.GetProperty("tag_name").GetString() ?? string.Empty,
+                    x.GetProperty("name").GetString() ?? x.GetProperty("tag_name").GetString() ?? string.Empty,
+                    x.GetProperty("body").GetString() ?? string.Empty,
+                    x.GetProperty("html_url").GetString() ?? string.Empty,
                     x.TryGetProperty("published_at", out var p) && p.ValueKind == JsonValueKind.String
                         ? p.GetDateTimeOffset() : null))
                 .Where(x => Stable.IsMatch(x.Version) &&

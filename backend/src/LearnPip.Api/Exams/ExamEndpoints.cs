@@ -234,7 +234,7 @@ public static class ExamEndpoints
         CancellationToken ct)
     {
         if (!Valid(input.Code, 80) || !Valid(input.Title, 200) ||
-            input.AmateurClass is not ("" or "N" or "E" or "A") ||
+            input.AmateurClass is not (string.Empty or "N" or "E" or "A") ||
             input.Parts is not { Count: > 0 and <= 20 } ||
             input.Parts.Select(part => part.Code).Distinct(StringComparer.Ordinal).Count() !=
             input.Parts.Count || input.Parts.Any(part =>
@@ -243,9 +243,9 @@ public static class ExamEndpoints
                 part.TimeLimitMinutes is < 1 or > 240 ||
                 part.RequiredCorrect < 1 || part.RequiredCorrect > part.QuestionCount ||
                 part.CreditCode != null && !Credits.Contains(part.CreditCode) ||
-                input.AmateurClass != "" && !part.ShuffleAnswers))
+                input.AmateurClass != string.Empty && !part.ShuffleAnswers))
             return Invalid("profile", "Provide unique sections with valid counts, limits and pass rules.");
-        if (input.AmateurClass != "" && (input.Parts.Count != 3 ||
+        if (input.AmateurClass != string.Empty && (input.Parts.Count != 3 ||
             input.Parts.Select(part => part.CreditCode).ToHashSet().SetEquals(
                 ["B", "V", "T-" + input.AmateurClass]) == false))
             return Invalid("parts", "Amateur radio profiles require B, V and the matching technical part.");

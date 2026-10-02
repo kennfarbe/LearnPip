@@ -242,13 +242,13 @@ public static class LearningSessionEndpoints
     public static (string? Hint, string? NextStep) Guidance(
         IReadOnlyList<ContentBlockOutput> explanation, IReadOnlyList<AnswerOutput> answers)
     {
-        var text = explanation.FirstOrDefault(block => block.Kind == "text")?.Text ?? "";
+        var text = explanation.FirstOrDefault(block => block.Kind == "text")?.Text ?? string.Empty;
         var lines = text.Split('\n');
         string? Find(string marker) => lines.FirstOrDefault(line => line.StartsWith(marker,
             StringComparison.Ordinal))?[marker.Length..].Trim();
         var correct = answers.Where(answer => answer.IsCorrect)
             .SelectMany(answer => answer.Blocks).Where(block => block.Kind == "text")
-            .Select(block => block.Text ?? "").ToArray();
+            .Select(block => block.Text ?? string.Empty).ToArray();
         string? Safe(string? value) => value is { Length: > 0 and <= 500 } &&
             correct.All(answer => SolutionVerifier.SafeHint(value, answer)) ? value : null;
         return (Safe(Find("[Hinweis] ")), Safe(Find("[Nächster Schritt] ")));

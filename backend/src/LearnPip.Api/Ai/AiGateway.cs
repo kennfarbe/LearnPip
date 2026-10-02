@@ -74,7 +74,7 @@ public static class AiKeyVault
 {
     private static byte[] Key(IConfiguration config)
     {
-        var encoded = config["Ai:KeyEncryptionKey"] ?? "";
+        var encoded = config["Ai:KeyEncryptionKey"] ?? string.Empty;
         var bytes = Convert.FromBase64String(encoded);
         if (bytes.Length != 32) throw new CryptographicException("Invalid AI encryption key.");
         return bytes;

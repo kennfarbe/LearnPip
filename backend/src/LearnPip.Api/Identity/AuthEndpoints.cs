@@ -38,7 +38,7 @@ public static class AuthEndpoints
             .RequireRateLimiting("auth")
             .Produces(StatusCodes.Status302Found);
 
-        var secured = auth.MapGroup("").RequireAuthorization(ApiPolicies.ActiveAccount);
+        var secured = auth.MapGroup(string.Empty).RequireAuthorization(ApiPolicies.ActiveAccount);
         secured.MapGet("/me", GetMe)
             .Produces<ApiResponse<AccountInfo>>();
         secured.MapPost("/logout", Logout)

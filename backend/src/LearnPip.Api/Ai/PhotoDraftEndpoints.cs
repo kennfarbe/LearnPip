@@ -122,27 +122,27 @@ public static class PhotoDraftEndpoints
             return Results.Conflict(new { error = "A hint reveals the correct answer." });
         var text = (string value) => new ContentBlockInput("text", value, null);
         var prompt = string.Join("\n", new[] { item.QuestionText.Trim(),
-            string.IsNullOrWhiteSpace(item.Formula) ? "" : "Formel: " + item.Formula.Trim() }
+            string.IsNullOrWhiteSpace(item.Formula) ? string.Empty : "Formel: " + item.Formula.Trim() }
             .Where(value => value.Length != 0));
         prompt = prompt[..Math.Min(4000, prompt.Length)];
         var explanation = new[]
         {
             "Prüfstatus: " + check.Status + ". " + check.Reason,
-            string.IsNullOrWhiteSpace(item.Hint) ? "" : "[Hinweis] " + item.Hint.Trim(),
-            string.IsNullOrWhiteSpace(item.NextStep) ? "" : "[Nächster Schritt] " + item.NextStep.Trim(),
-            item.ComputedSolution?.Trim() ?? "",
+            string.IsNullOrWhiteSpace(item.Hint) ? string.Empty : "[Hinweis] " + item.Hint.Trim(),
+            string.IsNullOrWhiteSpace(item.NextStep) ? string.Empty : "[Nächster Schritt] " + item.NextStep.Trim(),
+            item.ComputedSolution?.Trim() ?? string.Empty,
             string.Join("\n", item.Steps),
-            string.IsNullOrWhiteSpace(item.ReferenceSolution) ? "" :
+            string.IsNullOrWhiteSpace(item.ReferenceSolution) ? string.Empty :
                 "Musterlösung aus der Vorlage: " + item.ReferenceSolution.Trim(),
-            string.IsNullOrWhiteSpace(item.DrawingDescription) ? "" :
+            string.IsNullOrWhiteSpace(item.DrawingDescription) ? string.Empty :
                 "Zeichnung: " + item.DrawingDescription.Trim(),
-            string.IsNullOrWhiteSpace(item.DetectedText) ? "" :
+            string.IsNullOrWhiteSpace(item.DetectedText) ? string.Empty :
                 "Erkannter Originaltext: " + item.DetectedText.Trim(),
             "Unsicherheiten: " + string.Join("; ", item.Uncertainties)
         }.Where(value => value.Length != 0);
         var explanationText = string.Join("\n", explanation);
         var content = new QuestionPublishRequest("single", item.Subject.Trim(), item.Topic.Trim(),
-            "de", "Privater Fotoentwurf", "",
+            "de", "Privater Fotoentwurf", string.Empty,
             [text(prompt), new ContentBlockInput("image", null, input.MediaId)],
             [text(explanationText[..Math.Min(4000, explanationText.Length)])],
             item.Answers.Select((answer, index) => new AnswerInput(index == input.CorrectIndex,
@@ -165,7 +165,7 @@ public static class PhotoDraftEndpoints
         var info = AiPolicy.Describe(input.Mode, config, keyRow != null);
         if (!info.Available) return Results.Conflict(new { error = "Selected AI mode unavailable." });
         if (input.ReferenceSolutionHint is { Length: > 4000 } ||
-            Encoding.UTF8.GetByteCount(input.ReferenceSolutionHint ?? "") > info.MaxInputBytes)
+            Encoding.UTF8.GetByteCount(input.ReferenceSolutionHint ?? string.Empty) > info.MaxInputBytes)
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["referenceSolutionHint"] = ["Reference text exceeds the configured limit."]
@@ -198,7 +198,7 @@ public static class PhotoDraftEndpoints
             "uncertainties (array naming unreadable symbols, drawing ambiguities and guesses). " +
             "Transcribe formulas verbatim; do not invent a missing reference answer. " +
             "Explain solution steps and mark uncertainty, never claim verification.";
-        var prompt = instruction + (string.IsNullOrWhiteSpace(input.ReferenceSolutionHint) ? "" :
+        var prompt = instruction + (string.IsNullOrWhiteSpace(input.ReferenceSolutionHint) ? string.Empty :
             " User-provided reference solution to compare: " + input.ReferenceSolutionHint);
         try
         {
