@@ -1,3 +1,7 @@
+// <copyright file="UpdateCheckBackgroundService.cs" company="LearnPip contributors">
+// Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
+// </copyright>
+
 using LearnPip.Api.Administration;
 
 namespace LearnPip.Api;
