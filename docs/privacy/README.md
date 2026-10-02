@@ -44,7 +44,6 @@ flowchart LR
   learner["Lernende Person"] -->|"Frage, Antwort, optionales Foto"| web["LearnPip-Weboberfläche"]
   web -->|"Anmeldung und private Inhalte"| api["LearnPip-API"]
   api -->|"Konten, Inhalte, Lernverlauf"| db["PostgreSQL"]
-  api -->|"Private Bilddaten"| db
   api -.->|"Nur nach ausdrücklicher Bestätigung"| ai["KI-Dienst, optional"]
   api -.->|"Nur nach Freigabe bzw. Moderation"| group["Gruppe oder öffentlicher Pool"]
 ```
