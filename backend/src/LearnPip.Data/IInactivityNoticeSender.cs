@@ -9,7 +9,7 @@ namespace LearnPip.Data;
 /// </summary>
 public interface IInactivityNoticeSender
 {
-    /// <summary>Gibt an, ob der Benachrichtigungsversand verfügbar ist.</summary>
+    /// <summary>Holt einen Wert, der angibt, ob der Benachrichtigungsversand verfügbar ist.</summary>
     bool IsAvailable { get; }
 
     /// <summary>Versendet eine Warnung vor der Kontodeaktivierung oder Löschung.</summary>
