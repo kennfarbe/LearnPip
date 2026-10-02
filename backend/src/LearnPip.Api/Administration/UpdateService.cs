@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using LearnPip.Data;
@@ -38,10 +39,17 @@ public sealed class UpdateService(
     private static readonly Regex Stable = new(@"^v\d+\.\d+\.\d+$", RegexOptions.Compiled);
     private static readonly string[] Intervals = ["daily", "weekly", "monthly", "never"];
 
-    public string InstalledVersion =>
-        Stable.IsMatch(configuration["LearnPip:Version"] ?? "") ? configuration["LearnPip:Version"]! :
-        Stable.IsMatch(Environment.GetEnvironmentVariable("LEARNPIP_VERSION") ?? "")
-            ? Environment.GetEnvironmentVariable("LEARNPIP_VERSION")! : "unknown";
+    public string InstalledVersion
+    {
+        get
+        {
+            var configured = configuration["LearnPip:Version"];
+            if (configured is not null && Stable.IsMatch(configured)) return configured;
+
+            var environment = Environment.GetEnvironmentVariable("LEARNPIP_VERSION");
+            return environment is not null && Stable.IsMatch(environment) ? environment : "unknown";
+        }
+    }
 
     public async Task CheckScheduledAsync(CancellationToken ct)
     {
@@ -63,7 +71,11 @@ public sealed class UpdateService(
         var release = Deserialize<ReleaseInfo>(settings.GetValueOrDefault(ReleaseKey));
         var latest = settings.GetValueOrDefault(LatestKey);
         var job = Deserialize<UpdateJob>(settings.GetValueOrDefault(JobKey));
-        var state = latest is null ? "unknown" : Compare(latest, InstalledVersion) > 0 ? "update_available" : "current";
+        var state = "unknown";
+        if (latest is not null)
+        {
+            state = Compare(latest, InstalledVersion) > 0 ? "update_available" : "current";
+        }
         if (job is { State: "queued" or "running" }) state = "updating";
         return new(InstalledVersion, latest, state, interval, last, Next(last, interval), null, release, job);
     }
@@ -71,7 +83,7 @@ public sealed class UpdateService(
     public async Task<UpdateStatus> CheckAsync(bool force, CancellationToken ct)
     {
         var current = await StatusAsync(ct);
-        if (!force && current.LastCheckedAtUtc is { } last && current.NextCheckAtUtc is { } next &&
+        if (!force && current.LastCheckedAtUtc is not null && current.NextCheckAtUtc is { } next &&
             DateTimeOffset.UtcNow < next) return current;
         try
         {
@@ -81,7 +93,7 @@ public sealed class UpdateService(
             using var response = await clients.CreateClient("github-releases").SendAsync(request, ct);
             if (!response.IsSuccessStatusCode)
                 throw new HttpRequestException($"GitHub release metadata returned HTTP {(int)response.StatusCode}.");
-            using var json = JsonDocument.Parse(await response.Content.ReadAsStreamAsync(ct));
+            using var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
             var release = json.RootElement.EnumerateArray()
                 .Where(x => !x.GetProperty("draft").GetBoolean() && !x.GetProperty("prerelease").GetBoolean())
                 .Select(x => new ReleaseInfo(
@@ -173,7 +185,7 @@ public sealed class UpdateService(
 
     private static Version SemVersion(string value) => Version.Parse(value[1..]);
     private static DateTimeOffset? ParseDate(string? value) =>
-        DateTimeOffset.TryParse(value, out var result) ? result : null;
+        DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var result) ? result : null;
     private static DateTimeOffset? Next(DateTimeOffset? last, string interval) => interval switch
     {
         "daily" => (last ?? DateTimeOffset.UtcNow).AddDays(1),
