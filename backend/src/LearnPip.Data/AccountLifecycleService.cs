@@ -7,22 +7,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Data;
 
-public interface IInactivityNoticeSender
-{
-    bool IsAvailable { get; }
-    Task SendAsync(string email, int phaseDays, DateTimeOffset lastActivityAtUtc,
-        CancellationToken cancellationToken);
-}
-
-public sealed class DisabledInactivityNoticeSender : IInactivityNoticeSender
-{
-    public bool IsAvailable => false;
-    public Task SendAsync(string email, int phaseDays, DateTimeOffset lastActivityAtUtc,
-        CancellationToken cancellationToken) => Task.CompletedTask;
-}
-
-public sealed record LifecycleRunResult(int WarningsClaimed, int Deactivated, int Deleted);
-
 public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNoticeSender sender)
 {
     public async Task<LifecycleRunResult> RunOnceAsync(DateTimeOffset now,
