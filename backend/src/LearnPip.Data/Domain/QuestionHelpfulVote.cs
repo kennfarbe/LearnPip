@@ -10,27 +10,27 @@ namespace LearnPip.Data.Domain;
 public sealed class QuestionHelpfulVote
 {
     /// <summary>
-    /// Ruft question version id ab oder legt den Wert fest.
+    /// Holt oder setzt question version id.
     /// </summary>
     public Guid QuestionVersionId { get; set; }
 
     /// <summary>
-    /// Ruft Kennung des Kontos ab oder legt den Wert fest.
+    /// Holt oder setzt Kennung des Kontos.
     /// </summary>
     public Guid AccountId { get; set; }
 
     /// <summary>
-    /// Ruft helpful ab oder legt den Wert fest.
+    /// Holt oder setzt helpful.
     /// </summary>
     public bool Helpful { get; set; }
 
     /// <summary>
-    /// Ruft Änderungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Änderungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset UpdatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft question version ab oder legt den Wert fest.
+    /// Holt oder setzt question version.
     /// </summary>
     public QuestionVersion QuestionVersion { get; set; } = null!;
 }

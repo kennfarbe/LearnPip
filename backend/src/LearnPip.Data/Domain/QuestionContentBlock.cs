@@ -10,57 +10,57 @@ namespace LearnPip.Data.Domain;
 public sealed class QuestionContentBlock
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft question version id ab oder legt den Wert fest.
+    /// Holt oder setzt question version id.
     /// </summary>
     public Guid? QuestionVersionId { get; set; }
 
     /// <summary>
-    /// Ruft answer option id ab oder legt den Wert fest.
+    /// Holt oder setzt answer option id.
     /// </summary>
     public Guid? AnswerOptionId { get; set; }
 
     /// <summary>
-    /// Ruft section ab oder legt den Wert fest.
+    /// Holt oder setzt section.
     /// </summary>
     public string Section { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft sort order ab oder legt den Wert fest.
+    /// Holt oder setzt sort order.
     /// </summary>
     public int SortOrder { get; set; }
 
     /// <summary>
-    /// Ruft kind ab oder legt den Wert fest.
+    /// Holt oder setzt kind.
     /// </summary>
     public string Kind { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft text ab oder legt den Wert fest.
+    /// Holt oder setzt text.
     /// </summary>
     public string? Text { get; set; }
 
     /// <summary>
-    /// Ruft media asset id ab oder legt den Wert fest.
+    /// Holt oder setzt media asset id.
     /// </summary>
     public Guid? MediaAssetId { get; set; }
 
     /// <summary>
-    /// Ruft question version ab oder legt den Wert fest.
+    /// Holt oder setzt question version.
     /// </summary>
     public QuestionVersion? QuestionVersion { get; set; }
 
     /// <summary>
-    /// Ruft answer option ab oder legt den Wert fest.
+    /// Holt oder setzt answer option.
     /// </summary>
     public AnswerOption? AnswerOption { get; set; }
 
     /// <summary>
-    /// Ruft media asset ab oder legt den Wert fest.
+    /// Holt oder setzt media asset.
     /// </summary>
     public MediaAsset? MediaAsset { get; set; }
 }

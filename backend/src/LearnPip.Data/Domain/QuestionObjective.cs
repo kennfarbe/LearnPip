@@ -10,22 +10,22 @@ namespace LearnPip.Data.Domain;
 public sealed class QuestionObjective
 {
     /// <summary>
-    /// Ruft question id ab oder legt den Wert fest.
+    /// Holt oder setzt question id.
     /// </summary>
     public Guid QuestionId { get; set; }
 
     /// <summary>
-    /// Ruft exam objective id ab oder legt den Wert fest.
+    /// Holt oder setzt exam objective id.
     /// </summary>
     public Guid ExamObjectiveId { get; set; }
 
     /// <summary>
-    /// Ruft question ab oder legt den Wert fest.
+    /// Holt oder setzt question.
     /// </summary>
     public Question Question { get; set; } = null!;
 
     /// <summary>
-    /// Ruft exam objective ab oder legt den Wert fest.
+    /// Holt oder setzt exam objective.
     /// </summary>
     public ExamObjective ExamObjective { get; set; } = null!;
 }

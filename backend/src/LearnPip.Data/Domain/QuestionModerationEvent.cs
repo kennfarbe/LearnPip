@@ -10,37 +10,37 @@ namespace LearnPip.Data.Domain;
 public sealed class QuestionModerationEvent
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft question version id ab oder legt den Wert fest.
+    /// Holt oder setzt question version id.
     /// </summary>
     public Guid QuestionVersionId { get; set; }
 
     /// <summary>
-    /// Ruft moderator account id ab oder legt den Wert fest.
+    /// Holt oder setzt moderator account id.
     /// </summary>
     public Guid ModeratorAccountId { get; set; }
 
     /// <summary>
-    /// Ruft action ab oder legt den Wert fest.
+    /// Holt oder setzt action.
     /// </summary>
     public string Action { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft note ab oder legt den Wert fest.
+    /// Holt oder setzt note.
     /// </summary>
     public string Note { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft replacement version id ab oder legt den Wert fest.
+    /// Holt oder setzt replacement version id.
     /// </summary>
     public Guid? ReplacementVersionId { get; set; }
 
     /// <summary>
-    /// Ruft Erstellungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Erstellungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 }

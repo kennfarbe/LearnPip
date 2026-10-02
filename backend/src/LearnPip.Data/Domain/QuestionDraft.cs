@@ -10,22 +10,22 @@ namespace LearnPip.Data.Domain;
 public sealed class QuestionDraft
 {
     /// <summary>
-    /// Ruft question id ab oder legt den Wert fest.
+    /// Holt oder setzt question id.
     /// </summary>
     public Guid QuestionId { get; set; }
 
     /// <summary>
-    /// Ruft payload json ab oder legt den Wert fest.
+    /// Holt oder setzt payload json.
     /// </summary>
     public string PayloadJson { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft Änderungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Änderungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset UpdatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft question ab oder legt den Wert fest.
+    /// Holt oder setzt question.
     /// </summary>
     public Question Question { get; set; } = null!;
 }

@@ -10,62 +10,62 @@ namespace LearnPip.Data.Domain;
 public sealed class Question
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft Kennung des Eigentümerkontos ab oder legt den Wert fest.
+    /// Holt oder setzt Kennung des Eigentümerkontos.
     /// </summary>
     public Guid OwnerAccountId { get; set; }
 
     /// <summary>
-    /// Ruft learning content id ab oder legt den Wert fest.
+    /// Holt oder setzt learning content id.
     /// </summary>
     public Guid? LearningContentId { get; set; }
 
     /// <summary>
-    /// Ruft learning content ab oder legt den Wert fest.
+    /// Holt oder setzt learning content.
     /// </summary>
     public LearningContent? LearningContent { get; set; }
 
     /// <summary>
-    /// Ruft private catalog id ab oder legt den Wert fest.
+    /// Holt oder setzt private catalog id.
     /// </summary>
     public Guid? PrivateCatalogId { get; set; }
 
     /// <summary>
-    /// Ruft private catalog ab oder legt den Wert fest.
+    /// Holt oder setzt private catalog.
     /// </summary>
     public PrivateCatalog? PrivateCatalog { get; set; }
 
     /// <summary>
-    /// Ruft draft ab oder legt den Wert fest.
+    /// Holt oder setzt draft.
     /// </summary>
     public QuestionDraft? Draft { get; set; }
 
     /// <summary>
-    /// Ruft Erstellungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Erstellungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft Änderungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Änderungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset UpdatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft Löschzeitpunkt in UTC, sofern vorhanden ab oder legt den Wert fest.
+    /// Holt oder setzt Löschzeitpunkt in UTC, sofern vorhanden.
     /// </summary>
     public DateTimeOffset? DeletedAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft owner ab oder legt den Wert fest.
+    /// Holt oder setzt owner.
     /// </summary>
     public Account Owner { get; set; } = null!;
 
     /// <summary>
-    /// Ruft versions ab oder legt den Wert fest.
+    /// Holt oder setzt versions.
     /// </summary>
     public ICollection<QuestionVersion> Versions { get; set; } = [];
 }

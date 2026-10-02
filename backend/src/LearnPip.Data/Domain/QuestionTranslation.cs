@@ -10,67 +10,67 @@ namespace LearnPip.Data.Domain;
 public sealed class QuestionTranslation
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft question version id ab oder legt den Wert fest.
+    /// Holt oder setzt question version id.
     /// </summary>
     public Guid QuestionVersionId { get; set; }
 
     /// <summary>
-    /// Ruft language ab oder legt den Wert fest.
+    /// Holt oder setzt language.
     /// </summary>
     public string Language { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft revision ab oder legt den Wert fest.
+    /// Holt oder setzt revision.
     /// </summary>
     public int Revision { get; set; }
 
     /// <summary>
-    /// Ruft Bearbeitungsstatus ab oder legt den Wert fest.
+    /// Holt oder setzt Bearbeitungsstatus.
     /// </summary>
     public string Status { get; set; } = "draft";
 
     /// <summary>
-    /// Ruft payload json ab oder legt den Wert fest.
+    /// Holt oder setzt payload json.
     /// </summary>
     public string PayloadJson { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft source ab oder legt den Wert fest.
+    /// Holt oder setzt source.
     /// </summary>
     public string Source { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft license ab oder legt den Wert fest.
+    /// Holt oder setzt license.
     /// </summary>
     public string License { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft provenance ab oder legt den Wert fest.
+    /// Holt oder setzt provenance.
     /// </summary>
     public string Provenance { get; set; } = "manual";
 
     /// <summary>
-    /// Ruft created by account id ab oder legt den Wert fest.
+    /// Holt oder setzt created by account id.
     /// </summary>
     public Guid CreatedByAccountId { get; set; }
 
     /// <summary>
-    /// Ruft Erstellungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Erstellungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft approved at utc ab oder legt den Wert fest.
+    /// Holt oder setzt approved at utc.
     /// </summary>
     public DateTimeOffset? ApprovedAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft question version ab oder legt den Wert fest.
+    /// Holt oder setzt question version.
     /// </summary>
     public QuestionVersion QuestionVersion { get; set; } = null!;
 }
