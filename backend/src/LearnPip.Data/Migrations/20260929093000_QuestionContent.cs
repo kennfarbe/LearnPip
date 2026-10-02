@@ -7,10 +7,14 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LearnPip.Data.Migrations;
 
+/// <summary>
+/// Enthält die Schemaänderungen der Datenbankmigration QuestionContent.
+/// </summary>
 [DbContext(typeof(LearnPipDbContext))]
 [Migration("20260929093000_QuestionContent")]
 public sealed class QuestionContent : Migration
 {
+    /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.AddColumn<string>("SelectionMode", "QuestionVersions", type: "character varying(16)",
@@ -80,6 +84,8 @@ public sealed class QuestionContent : Migration
         migrationBuilder.CreateIndex("IX_StudyAttemptSelections_AnswerOptionId",
             "StudyAttemptSelections", "AnswerOptionId");
     }
+
+    /// <inheritdoc />
 
     protected override void Down(MigrationBuilder migrationBuilder)
     {

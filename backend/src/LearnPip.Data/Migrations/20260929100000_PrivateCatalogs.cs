@@ -7,10 +7,14 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LearnPip.Data.Migrations;
 
+/// <summary>
+/// Enthält die Schemaänderungen der Datenbankmigration PrivateCatalogs.
+/// </summary>
 [DbContext(typeof(LearnPipDbContext))]
 [Migration("20260929100000_PrivateCatalogs")]
 public sealed class PrivateCatalogs : Migration
 {
+    /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.CreateTable("PrivateCatalogs", columns: table => new
@@ -44,6 +48,8 @@ public sealed class PrivateCatalogs : Migration
                 "Questions", "Id", onDelete: ReferentialAction.Cascade);
         });
     }
+
+    /// <inheritdoc />
 
     protected override void Down(MigrationBuilder migrationBuilder)
     {

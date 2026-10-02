@@ -7,10 +7,14 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LearnPip.Data.Migrations;
 
+/// <summary>
+/// Enthält die Schemaänderungen der Datenbankmigration AdaptiveReview.
+/// </summary>
 [DbContext(typeof(LearnPipDbContext))]
 [Migration("20260929120000_AdaptiveReview")]
 public sealed class AdaptiveReview : Migration
 {
+    /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.CreateTable("LearningContents", columns: table => new
@@ -61,6 +65,8 @@ public sealed class AdaptiveReview : Migration
         migrationBuilder.CreateIndex("IX_FrequentLearningContents_LearningContentId",
             "FrequentLearningContents", "LearningContentId");
     }
+
+    /// <inheritdoc />
 
     protected override void Down(MigrationBuilder migrationBuilder)
     {
