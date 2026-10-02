@@ -54,7 +54,7 @@ public sealed class SessionAuthenticationHandler(
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         string? token;
-        if (Request.Headers.TryGetValue("Authorization", out var authorization))
+        if (this.Request.Headers.TryGetValue("Authorization", out var authorization))
         {
             var header = authorization.ToString();
             token = header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
@@ -63,7 +63,7 @@ public sealed class SessionAuthenticationHandler(
         }
         else
         {
-            token = Request.Cookies[SessionAuthentication.CookieName];
+            token = this.Request.Cookies[SessionAuthentication.CookieName];
         }
 
         // 32 random bytes encoded with base64url. Reject large or malformed input before database access.
@@ -80,7 +80,7 @@ public sealed class SessionAuthenticationHandler(
                            item.RevokedAtUtc == null && item.ExpiresAtUtc > now &&
                            item.Account.DeletedAtUtc == null && item.Account.DisabledAtUtc == null)
             .Select(item => new { item.Id, item.AccountId })
-            .SingleOrDefaultAsync(Context.RequestAborted);
+            .SingleOrDefaultAsync(this.Context.RequestAborted);
         if (session == null)
         {
             return AuthenticateResult.Fail("Session is invalid or revoked.");
