@@ -57,11 +57,6 @@ dotnet_diagnostic.SA1204.severity = none
 dotnet_diagnostic.SA1202.severity = none
 dotnet_diagnostic.SA1201.severity = none
 
-# EF migrations are generated snapshots and should not be hand-refactored.
-[**/Migrations/*.cs]
-generated_code = true
-dotnet_diagnostic.CA1861.severity = none
-
 # Existing API analyzer debt (follow-up cleanup). New warnings remain errors.
 [backend/src/LearnPip.Api/*.cs]
 dotnet_diagnostic.S1118.severity = none
