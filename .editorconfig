@@ -29,34 +29,6 @@ indent_size = 2
 trim_trailing_whitespace = false
 
 
-# Legacy formatting baseline: the repository uses file-scoped namespaces,
-# top-level using directives and explicit this. qualification of instance members.
-# Keep SDK, Sonar and remaining StyleCop diagnostics active; warnings fail the build.
-[*.cs]
-dotnet_diagnostic.SA0001.severity = none
-dotnet_diagnostic.SA1116.severity = none
-dotnet_diagnostic.SA1117.severity = none
-dotnet_diagnostic.SA1118.severity = none
-dotnet_diagnostic.SA1122.severity = none
-dotnet_diagnostic.SA1402.severity = none
-dotnet_diagnostic.SA1408.severity = none
-dotnet_diagnostic.SA1413.severity = none
-dotnet_diagnostic.SA1500.severity = none
-dotnet_diagnostic.SA1503.severity = none
-dotnet_diagnostic.SA1513.severity = none
-dotnet_diagnostic.SA1515.severity = none
-dotnet_diagnostic.SA1516.severity = none
-dotnet_diagnostic.SA1633.severity = none
-dotnet_diagnostic.SA1649.severity = none
-dotnet_diagnostic.SA1407.severity = none
-dotnet_diagnostic.SA1107.severity = none
-dotnet_diagnostic.SA1520.severity = none
-dotnet_diagnostic.SA1501.severity = none
-dotnet_diagnostic.SA1519.severity = none
-dotnet_diagnostic.SA1204.severity = none
-dotnet_diagnostic.SA1202.severity = none
-dotnet_diagnostic.SA1201.severity = none
-
 # Existing API analyzer debt (follow-up cleanup). New warnings remain errors.
 [backend/src/LearnPip.Api/*.cs]
 dotnet_diagnostic.S1118.severity = none
