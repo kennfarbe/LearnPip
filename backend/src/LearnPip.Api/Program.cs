@@ -46,6 +46,8 @@ builder.Services.AddScoped<IdentityService>();
 builder.Services.AddScoped<AccountLifecycleService>();
 builder.Services.AddSingleton<IInactivityNoticeSender, DisabledInactivityNoticeSender>();
 builder.Services.AddScoped<AdministrationService>();
+builder.Services.AddScoped<UpdateService>();
+builder.Services.AddHttpClient("github-releases", client => client.Timeout = TimeSpan.FromSeconds(15));
 builder.Services.AddScoped<GroupService>();
 builder.Services.AddScoped<PublicSubmissionService>();
 builder.Services.AddScoped<SessionService>();
@@ -95,6 +97,16 @@ builder.Services.AddRateLimiter(options =>
         _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = 30,
+            Window = TimeSpan.FromMinutes(10),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        }));
+    options.AddPolicy("update-admin", context => RateLimitPartition.GetFixedWindowLimiter(
+        AccountIdentity.TryGetAccountId(context.User, out var accountId)
+            ? accountId.ToString() : context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 6,
             Window = TimeSpan.FromMinutes(10),
             QueueLimit = 0,
             AutoReplenishment = true
