@@ -87,33 +87,33 @@ public static class SolutionVerifier
 
         public bool Parse(out decimal value)
         {
-            var valid = Expression(out value);
-            Space();
-            return valid && position == input.Length;
+            var valid = this.Expression(out value);
+            this.Space();
+            return valid && this.position == input.Length;
         }
 
         private bool Expression(out decimal value)
         {
-            if (!Term(out value)) return false;
+            if (!this.Term(out value)) return false;
             while (true)
             {
-                Space();
-                if (position == input.Length || input[position] is not ('+' or '-')) return true;
-                var op = input[position++];
-                if (!Term(out var right)) return false;
+                this.Space();
+                if (this.position == input.Length || input[this.position] is not ('+' or '-')) return true;
+                var op = input[this.position++];
+                if (!this.Term(out var right)) return false;
                 value = op == '+' ? checked(value + right) : checked(value - right);
             }
         }
 
         private bool Term(out decimal value)
         {
-            if (!Factor(out value)) return false;
+            if (!this.Factor(out value)) return false;
             while (true)
             {
-                Space();
-                if (position == input.Length || input[position] is not ('*' or '/')) return true;
-                var op = input[position++];
-                if (!Factor(out var right)) return false;
+                this.Space();
+                if (this.position == input.Length || input[this.position] is not ('*' or '/')) return true;
+                var op = input[this.position++];
+                if (!this.Factor(out var right)) return false;
                 value = op == '*' ? checked(value * right) : checked(value / right);
             }
         }
@@ -121,33 +121,33 @@ public static class SolutionVerifier
         private bool Factor(out decimal value)
         {
             value = 0;
-            Space();
-            if (position == input.Length) return false;
-            if (input[position] is '+' or '-')
+            this.Space();
+            if (this.position == input.Length) return false;
+            if (input[this.position] is '+' or '-')
             {
-                var negative = input[position++] == '-';
-                if (!Factor(out value)) return false;
+                var negative = input[this.position++] == '-';
+                if (!this.Factor(out value)) return false;
                 if (negative) value = -value;
                 return true;
             }
-            if (input[position] == '(')
+            if (input[this.position] == '(')
             {
-                position++;
-                if (!Expression(out value)) return false;
-                Space();
-                if (position == input.Length || input[position++] != ')') return false;
+                this.position++;
+                if (!this.Expression(out value)) return false;
+                this.Space();
+                if (this.position == input.Length || input[this.position++] != ')') return false;
                 return true;
             }
-            var start = position;
-            while (position < input.Length &&
-                (char.IsAsciiDigit(input[position]) || input[position] == '.')) position++;
-            return start != position && decimal.TryParse(input[start..position],
+            var start = this.position;
+            while (this.position < input.Length &&
+                (char.IsAsciiDigit(input[this.position]) || input[this.position] == '.')) this.position++;
+            return start != this.position && decimal.TryParse(input[start..this.position],
                 NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out value);
         }
 
         private void Space()
         {
-            while (position < input.Length && char.IsWhiteSpace(input[position])) position++;
+            while (this.position < input.Length && char.IsWhiteSpace(input[this.position])) this.position++;
         }
     }
 }
