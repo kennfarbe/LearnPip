@@ -48,7 +48,6 @@ Metadaten, erhält Secrets und Konfiguration, erstellt vor Updates ein Datenbank
 Healthcheck aus und schaltet erst danach den `current`-Link um. Ein Datenbank-Rollback erfolgt
 nicht automatisch.
 
-
 ### Interne LAN-/VPN-Installation
 
 Für Installationen, die nur im lokalen Netz oder später über VPN erreichbar sein sollen, kann der Installer Caddys interne CA verwenden. Es sind dann keine öffentlichen DNS-Einträge und keine Portweiterleitungen aus dem Internet erforderlich:
