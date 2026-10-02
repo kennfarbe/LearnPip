@@ -1,3 +1,7 @@
+// <copyright file="AiGateway.cs" company="LearnPip contributors">
+// Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
+// </copyright>
+
 using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;

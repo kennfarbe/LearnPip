@@ -1,3 +1,7 @@
+// <copyright file="PhotoDraftEndpoints.cs" company="LearnPip contributors">
+// Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
+// </copyright>
+
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
