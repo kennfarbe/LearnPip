@@ -30,7 +30,7 @@ unterbrochen. Zum Anwenden eines Updates alle LearnPip-Fenster schließen und er
 
 ## Prüfung
 
-`cd frontend/web && npm ci && npm run format:check && npm run test:pwa && npm run build`
+`cd frontend/web && npm ci && npm run format:check && npm run lint && npm run test:pwa && npm run build`
 
 Den Produktionsordner `dist/learnpip-web/browser` über localhost bereitstellen.
 Bei 320, 390, 768 und 1440 Pixel Breite auf horizontales Überlaufen prüfen.
