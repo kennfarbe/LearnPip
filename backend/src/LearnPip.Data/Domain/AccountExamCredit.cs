@@ -10,17 +10,17 @@ namespace LearnPip.Data.Domain;
 public sealed class AccountExamCredit
 {
     /// <summary>
-    /// Ruft Kennung des Kontos ab oder legt den Wert fest.
+    /// Holt oder setzt Kennung des Kontos.
     /// </summary>
     public Guid AccountId { get; set; }
 
     /// <summary>
-    /// Ruft fachlicher Code ab oder legt den Wert fest.
+    /// Holt oder setzt fachlicher Code.
     /// </summary>
     public string Code { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft reported at utc ab oder legt den Wert fest.
+    /// Holt oder setzt reported at utc.
     /// </summary>
     public DateTimeOffset ReportedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 }

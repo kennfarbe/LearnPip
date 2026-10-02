@@ -10,37 +10,37 @@ namespace LearnPip.Data.Domain;
 public sealed class AdministrationAuditEvent
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft actor account id ab oder legt den Wert fest.
+    /// Holt oder setzt actor account id.
     /// </summary>
     public Guid? ActorAccountId { get; set; }
 
     /// <summary>
-    /// Ruft action ab oder legt den Wert fest.
+    /// Holt oder setzt action.
     /// </summary>
     public string Action { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft target ab oder legt den Wert fest.
+    /// Holt oder setzt target.
     /// </summary>
     public string Target { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft previous value ab oder legt den Wert fest.
+    /// Holt oder setzt previous value.
     /// </summary>
     public string? PreviousValue { get; set; }
 
     /// <summary>
-    /// Ruft new value ab oder legt den Wert fest.
+    /// Holt oder setzt new value.
     /// </summary>
     public string? NewValue { get; set; }
 
     /// <summary>
-    /// Ruft Erstellungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Erstellungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 }

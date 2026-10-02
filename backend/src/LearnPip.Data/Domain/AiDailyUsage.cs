@@ -10,22 +10,22 @@ namespace LearnPip.Data.Domain;
 public sealed class AiDailyUsage
 {
     /// <summary>
-    /// Ruft Kennung des Kontos ab oder legt den Wert fest.
+    /// Holt oder setzt Kennung des Kontos.
     /// </summary>
     public Guid AccountId { get; set; }
 
     /// <summary>
-    /// Ruft day ab oder legt den Wert fest.
+    /// Holt oder setzt day.
     /// </summary>
     public DateOnly Day { get; set; }
 
     /// <summary>
-    /// Ruft mode ab oder legt den Wert fest.
+    /// Holt oder setzt mode.
     /// </summary>
     public string Mode { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft used requests ab oder legt den Wert fest.
+    /// Holt oder setzt used requests.
     /// </summary>
     public int UsedRequests { get; set; }
 }

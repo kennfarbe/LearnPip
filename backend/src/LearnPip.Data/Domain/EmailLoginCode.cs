@@ -10,62 +10,62 @@ namespace LearnPip.Data.Domain;
 public sealed class EmailLoginCode
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft email ab oder legt den Wert fest.
+    /// Holt oder setzt email.
     /// </summary>
     public string Email { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft purpose ab oder legt den Wert fest.
+    /// Holt oder setzt purpose.
     /// </summary>
     public string Purpose { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft Kennung des Kontos ab oder legt den Wert fest.
+    /// Holt oder setzt Kennung des Kontos.
     /// </summary>
     public Guid? AccountId { get; set; }
 
     /// <summary>
-    /// Ruft initiating session id ab oder legt den Wert fest.
+    /// Holt oder setzt initiating session id.
     /// </summary>
     public Guid? InitiatingSessionId { get; set; }
 
     /// <summary>
-    /// Ruft code hash ab oder legt den Wert fest.
+    /// Holt oder setzt code hash.
     /// </summary>
     public string CodeHash { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft Erstellungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Erstellungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft expires at utc ab oder legt den Wert fest.
+    /// Holt oder setzt expires at utc.
     /// </summary>
     public DateTimeOffset ExpiresAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft consumed at utc ab oder legt den Wert fest.
+    /// Holt oder setzt consumed at utc.
     /// </summary>
     public DateTimeOffset? ConsumedAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft failed attempts ab oder legt den Wert fest.
+    /// Holt oder setzt failed attempts.
     /// </summary>
     public int FailedAttempts { get; set; }
 
     /// <summary>
-    /// Ruft zugeordnetes Konto ab oder legt den Wert fest.
+    /// Holt oder setzt zugeordnetes Konto.
     /// </summary>
     public Account? Account { get; set; }
 
     /// <summary>
-    /// Ruft initiating session ab oder legt den Wert fest.
+    /// Holt oder setzt initiating session.
     /// </summary>
     public AccountSession? InitiatingSession { get; set; }
 }

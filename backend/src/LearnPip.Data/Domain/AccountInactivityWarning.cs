@@ -10,32 +10,32 @@ namespace LearnPip.Data.Domain;
 public sealed class AccountInactivityWarning
 {
     /// <summary>
-    /// Ruft Kennung des Kontos ab oder legt den Wert fest.
+    /// Holt oder setzt Kennung des Kontos.
     /// </summary>
     public Guid AccountId { get; set; }
 
     /// <summary>
-    /// Ruft phase days ab oder legt den Wert fest.
+    /// Holt oder setzt phase days.
     /// </summary>
     public int PhaseDays { get; set; }
 
     /// <summary>
-    /// Ruft activity at utc ab oder legt den Wert fest.
+    /// Holt oder setzt activity at utc.
     /// </summary>
     public DateTimeOffset ActivityAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft claimed at utc ab oder legt den Wert fest.
+    /// Holt oder setzt claimed at utc.
     /// </summary>
     public DateTimeOffset ClaimedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft sent at utc ab oder legt den Wert fest.
+    /// Holt oder setzt sent at utc.
     /// </summary>
     public DateTimeOffset? SentAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft delivery status ab oder legt den Wert fest.
+    /// Holt oder setzt delivery status.
     /// </summary>
     public string DeliveryStatus { get; set; } = "claimed";
 }

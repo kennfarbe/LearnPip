@@ -10,27 +10,27 @@ namespace LearnPip.Data.Domain;
 public sealed class ExamObjective
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft fachlicher Code ab oder legt den Wert fest.
+    /// Holt oder setzt fachlicher Code.
     /// </summary>
     public string Code { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft Titel ab oder legt den Wert fest.
+    /// Holt oder setzt Titel.
     /// </summary>
     public string Title { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft Beschreibung ab oder legt den Wert fest.
+    /// Holt oder setzt Beschreibung.
     /// </summary>
     public string? Description { get; set; }
 
     /// <summary>
-    /// Ruft question objectives ab oder legt den Wert fest.
+    /// Holt oder setzt question objectives.
     /// </summary>
     public ICollection<QuestionObjective> QuestionObjectives { get; set; } = [];
 }

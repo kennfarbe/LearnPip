@@ -10,57 +10,57 @@ namespace LearnPip.Data.Domain;
 public sealed class Account
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft display name ab oder legt den Wert fest.
+    /// Holt oder setzt display name.
     /// </summary>
     public string? DisplayName { get; set; }
 
     /// <summary>
-    /// Ruft age band ab oder legt den Wert fest.
+    /// Holt oder setzt age band.
     /// </summary>
     public string AgeBand { get; set; } = "unknown";
 
     /// <summary>
-    /// Ruft Erstellungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Erstellungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft Änderungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Änderungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset UpdatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft Löschzeitpunkt in UTC, sofern vorhanden ab oder legt den Wert fest.
+    /// Holt oder setzt Löschzeitpunkt in UTC, sofern vorhanden.
     /// </summary>
     public DateTimeOffset? DeletedAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft last activity at utc ab oder legt den Wert fest.
+    /// Holt oder setzt last activity at utc.
     /// </summary>
     public DateTimeOffset LastActivityAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft disabled at utc ab oder legt den Wert fest.
+    /// Holt oder setzt disabled at utc.
     /// </summary>
     public DateTimeOffset? DisabledAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft external identities ab oder legt den Wert fest.
+    /// Holt oder setzt external identities.
     /// </summary>
     public ICollection<ExternalIdentity> ExternalIdentities { get; set; } = [];
 
     /// <summary>
-    /// Ruft questions ab oder legt den Wert fest.
+    /// Holt oder setzt questions.
     /// </summary>
     public ICollection<Question> Questions { get; set; } = [];
 
     /// <summary>
-    /// Ruft study sessions ab oder legt den Wert fest.
+    /// Holt oder setzt study sessions.
     /// </summary>
     public ICollection<StudySession> StudySessions { get; set; } = [];
 }

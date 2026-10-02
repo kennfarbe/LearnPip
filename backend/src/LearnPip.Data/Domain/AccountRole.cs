@@ -10,27 +10,27 @@ namespace LearnPip.Data.Domain;
 public sealed class AccountRole
 {
     /// <summary>
-    /// Ruft Kennung des Kontos ab oder legt den Wert fest.
+    /// Holt oder setzt Kennung des Kontos.
     /// </summary>
     public Guid AccountId { get; set; }
 
     /// <summary>
-    /// Ruft role definition id ab oder legt den Wert fest.
+    /// Holt oder setzt role definition id.
     /// </summary>
     public Guid RoleDefinitionId { get; set; }
 
     /// <summary>
-    /// Ruft granted at utc ab oder legt den Wert fest.
+    /// Holt oder setzt granted at utc.
     /// </summary>
     public DateTimeOffset GrantedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft zugeordnetes Konto ab oder legt den Wert fest.
+    /// Holt oder setzt zugeordnetes Konto.
     /// </summary>
     public Account Account { get; set; } = null!;
 
     /// <summary>
-    /// Ruft role definition ab oder legt den Wert fest.
+    /// Holt oder setzt role definition.
     /// </summary>
     public RoleDefinition RoleDefinition { get; set; } = null!;
 }

@@ -10,37 +10,37 @@ namespace LearnPip.Data.Domain;
 public sealed class AccountSession
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft Kennung des Kontos ab oder legt den Wert fest.
+    /// Holt oder setzt Kennung des Kontos.
     /// </summary>
     public Guid AccountId { get; set; }
 
     /// <summary>
-    /// Ruft token hash ab oder legt den Wert fest.
+    /// Holt oder setzt token hash.
     /// </summary>
     public string TokenHash { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft Erstellungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Erstellungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft expires at utc ab oder legt den Wert fest.
+    /// Holt oder setzt expires at utc.
     /// </summary>
     public DateTimeOffset ExpiresAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft revoked at utc ab oder legt den Wert fest.
+    /// Holt oder setzt revoked at utc.
     /// </summary>
     public DateTimeOffset? RevokedAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft zugeordnetes Konto ab oder legt den Wert fest.
+    /// Holt oder setzt zugeordnetes Konto.
     /// </summary>
     public Account Account { get; set; } = null!;
 }

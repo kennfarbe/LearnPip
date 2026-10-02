@@ -10,37 +10,37 @@ namespace LearnPip.Data.Domain;
 public sealed class AnswerOption
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft question version id ab oder legt den Wert fest.
+    /// Holt oder setzt question version id.
     /// </summary>
     public Guid QuestionVersionId { get; set; }
 
     /// <summary>
-    /// Ruft text ab oder legt den Wert fest.
+    /// Holt oder setzt text.
     /// </summary>
     public string Text { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft is correct ab oder legt den Wert fest.
+    /// Holt oder setzt is correct.
     /// </summary>
     public bool IsCorrect { get; set; }
 
     /// <summary>
-    /// Ruft sort order ab oder legt den Wert fest.
+    /// Holt oder setzt sort order.
     /// </summary>
     public int SortOrder { get; set; }
 
     /// <summary>
-    /// Ruft question version ab oder legt den Wert fest.
+    /// Holt oder setzt question version.
     /// </summary>
     public QuestionVersion QuestionVersion { get; set; } = null!;
 
     /// <summary>
-    /// Ruft blocks ab oder legt den Wert fest.
+    /// Holt oder setzt blocks.
     /// </summary>
     public ICollection<QuestionContentBlock> Blocks { get; set; } = [];
 }
