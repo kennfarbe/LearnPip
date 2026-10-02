@@ -1,58 +1,35 @@
+# Architektur der webbasierten Admin-Updates
 
-# Admin web update architecture
+**Status:** Implementierung im offenen PR #91; vor produktiver Nutzung müssen der PR gemergt, ein stabiles Release veröffentlicht und der Host-Operator eingerichtet sein. Die Issues #75, #76 und #77 werden gemeinsam behandelt. Diese Dokumentation beschreibt die Implementierung im Feature-Branch, nicht eine bereits allgemein ausgerollte Funktion.
 
-Issues #75, #76 and #77 are implemented as one operational feature.
+## Sicherheitsgrenzen
 
-## Trust boundaries
+Die API- und Webcontainer erhalten weder Docker-Socket noch Host-Shell, sudo-Rechte oder Zugangsdaten des Operators. Die API schreibt nur geprüfte Update-Aufträge in eine private gemeinsame Warteschlange. Ein getrennter Prozess `learnpip-update-operator` läuft unter demselben unprivilegierten Linux-Konto wie der Rootless-Docker-Daemon und verarbeitet diese Aufträge.
 
-The public API and web containers never receive a Docker socket, host shell, sudo capability, or
-operator credentials. The API only writes validated update requests to a private, shared update
-queue. A separate `learnpip-update-operator` process runs as the same unprivileged Linux account
-that owns the rootless Docker daemon and consumes that queue.
+Der Operator akzeptiert nur JSON-Aufträge mit einer stabilen SemVer-Version (`vMAJOR.MINOR.PATCH`) und eindeutiger Auftragskennung. Repository, Release-API und Archivquelle sind auf `kennfarbe/LearnPip` festgelegt. Unmittelbar vor der Ausführung werden die Release-Metadaten erneut geprüft; Entwürfe und Vorabversionen werden abgelehnt. Danach ruft der Operator `scripts/install-release.sh update --version vX.Y.Z --yes` auf. Vom Browser übergebene URLs, Pfade oder Befehle werden nicht ausgeführt.
 
-The operator accepts only JSON jobs containing a stable SemVer tag (`vMAJOR.MINOR.PATCH`) and an
-opaque job id. Repository, release API and archive URLs are constants for
-`kennfarbe/LearnPip`. It re-fetches release metadata immediately before execution, rejects drafts
-and prereleases, and then invokes `scripts/install-release.sh update --version <validated-tag>
---yes`. No URL, path or command supplied by the browser is executed.
+## Herkunft und Integrität
 
-## Release integrity
+GitHub wird über HTTPS als Bezugsquelle verwendet. Das Installationsskript weist nicht-stabile Tags zurück, gleicht den Release-Tag ab, verwirft unsichere Archivpfade, Links und besondere Dateitypen und verlangt die erwarteten Deployment-Dateien vor der Aktivierung. Eine zusätzliche Signatur- oder Prüfsummenverifikation kann später ergänzt werden; sie ist hier **nicht** als bereits implementiert dargestellt.
 
-GitHub HTTPS is the distribution channel. The release installer rejects non-stable tags, verifies
-the returned release tag, rejects unsafe archive paths, links and special files, and requires the
-expected deployment files before activation. The operator revalidates the release immediately
-before running the installer. Future signed release/checksum verification can be added without
-changing the API contract.
+## Update-Ablauf
 
-## Update lifecycle
+1. Die Administration prüft verfügbare stabile Releases und sieht die Release Notes.
+2. Die installierte und die konkrete Zielversion müssen ausdrücklich bestätigt werden. Für Cookie-Zugriffe gelten Origin-/CSRF-Prüfung und eine frische Administratorsitzung.
+3. Die API protokolliert einen Auftrag und legt ihn in der Warteschlange ab. Die Datenbanksperre schützt gegen konkurrierende Aufträge.
+4. Der Operator prüft Rootless Docker, freien Speicherplatz und die Release-Herkunft und verlangt zunächst eine erfolgreiche Sicherung.
+5. Das Installationsskript lädt die versionierten Images, migriert, startet die Dienste neu und prüft deren Gesundheit. Erst nach erfolgreicher Prüfung wird die aktive Release-Verknüpfung umgestellt.
+6. Der Operator schreibt eine Statusdatei. Die API importiert den Status und protokolliert das Ergebnis. Fehlgeschlagene Migration oder Healthchecks gelten nie allein wegen heruntergeladener Dateien als Erfolg.
+7. Nach einem Neustart fragt der Browser die tatsächlich aktive `LEARNPIP_VERSION` erneut ab.
 
-1. Admin checks a concrete stable release and sees release notes.
-2. Admin explicitly confirms the installed and target versions. Cookie requests retain the global
-   Origin/CSRF check and the update endpoint requires a fresh admin session.
-3. API persists/audits one queued job. A database advisory lock prevents concurrent jobs.
-4. Operator performs preflight checks, requires rootless Docker, checks free disk space, and runs a
-   backup before the installer.
-5. Installer performs pull/build-equivalent image acquisition, migration, restart and healthcheck.
-   The `current` symlink changes only after the healthcheck succeeds.
-6. Operator writes a redacted phase/status file. API imports that state and records the final audit
-   result. A migration or healthcheck failure is reported as a partial/failed update, never success.
-7. Browser reconnects and reloads the actual `LEARNPIP_VERSION` exposed by the restarted API.
+Warteschlange und Statusdateien liegen außerhalb der API- und Webcontainer; ein API-Neustart darf einen laufenden Host-Auftrag nicht aus der Warteschlange verlieren. Der Operator verwendet eine Dateisperre und atomar ersetzte Statusdateien.
 
-Jobs and operator status live outside API/Web containers, so an API restart does not lose an
-in-flight update. The operator uses a filesystem lock and atomic status files for idempotence.
+## Sicherung und Wiederherstellung
 
-## Backup and recovery
+Vor jedem Web-Update muss eine konsistente PostgreSQL-Sicherung erfolgreich sein. Das Sicherungsmanifest enthält einen SHA-256-Wert und betriebliche Prüfdaten, aber keine Geheimnisse. Konfiguration und Secrets bleiben im gemeinsamen Installationsverzeichnis und müssen zusätzlich über eine externe VM-/Host-Sicherung geschützt werden. Datenbankmigrationen sind nicht automatisch umkehrbar: Das Zurücksetzen des `current`-Symlinks ist **kein** Datenbank-Rollback. Die Wiederherstellung ist eine getrennte, ausdrücklich bestätigte Administrationsaktion nach dem dokumentierten isolierten Restore-Verfahren. Fehlgeschlagene Migrationen und Healthchecks erfordern Prüfung vor einem erneuten Versuch.
 
-Every web update requires a successful consistent PostgreSQL backup first. The backup manifest
-contains a SHA-256 and operational counts, never secrets. Configuration/secrets stay in the shared
-installation directory and should additionally be protected by an external VM/host backup.
-Database migrations are not assumed reversible: switching the `current` symlink is not a database
-rollback. Restore remains an explicit administrator operation using the documented isolated restore
-procedure; failed migrations/healthchecks require investigation before retrying.
+## Berechtigungen und Einrichtung
 
-## Privileges
+Normale Web-Updates benötigen kein sudo. Für die Erstinstallation können einmalig erhöhte Rechte für Abhängigkeiten, Netzwerkports oder Rootless-Docker-Einrichtung erforderlich sein. Vorhandene Rootful-Installationen müssen für diese Funktion auf Rootless Docker umgestellt werden. Mitgliedschaft in einer Rootful-`docker`-Gruppe oder pauschale sudoers-Freigaben sind **kein** unterstütztes Sicherheitsmodell.
 
-Normal web updates never ask for sudo. Installation may need one-time privileges for dependencies,
-network ports, or rootless Docker setup. Existing rootful installations must migrate to rootless
-Docker; membership in the rootful `docker` group and wildcard sudoers rules are explicitly not a
-supported web-update design.
+Der Host-Dienst ist in [`deploy/learnpip-update-operator.service`](../deploy/learnpip-update-operator.service) beschrieben. Der Dienst muss unter dem für die Installation zuständigen Benutzer eingerichtet und aktiviert werden. Siehe auch [Administration](ADMINISTRATION.md) und [Release-Installation](RELEASE-INSTALL.md).
