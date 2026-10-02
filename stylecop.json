@@ -3,6 +3,9 @@
   "settings": {
     "documentationRules": {
       "documentationCulture": "de-DE"
+    },
+    "orderingRules": {
+      "usingDirectivesPlacement": "outsideNamespace"
     }
   }
 }
