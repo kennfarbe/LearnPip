@@ -1,3 +1,7 @@
+// <copyright file="ExamPlanEstimator.cs" company="LearnPip contributors">
+// Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
+// </copyright>
+
 namespace LearnPip.Api.Questions;
 
 public sealed record ExamPlanInput(
