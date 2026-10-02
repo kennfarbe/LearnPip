@@ -50,12 +50,12 @@ public sealed class PublicSubmission
     public DateTimeOffset? GuardianApprovedAtUtc { get; set; }
 
     /// <summary>
-    /// Holt oder setzt rights confirmed.
+    /// Holt oder setzt einen Wert, der angibt, ob die Nutzungsrechte bestätigt wurden.
     /// </summary>
     public bool RightsConfirmed { get; set; }
 
     /// <summary>
-    /// Holt oder setzt image rights confirmed.
+    /// Holt oder setzt einen Wert, der angibt, ob die Bildrechte bestätigt wurden.
     /// </summary>
     public bool ImageRightsConfirmed { get; set; }
 

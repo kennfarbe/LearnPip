@@ -25,7 +25,7 @@ public sealed class AnswerOption
     public string Text { get; set; } = string.Empty;
 
     /// <summary>
-    /// Holt oder setzt is correct.
+    /// Holt oder setzt einen Wert, der angibt, ob die Antwort korrekt ist.
     /// </summary>
     public bool IsCorrect { get; set; }
 

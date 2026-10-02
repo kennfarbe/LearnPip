@@ -25,12 +25,12 @@ public sealed class StudyAttempt
     public Guid QuestionVersionId { get; set; }
 
     /// <summary>
-    /// Holt oder setzt is correct.
+    /// Holt oder setzt einen Wert, der angibt, ob die Antwort korrekt ist.
     /// </summary>
     public bool IsCorrect { get; set; }
 
     /// <summary>
-    /// Holt oder setzt was guessed.
+    /// Holt oder setzt einen Wert, der angibt, ob die Antwort geraten wurde.
     /// </summary>
     public bool WasGuessed { get; set; }
 

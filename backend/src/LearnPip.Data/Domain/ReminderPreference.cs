@@ -15,7 +15,7 @@ public sealed class ReminderPreference
     public Guid AccountId { get; set; }
 
     /// <summary>
-    /// Holt oder setzt enabled.
+    /// Holt oder setzt einen Wert, der angibt, ob die Erinnerung aktiviert ist.
     /// </summary>
     public bool Enabled { get; set; }
 

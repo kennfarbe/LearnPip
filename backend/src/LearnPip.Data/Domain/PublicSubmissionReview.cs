@@ -30,22 +30,22 @@ public sealed class PublicSubmissionReview
     public string Decision { get; set; } = string.Empty;
 
     /// <summary>
-    /// Holt oder setzt correctness checked.
+    /// Holt oder setzt einen Wert, der angibt, ob die fachliche Richtigkeit geprüft wurde.
     /// </summary>
     public bool CorrectnessChecked { get; set; }
 
     /// <summary>
-    /// Holt oder setzt image rights checked.
+    /// Holt oder setzt einen Wert, der angibt, ob die Bildrechte geprüft wurden.
     /// </summary>
     public bool ImageRightsChecked { get; set; }
 
     /// <summary>
-    /// Holt oder setzt personal data checked.
+    /// Holt oder setzt einen Wert, der angibt, ob personenbezogene Daten geprüft wurden.
     /// </summary>
     public bool PersonalDataChecked { get; set; }
 
     /// <summary>
-    /// Holt oder setzt duplicate checked.
+    /// Holt oder setzt einen Wert, der angibt, ob die Dublettenprüfung erfolgt ist.
     /// </summary>
     public bool DuplicateChecked { get; set; }
 

@@ -20,7 +20,7 @@ public sealed class QuestionHelpfulVote
     public Guid AccountId { get; set; }
 
     /// <summary>
-    /// Holt oder setzt helpful.
+    /// Holt oder setzt einen Wert, der angibt, ob die Stimme den Inhalt als hilfreich bewertet.
     /// </summary>
     public bool Helpful { get; set; }
 
