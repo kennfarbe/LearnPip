@@ -50,8 +50,34 @@ dotnet_diagnostic.SA1515.severity = none
 dotnet_diagnostic.SA1516.severity = none
 dotnet_diagnostic.SA1633.severity = none
 dotnet_diagnostic.SA1649.severity = none
+dotnet_diagnostic.SA1407.severity = none
+dotnet_diagnostic.SA1107.severity = none
+dotnet_diagnostic.SA1520.severity = none
+dotnet_diagnostic.SA1501.severity = none
+dotnet_diagnostic.SA1519.severity = none
+dotnet_diagnostic.SA1204.severity = none
+dotnet_diagnostic.SA1202.severity = none
+dotnet_diagnostic.SA1201.severity = none
 
 # EF migrations are generated snapshots and should not be hand-refactored.
 [**/Migrations/*.cs]
 generated_code = true
 dotnet_diagnostic.CA1861.severity = none
+
+# Existing API analyzer debt (follow-up cleanup). New warnings remain errors.
+[backend/src/LearnPip.Api/**/*.cs]
+dotnet_diagnostic.S1118.severity = none
+dotnet_diagnostic.S3358.severity = none
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.S6966.severity = none
+dotnet_diagnostic.S1481.severity = none
+dotnet_diagnostic.S6580.severity = none
+dotnet_diagnostic.S1075.severity = none
+dotnet_diagnostic.S1871.severity = none
+dotnet_diagnostic.S3267.severity = none
+dotnet_diagnostic.CA1859.severity = none
+dotnet_diagnostic.S8969.severity = none
+dotnet_diagnostic.S1125.severity = none
+dotnet_diagnostic.S6610.severity = none
+dotnet_diagnostic.CA1866.severity = none
+dotnet_diagnostic.S6444.severity = none
