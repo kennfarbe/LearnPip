@@ -128,9 +128,9 @@ public sealed class ChatCompletionProvider(Uri endpoint, string model, string? k
     HttpClient client) : IAiProvider
 {
     public Task<string> TranslateAsync(string prompt, CancellationToken cancellationToken) =>
-        CompleteAsync(new { role = "user", content = (object)prompt }, 2048, cancellationToken);
+        this.CompleteAsync(new { role = "user", content = (object)prompt }, 2048, cancellationToken);
     public async Task<string> GenerateAsync(string prompt, CancellationToken cancellationToken)
-        => await CompleteAsync(new { role = "user", content = (object)prompt }, 512,
+        => await this.CompleteAsync(new { role = "user", content = (object)prompt }, 512,
             cancellationToken);
 
     public Task<string> AnalyzeImageAsync(string instruction, byte[] image, string mediaType,
@@ -142,7 +142,7 @@ public sealed class ChatCompletionProvider(Uri endpoint, string model, string? k
             new { type = "image_url", image_url = new
                 { url = $"data:{mediaType};base64,{Convert.ToBase64String(image)}" } }
         ];
-        return CompleteAsync(new { role = "user", content = (object)content }, 2048,
+        return this.CompleteAsync(new { role = "user", content = (object)content }, 2048,
             cancellationToken);
     }
 
@@ -197,7 +197,7 @@ public sealed class AiGateway : IDisposable
                 "operator-cloud" => config["Ai:CloudKey"],
                 "user-key" => userKey,
                 _ => null
-            }, client);
+            }, this.client);
 
-    public void Dispose() => client.Dispose();
+    public void Dispose() => this.client.Dispose();
 }
