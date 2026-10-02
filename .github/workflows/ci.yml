@@ -200,7 +200,8 @@ jobs:
         run: |
           solution="$(find backend -type f \( -name '*.sln' -o -name '*.slnx' \) -print -quit)"
           dotnet test "$solution" --configuration Release
-          dotnet format "$solution" --verify-no-changes --no-restore
+          dotnet format whitespace "$solution" --verify-no-changes --no-restore
+          dotnet format analyzers "$solution" --verify-no-changes --no-restore --severity error
 
   web:
     name: Web build
