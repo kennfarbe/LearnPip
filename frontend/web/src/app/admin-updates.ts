@@ -1,11 +1,31 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { LanguageService } from './language';
 
-interface ReleaseInfo { version:string; name:string; notes:string; url:string; publishedAtUtc:string|null; }
-interface UpdateJob { id:string; fromVersion:string; targetVersion:string; state:string; phase:string; message:string|null; }
+interface ReleaseInfo {
+  version: string;
+  name: string;
+  notes: string;
+  url: string;
+  publishedAtUtc: string | null;
+}
+interface UpdateJob {
+  id: string;
+  fromVersion: string;
+  targetVersion: string;
+  state: string;
+  phase: string;
+  message: string | null;
+}
 interface UpdateStatus {
-  installedVersion:string; latestVersion:string|null; state:string; interval:string;
-  lastCheckedAtUtc:string|null; nextCheckAtUtc:string|null; error:string|null; release:ReleaseInfo|null; job:UpdateJob|null;
+  installedVersion: string;
+  latestVersion: string | null;
+  state: string;
+  interval: string;
+  lastCheckedAtUtc: string | null;
+  nextCheckAtUtc: string | null;
+  error: string | null;
+  release: ReleaseInfo | null;
+  job: UpdateJob | null;
 }
 
 @Component({
@@ -70,23 +90,101 @@ interface UpdateStatus {
   `
 })
 export class AdminUpdates implements OnInit {
-  readonly language=inject(LanguageService); readonly status=signal<UpdateStatus|null>(null); readonly busy=signal(false);
-  get de(){return this.language.current() !== 'en';}
-  ngOnInit(){void this.load();}
-  async load(){try{const r=await fetch('/api/v1/admin/updates',{credentials:'same-origin'}); if(r.ok)this.status.set(await r.json()); else this.status.set(null);}catch{this.status.set(null);}}
-  async check(){this.busy.set(true);try{const r=await fetch('/api/v1/admin/updates/check',{method:'POST',credentials:'same-origin'});if(r.ok)this.status.set(await r.json());}finally{this.busy.set(false);}}
-  async setInterval(interval:string){const r=await fetch('/api/v1/admin/updates/interval',{method:'PUT',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({interval})});if(r.ok)await this.load();}
-  async install(s:UpdateStatus){
-    if(!s.release)return;
-    const text=this.de
+  readonly language = inject(LanguageService);
+  readonly status = signal<UpdateStatus | null>(null);
+  readonly busy = signal(false);
+
+  get de() {
+    return this.language.current() !== 'en';
+  }
+
+  ngOnInit() {
+    void this.load();
+  }
+
+  async load() {
+    try {
+      const response = await fetch('/api/v1/admin/updates', { credentials: 'same-origin' });
+      if (response.ok) this.status.set(await response.json());
+      else this.status.set(null);
+    } catch {
+      this.status.set(null);
+    }
+  }
+
+  async check() {
+    this.busy.set(true);
+    try {
+      const response = await fetch('/api/v1/admin/updates/check', {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+      if (response.ok) this.status.set(await response.json());
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  async setInterval(interval: string) {
+    const response = await fetch('/api/v1/admin/updates/interval', {
+      method: 'PUT',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ interval }),
+    });
+    if (response.ok) await this.load();
+  }
+
+  async install(s: UpdateStatus) {
+    if (!s.release) return;
+    const text = this.de
       ? `Installiert: ${s.installedVersion}\nZiel: ${s.release.version}\n\nVorher externes Backup prüfen. Update jetzt starten?`
       : `Installed: ${s.installedVersion}\nTarget: ${s.release.version}\n\nVerify an external backup first. Start update now?`;
-    if(!window.confirm(text))return;
+    if (!window.confirm(text)) return;
     this.busy.set(true);
-    try{const r=await fetch('/api/v1/admin/updates/install',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({version:s.release.version})});if(r.ok){await this.load();this.poll();}}
-    finally{this.busy.set(false);}
+    try {
+      const response = await fetch('/api/v1/admin/updates/install', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ version: s.release.version }),
+      });
+      if (response.ok) {
+        await this.load();
+        this.poll();
+      }
+    } finally {
+      this.busy.set(false);
+    }
   }
-  poll(){const timer=window.setInterval(async()=>{await this.load();const state=this.status()?.job?.state;if(state!=='queued'&&state!=='running')window.clearInterval(timer);},3000);}
-  date(value:string|null){return value?new Date(value).toLocaleString(this.de?'de-DE':'en-US'):'–';}
-  stateLabel(s:string){const de:{[k:string]:string}={current:'Aktuell',update_available:'Update verfügbar',updating:'Update läuft',check_failed:'Prüfung fehlgeschlagen',unknown:'Noch nicht geprüft'};const en:{[k:string]:string}={current:'Current',update_available:'Update available',updating:'Updating',check_failed:'Check failed',unknown:'Not checked'};return (this.de?de:en)[s]??s;}
+
+  poll() {
+    const timer = window.setInterval(async () => {
+      await this.load();
+      const state = this.status()?.job?.state;
+      if (state !== 'queued' && state !== 'running') window.clearInterval(timer);
+    }, 3000);
+  }
+
+  date(value: string | null) {
+    return value ? new Date(value).toLocaleString(this.de ? 'de-DE' : 'en-US') : '–';
+  }
+
+  stateLabel(s: string) {
+    const de: { [key: string]: string } = {
+      current: 'Aktuell',
+      update_available: 'Update verfügbar',
+      updating: 'Update läuft',
+      check_failed: 'Prüfung fehlgeschlagen',
+      unknown: 'Noch nicht geprüft',
+    };
+    const en: { [key: string]: string } = {
+      current: 'Current',
+      update_available: 'Update available',
+      updating: 'Updating',
+      check_failed: 'Check failed',
+      unknown: 'Not checked',
+    };
+    return (this.de ? de : en)[s] ?? s;
+  }
 }
