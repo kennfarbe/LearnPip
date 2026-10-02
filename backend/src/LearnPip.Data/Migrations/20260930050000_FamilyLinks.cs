@@ -4,10 +4,14 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LearnPip.Data.Migrations;
 
+/// <summary>
+/// Enthält die Schemaänderungen der Datenbankmigration FamilyLinks.
+/// </summary>
 [DbContext(typeof(LearnPipDbContext))]
 [Migration("20260930050000_FamilyLinks")]
 public sealed class FamilyLinks : Migration
 {
+    /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.AddColumn<string>("AgeBand", "Accounts", type: "character varying(8)",
@@ -91,6 +95,8 @@ public sealed class FamilyLinks : Migration
         });
         migrationBuilder.CreateIndex("IX_FamilyGoals_FamilyLinkId", "FamilyGoals", "FamilyLinkId");
     }
+
+    /// <inheritdoc />
 
     protected override void Down(MigrationBuilder migrationBuilder)
     {

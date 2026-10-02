@@ -7,10 +7,14 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LearnPip.Data.Migrations;
 
+/// <summary>
+/// Enthält die Schemaänderungen der Datenbankmigration VersionVisibility.
+/// </summary>
 [DbContext(typeof(LearnPipDbContext))]
 [Migration("20260929150000_VersionVisibility")]
 public sealed class VersionVisibility : Migration
 {
+    /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.AddColumn<string>("Visibility", "QuestionVersions",
@@ -46,6 +50,8 @@ public sealed class VersionVisibility : Migration
             ORDER BY s."StudyGroupId", q."Id", v."VersionNumber" DESC;
             """);
     }
+
+    /// <inheritdoc />
 
     protected override void Down(MigrationBuilder migrationBuilder)
     {

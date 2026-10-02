@@ -7,10 +7,14 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LearnPip.Data.Migrations;
 
+/// <summary>
+/// Enthält die Schemaänderungen der Datenbankmigration PublicSubmissions.
+/// </summary>
 [DbContext(typeof(LearnPipDbContext))]
 [Migration("20260929160000_PublicSubmissions")]
 public sealed class PublicSubmissions : Migration
 {
+    /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.AddColumn<string>("AuthorAttribution", "QuestionVersions",
@@ -90,6 +94,8 @@ public sealed class PublicSubmissions : Migration
         migrationBuilder.CreateIndex("IX_PublicSubmissionReviews_ModeratorAccountId", "PublicSubmissionReviews",
             "ModeratorAccountId");
     }
+
+    /// <inheritdoc />
 
     protected override void Down(MigrationBuilder migrationBuilder)
     {

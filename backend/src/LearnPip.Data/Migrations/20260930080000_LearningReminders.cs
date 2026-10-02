@@ -4,10 +4,14 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LearnPip.Data.Migrations;
 
+/// <summary>
+/// Enthält die Schemaänderungen der Datenbankmigration LearningReminders.
+/// </summary>
 [DbContext(typeof(LearnPipDbContext))]
 [Migration("20260930080000_LearningReminders")]
 public sealed class LearningReminders : Migration
 {
+    /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.CreateTable("ReminderPreferences", columns: table => new
@@ -27,6 +31,7 @@ public sealed class LearningReminders : Migration
                 "Accounts", "Id", onDelete: ReferentialAction.Cascade);
         });
     }
+    /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder) =>
         migrationBuilder.DropTable("ReminderPreferences");
 }

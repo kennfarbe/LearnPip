@@ -4,10 +4,14 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LearnPip.Data.Migrations;
 
+/// <summary>
+/// Enthält die Schemaänderungen der Datenbankmigration QuestionTranslations.
+/// </summary>
 [DbContext(typeof(LearnPipDbContext))]
 [Migration("20260929210000_QuestionTranslations")]
 public sealed class QuestionTranslations : Migration
 {
+    /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.CreateTable("QuestionTranslations", columns: table => new
@@ -56,6 +60,8 @@ public sealed class QuestionTranslations : Migration
             "TranslationReports", new[] { "QuestionTranslationId", "CreatedAtUtc" });
         migrationBuilder.CreateIndex("IX_TranslationReports_AccountId", "TranslationReports", "AccountId");
     }
+
+    /// <inheritdoc />
 
     protected override void Down(MigrationBuilder migrationBuilder)
     {

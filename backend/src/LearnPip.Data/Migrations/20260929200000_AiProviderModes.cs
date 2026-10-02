@@ -4,10 +4,14 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LearnPip.Data.Migrations;
 
+/// <summary>
+/// Enthält die Schemaänderungen der Datenbankmigration AiProviderModes.
+/// </summary>
 [DbContext(typeof(LearnPipDbContext))]
 [Migration("20260929200000_AiProviderModes")]
 public sealed class AiProviderModes : Migration
 {
+    /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.CreateTable("UserAiCredentials", columns: table => new
@@ -34,6 +38,8 @@ public sealed class AiProviderModes : Migration
                 "Accounts", "Id", onDelete: ReferentialAction.Cascade);
         });
     }
+
+    /// <inheritdoc />
 
     protected override void Down(MigrationBuilder migrationBuilder)
     {
