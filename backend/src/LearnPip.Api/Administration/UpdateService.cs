@@ -53,16 +53,16 @@ public sealed class UpdateService(
 
     public async Task CheckScheduledAsync(CancellationToken ct)
     {
-        var status = await StatusAsync(ct);
+        var status = await this.StatusAsync(ct);
         if (status.Interval == "never") return;
         if (status.LastCheckedAtUtc is null || status.NextCheckAtUtc is null ||
             DateTimeOffset.UtcNow >= status.NextCheckAtUtc)
-            await CheckAsync(true, ct);
+            await this.CheckAsync(true, ct);
     }
 
     public async Task<UpdateStatus> StatusAsync(CancellationToken ct)
     {
-        await ImportOperatorStatusAsync(ct);
+        await this.ImportOperatorStatusAsync(ct);
         var settings = await db.SystemSettings.AsNoTracking()
             .Where(x => new[] { IntervalKey, LastCheckKey, LatestKey, ReleaseKey, JobKey }.Contains(x.Key))
             .ToDictionaryAsync(x => x.Key, x => x.Value, ct);
@@ -74,15 +74,15 @@ public sealed class UpdateService(
         var state = "unknown";
         if (latest is not null)
         {
-            state = Compare(latest, InstalledVersion) > 0 ? "update_available" : "current";
+            state = Compare(latest, this.InstalledVersion) > 0 ? "update_available" : "current";
         }
         if (job is { State: "queued" or "running" }) state = "updating";
-        return new(InstalledVersion, latest, state, interval, last, Next(last, interval), null, release, job);
+        return new(this.InstalledVersion, latest, state, interval, last, Next(last, interval), null, release, job);
     }
 
     public async Task<UpdateStatus> CheckAsync(bool force, CancellationToken ct)
     {
-        var current = await StatusAsync(ct);
+        var current = await this.StatusAsync(ct);
         if (!force && current.LastCheckedAtUtc is not null && current.NextCheckAtUtc is { } next &&
             DateTimeOffset.UtcNow < next) return current;
         try
@@ -108,15 +108,15 @@ public sealed class UpdateService(
                 .OrderByDescending(x => SemVersion(x.Version)).FirstOrDefault()
                 ?? throw new InvalidOperationException("No stable LearnPip release was returned.");
             var now = DateTimeOffset.UtcNow;
-            await PutAsync(LastCheckKey, now.ToString("O"), ct);
-            await PutAsync(LatestKey, release.Version, ct);
-            await PutAsync(ReleaseKey, JsonSerializer.Serialize(release, JsonOptions), ct);
-            return await StatusAsync(ct);
+            await this.PutAsync(LastCheckKey, now.ToString("O"), ct);
+            await this.PutAsync(LatestKey, release.Version, ct);
+            await this.PutAsync(ReleaseKey, JsonSerializer.Serialize(release, JsonOptions), ct);
+            return await this.StatusAsync(ct);
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidOperationException)
         {
             logger.LogWarning(ex, "Stable release check failed.");
-            var failed = await StatusAsync(ct);
+            var failed = await this.StatusAsync(ct);
             return failed with { State = "check_failed", Error = "Release-Prüfung fehlgeschlagen. Bitte später erneut versuchen." };
         }
     }
@@ -124,15 +124,15 @@ public sealed class UpdateService(
     public async Task<bool> SetIntervalAsync(string interval, CancellationToken ct)
     {
         if (!Intervals.Contains(interval)) return false;
-        await PutAsync(IntervalKey, interval, ct);
+        await this.PutAsync(IntervalKey, interval, ct);
         return true;
     }
 
     public async Task<(UpdateJob? Job, string? Error)> QueueAsync(Guid actor, string target, CancellationToken ct)
     {
         if (!Stable.IsMatch(target)) return (null, "invalid_version");
-        var status = await CheckAsync(true, ct);
-        if (status.Release?.Version != target || Compare(target, InstalledVersion) <= 0)
+        var status = await this.CheckAsync(true, ct);
+        if (status.Release?.Version != target || Compare(target, this.InstalledVersion) <= 0)
             return (null, "unverified_release");
         var queue = configuration["LearnPip:UpdateQueuePath"];
         var operatorStatus = configuration["LearnPip:UpdateStatusPath"];
@@ -145,14 +145,14 @@ public sealed class UpdateService(
         var existing = Deserialize<UpdateJob>((await db.SystemSettings.AsNoTracking()
             .SingleOrDefaultAsync(x => x.Key == JobKey, ct))?.Value);
         if (existing is { State: "queued" or "running" }) return (null, "update_in_progress");
-        var job = new UpdateJob { ActorAccountId = actor, FromVersion = InstalledVersion, TargetVersion = target };
-        await PutAsync(JobKey, JsonSerializer.Serialize(job, JsonOptions), ct);
+        var job = new UpdateJob { ActorAccountId = actor, FromVersion = this.InstalledVersion, TargetVersion = target };
+        await this.PutAsync(JobKey, JsonSerializer.Serialize(job, JsonOptions), ct);
         db.AdministrationAuditEvents.Add(new AdministrationAuditEvent
         {
             ActorAccountId = actor,
             Action = "update.queued",
             Target = $"release:{target}",
-            PreviousValue = InstalledVersion,
+            PreviousValue = this.InstalledVersion,
             NewValue = target
         });
         await db.SaveChangesAsync(ct);
@@ -171,7 +171,7 @@ public sealed class UpdateService(
             job.Phase = "queue";
             job.Message = "Der Update-Operator konnte den Auftrag nicht entgegennehmen.";
             job.UpdatedAtUtc = DateTimeOffset.UtcNow;
-            await PutAsync(JobKey, JsonSerializer.Serialize(job, JsonOptions), ct);
+            await this.PutAsync(JobKey, JsonSerializer.Serialize(job, JsonOptions), ct);
             return (null, "operator_unavailable");
         }
         return (job, null);
@@ -234,7 +234,7 @@ public sealed class UpdateService(
         {
             var updated = JsonSerializer.Deserialize<UpdateJob>(await File.ReadAllTextAsync(path, ct), JsonOptions);
             if (updated is null || updated.Id != job.Id || updated.TargetVersion != job.TargetVersion) return;
-            await PutAsync(JobKey, JsonSerializer.Serialize(updated, JsonOptions), ct);
+            await this.PutAsync(JobKey, JsonSerializer.Serialize(updated, JsonOptions), ct);
             if (updated.State is "succeeded" or "failed")
             {
                 var action = updated.State == "succeeded" ? "update.succeeded" : "update.failed";
