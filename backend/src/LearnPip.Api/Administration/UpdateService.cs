@@ -34,6 +34,7 @@ public sealed class UpdateService(
     private const string LatestKey = "update_latest_version";
     private const string ReleaseKey = "update_latest_release";
     private const string JobKey = "update_job";
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly Regex Stable = new(@"^v\d+\.\d+\.\d+$", RegexOptions.Compiled);
     private static readonly string[] Intervals = ["daily", "weekly", "monthly", "never"];
 
@@ -97,7 +98,7 @@ public sealed class UpdateService(
             var now = DateTimeOffset.UtcNow;
             await PutAsync(LastCheckKey, now.ToString("O"), ct);
             await PutAsync(LatestKey, release.Version, ct);
-            await PutAsync(ReleaseKey, JsonSerializer.Serialize(release), ct);
+            await PutAsync(ReleaseKey, JsonSerializer.Serialize(release, JsonOptions), ct);
             return await StatusAsync(ct);
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidOperationException)
@@ -126,7 +127,7 @@ public sealed class UpdateService(
             .SingleOrDefaultAsync(x => x.Key == JobKey, ct))?.Value);
         if (existing is { State: "queued" or "running" }) return (null, "update_in_progress");
         var job = new UpdateJob { ActorAccountId = actor, FromVersion = InstalledVersion, TargetVersion = target };
-        await PutAsync(JobKey, JsonSerializer.Serialize(job), ct);
+        await PutAsync(JobKey, JsonSerializer.Serialize(job, JsonOptions), ct);
         db.AdministrationAuditEvents.Add(new AdministrationAuditEvent
         {
             ActorAccountId = actor,
@@ -141,7 +142,7 @@ public sealed class UpdateService(
         {
             Directory.CreateDirectory(queue);
             var tmp = Path.Combine(queue, $".{job.Id:N}.tmp");
-            await File.WriteAllTextAsync(tmp, JsonSerializer.Serialize(job), ct);
+            await File.WriteAllTextAsync(tmp, JsonSerializer.Serialize(job, JsonOptions), ct);
             File.Move(tmp, Path.Combine(queue, $"{job.Id:N}.json"));
         }
         return (job, null);
@@ -168,7 +169,7 @@ public sealed class UpdateService(
         if (string.IsNullOrWhiteSpace(value)) return default;
         try
         {
-            return JsonSerializer.Deserialize<T>(value);
+            return JsonSerializer.Deserialize<T>(value, JsonOptions);
         }
         catch (JsonException)
         {
@@ -202,9 +203,9 @@ public sealed class UpdateService(
         if (!File.Exists(path)) return;
         try
         {
-            var updated = JsonSerializer.Deserialize<UpdateJob>(await File.ReadAllTextAsync(path, ct));
+            var updated = JsonSerializer.Deserialize<UpdateJob>(await File.ReadAllTextAsync(path, ct), JsonOptions);
             if (updated is null || updated.Id != job.Id || updated.TargetVersion != job.TargetVersion) return;
-            await PutAsync(JobKey, JsonSerializer.Serialize(updated), ct);
+            await PutAsync(JobKey, JsonSerializer.Serialize(updated, JsonOptions), ct);
             if (updated.State is "succeeded" or "failed")
             {
                 var action = updated.State == "succeeded" ? "update.succeeded" : "update.failed";
