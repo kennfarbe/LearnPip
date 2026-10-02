@@ -7,108 +7,163 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Data;
 
+/// <summary>
+/// Stellt die Datenbanktabellen und das relationale Modell von LearnPip bereit.
+/// </summary>
+/// <param name="options">Optionen für den Datenbankkontext.</param>
 public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> options) : DbContext(options)
 {
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge SystemSettings.</summary>
     public DbSet<SystemSetting> SystemSettings => this.Set<SystemSetting>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge AdministrationAuditEvents.</summary>
     public DbSet<AdministrationAuditEvent> AdministrationAuditEvents => this.Set<AdministrationAuditEvent>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge Accounts.</summary>
     public DbSet<Account> Accounts => this.Set<Account>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge ReminderPreferences.</summary>
     public DbSet<ReminderPreference> ReminderPreferences => this.Set<ReminderPreference>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge FamilyLinks.</summary>
     public DbSet<FamilyLink> FamilyLinks => this.Set<FamilyLink>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge FamilyLinkEvents.</summary>
     public DbSet<FamilyLinkEvent> FamilyLinkEvents => this.Set<FamilyLinkEvent>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge FamilyGoals.</summary>
     public DbSet<FamilyGoal> FamilyGoals => this.Set<FamilyGoal>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge AccountInactivityWarnings.</summary>
     public DbSet<AccountInactivityWarning> AccountInactivityWarnings => this.Set<AccountInactivityWarning>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge ExternalIdentities.</summary>
     public DbSet<ExternalIdentity> ExternalIdentities => this.Set<ExternalIdentity>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge Roles.</summary>
     public DbSet<RoleDefinition> Roles => this.Set<RoleDefinition>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge AccountRoles.</summary>
     public DbSet<AccountRole> AccountRoles => this.Set<AccountRole>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge PrivateCatalogs.</summary>
     public DbSet<PrivateCatalog> PrivateCatalogs => this.Set<PrivateCatalog>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge QuestionDrafts.</summary>
     public DbSet<QuestionDraft> QuestionDrafts => this.Set<QuestionDraft>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge Questions.</summary>
     public DbSet<Question> Questions => this.Set<Question>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge LearningContents.</summary>
     public DbSet<LearningContent> LearningContents => this.Set<LearningContent>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge FrequentLearningContents.</summary>
     public DbSet<FrequentLearningContent> FrequentLearningContents => this.Set<FrequentLearningContent>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge QuestionVersions.</summary>
     public DbSet<QuestionVersion> QuestionVersions => this.Set<QuestionVersion>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge QuestionTranslations.</summary>
     public DbSet<QuestionTranslation> QuestionTranslations => this.Set<QuestionTranslation>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge TranslationReports.</summary>
     public DbSet<TranslationReport> TranslationReports => this.Set<TranslationReport>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge AnswerOptions.</summary>
     public DbSet<AnswerOption> AnswerOptions => this.Set<AnswerOption>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge QuestionContentBlocks.</summary>
     public DbSet<QuestionContentBlock> QuestionContentBlocks => this.Set<QuestionContentBlock>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge MediaAssets.</summary>
     public DbSet<MediaAsset> MediaAssets => this.Set<MediaAsset>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge MediaBlobs.</summary>
     public DbSet<MediaBlob> MediaBlobs => this.Set<MediaBlob>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge StudySessions.</summary>
     public DbSet<StudySession> StudySessions => this.Set<StudySession>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge StudyAttempts.</summary>
     public DbSet<StudyAttempt> StudyAttempts => this.Set<StudyAttempt>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge StudyAttemptSelections.</summary>
     public DbSet<StudyAttemptSelection> StudyAttemptSelections => this.Set<StudyAttemptSelection>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge ExamObjectives.</summary>
     public DbSet<ExamObjective> ExamObjectives => this.Set<ExamObjective>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge OfficialCatalogEditions.</summary>
     public DbSet<OfficialCatalogEdition> OfficialCatalogEditions => this.Set<OfficialCatalogEdition>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge ExamProfileVersions.</summary>
     public DbSet<ExamProfileVersion> ExamProfileVersions => this.Set<ExamProfileVersion>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge ExamSimulations.</summary>
     public DbSet<ExamSimulation> ExamSimulations => this.Set<ExamSimulation>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge AccountExamCredits.</summary>
     public DbSet<AccountExamCredit> AccountExamCredits => this.Set<AccountExamCredit>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge QuestionObjectives.</summary>
     public DbSet<QuestionObjective> QuestionObjectives => this.Set<QuestionObjective>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge StudyGroups.</summary>
     public DbSet<StudyGroup> StudyGroups => this.Set<StudyGroup>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge GroupMemberships.</summary>
     public DbSet<GroupMembership> GroupMemberships => this.Set<GroupMembership>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge GroupQuestionShares.</summary>
     public DbSet<GroupQuestionShare> GroupQuestionShares => this.Set<GroupQuestionShare>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge GroupInvitations.</summary>
     public DbSet<GroupInvitation> GroupInvitations => this.Set<GroupInvitation>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge GroupCatalogShares.</summary>
     public DbSet<GroupCatalogShare> GroupCatalogShares => this.Set<GroupCatalogShare>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge GroupVersionShares.</summary>
     public DbSet<GroupVersionShare> GroupVersionShares => this.Set<GroupVersionShare>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge PublicSubmissions.</summary>
     public DbSet<PublicSubmission> PublicSubmissions => this.Set<PublicSubmission>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge PublicSubmissionPreviews.</summary>
     public DbSet<PublicSubmissionPreview> PublicSubmissionPreviews => this.Set<PublicSubmissionPreview>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge PublicSubmissionReviews.</summary>
     public DbSet<PublicSubmissionReview> PublicSubmissionReviews => this.Set<PublicSubmissionReview>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge QuestionReports.</summary>
     public DbSet<QuestionReport> QuestionReports => this.Set<QuestionReport>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge QuestionComments.</summary>
     public DbSet<QuestionComment> QuestionComments => this.Set<QuestionComment>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge QuestionHelpfulVotes.</summary>
     public DbSet<QuestionHelpfulVote> QuestionHelpfulVotes => this.Set<QuestionHelpfulVote>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge QuestionModerationEvents.</summary>
     public DbSet<QuestionModerationEvent> QuestionModerationEvents => this.Set<QuestionModerationEvent>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge RecoveryCredentials.</summary>
     public DbSet<RecoveryCredential> RecoveryCredentials => this.Set<RecoveryCredential>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge AccountSessions.</summary>
     public DbSet<AccountSession> AccountSessions => this.Set<AccountSession>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge EmailLoginCodes.</summary>
     public DbSet<EmailLoginCode> EmailLoginCodes => this.Set<EmailLoginCode>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge UserAiCredentials.</summary>
     public DbSet<UserAiCredential> UserAiCredentials => this.Set<UserAiCredential>();
 
+    /// <summary>Ermöglicht den Zugriff auf die Datenmenge AiDailyUsages.</summary>
     public DbSet<AiDailyUsage> AiDailyUsages => this.Set<AiDailyUsage>();
 
+    /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ReminderPreference>(entity =>

@@ -7,8 +7,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Data;
 
+/// <summary>
+/// Steuert Warnungen, Deaktivierung und Löschung inaktiver Konten.
+/// </summary>
+/// <param name="db">Datenbankkontext.</param>
+/// <param name="sender">Dienst zum Versand von Inaktivitätshinweisen.</param>
 public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNoticeSender sender)
 {
+    /// <summary>Prüft fällige Inaktivitätsphasen und führt die erforderlichen Kontoaktionen aus.</summary>
+    /// <param name="now">Referenzzeitpunkt in UTC.</param>
+    /// <param name="cancellationToken">Token zum Abbrechen.</param>
+    /// <returns>Zusammenfassung der ausgeführten Änderungen.</returns>
     public async Task<LifecycleRunResult> RunOnceAsync(
         DateTimeOffset now,
         CancellationToken cancellationToken = default)
@@ -43,6 +52,10 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
         return new LifecycleRunResult(warnings, deactivated, deleted);
     }
 
+    /// <summary>Löscht das eigene Konto in einer geschützten Datenbanktransaktion.</summary>
+    /// <param name="id">Kennung des zu löschenden Kontos.</param>
+    /// <param name="cancellationToken">Token zum Abbrechen.</param>
+    /// <returns>Ob das Konto gelöscht wurde.</returns>
     public async Task<bool> DeleteOwnAsync(Guid id, CancellationToken cancellationToken = default)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);

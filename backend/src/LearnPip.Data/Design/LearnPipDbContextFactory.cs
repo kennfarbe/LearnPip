@@ -7,8 +7,12 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace LearnPip.Data.Design;
 
+/// <summary>
+/// Erstellt den Datenbankkontext für Entity-Framework-Werkzeuge.
+/// </summary>
 public sealed class LearnPipDbContextFactory : IDesignTimeDbContextFactory<LearnPipDbContext>
 {
+    /// <inheritdoc />
     public LearnPipDbContext CreateDbContext(string[] args)
     {
         var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__LearnPip")
