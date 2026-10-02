@@ -28,10 +28,12 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
             {
                 warnings++;
             }
+
             if (action == "deactivated")
             {
                 deactivated++;
             }
+
             if (action == "deleted")
             {
                 deleted++;
@@ -50,6 +52,7 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
         {
             return false;
         }
+
         await this.DeleteAccountAsync(id, DateTimeOffset.UtcNow, cancellationToken, requireExpired: false);
         await transaction.CommitAsync(cancellationToken);
         return true;
@@ -73,6 +76,7 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
             {
                 return "unchanged";
             }
+
             await this.DeleteAccountAsync(id, now, cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return "deleted";
@@ -83,7 +87,8 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
             account.DisabledAtUtc = now;
             await db.AccountSessions.Where(session => session.AccountId == id &&
                     session.RevokedAtUtc == null)
-                .ExecuteUpdateAsync(setters => setters.SetProperty(session => session.RevokedAtUtc, now),
+                .ExecuteUpdateAsync(
+                    setters => setters.SetProperty(session => session.RevokedAtUtc, now),
                     cancellationToken);
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
@@ -109,12 +114,14 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
         {
             return "unchanged";
         }
+
         var email = await db.ExternalIdentities.AsNoTracking()
             .Where(identity => identity.AccountId == id && identity.Provider == "email")
             .Select(identity => identity.Subject).FirstOrDefaultAsync(cancellationToken);
-        if (email == null || await db.AccountInactivityWarnings.AnyAsync(item =>
-                item.AccountId == id && item.PhaseDays == phase &&
-                item.ActivityAtUtc == account.LastActivityAtUtc, cancellationToken))
+        if (email == null || await db.AccountInactivityWarnings.AnyAsync(
+                item => item.AccountId == id && item.PhaseDays == phase &&
+                    item.ActivityAtUtc == account.LastActivityAtUtc,
+                cancellationToken))
         {
             return "unchanged";
         }
@@ -166,9 +173,10 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
             .SingleOrDefaultAsync(cancellationToken);
 
     private Task<bool> IsPrivileged(Guid id, CancellationToken cancellationToken) =>
-        db.AccountRoles.AnyAsync(role => role.AccountId == id &&
-            role.RoleDefinition.Scope == "system" &&
-            (role.RoleDefinition.Code == "moderator" || role.RoleDefinition.Code == "admin"),
+        db.AccountRoles.AnyAsync(
+            role => role.AccountId == id &&
+                role.RoleDefinition.Scope == "system" &&
+                (role.RoleDefinition.Code == "moderator" || role.RoleDefinition.Code == "admin"),
             cancellationToken);
 
     private async Task DeleteAccountAsync(
@@ -211,8 +219,9 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
             db.QuestionVersions.Any(version => version.Id == item.QuestionVersionId &&
                 version.Question.OwnerAccountId == id)).ExecuteDeleteAsync(cancellationToken);
         await db.PublicSubmissions.Where(item => item.ReviewedByAccountId == id &&
-            item.AccountId != id).ExecuteUpdateAsync(setters => setters
-                .SetProperty(item => item.ReviewedByAccountId, (Guid?)null), cancellationToken);
+            item.AccountId != id).ExecuteUpdateAsync(
+                setters => setters.SetProperty(item => item.ReviewedByAccountId, (Guid?)null),
+                cancellationToken);
         await db.PublicSubmissions.Where(item => item.AccountId == id ||
             item.QuestionVersion.Question.OwnerAccountId == id).ExecuteDeleteAsync(cancellationToken);
         await db.QuestionModerationEvents.Where(item => item.ModeratorAccountId == id ||
@@ -239,9 +248,10 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
             item.ParentAccountId == id || item.VerifiedByAccountId == id ||
             item.RevokedByAccountId == id).ExecuteDeleteAsync(cancellationToken);
         await db.PublicSubmissions.Where(item => item.GuardianApprovedByAccountId == id)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(item => item.GuardianApprovedByAccountId, (Guid?)null)
-                .SetProperty(item => item.GuardianApprovedAtUtc, (DateTimeOffset?)null),
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(item => item.GuardianApprovedByAccountId, (Guid?)null)
+                    .SetProperty(item => item.GuardianApprovedAtUtc, (DateTimeOffset?)null),
                 cancellationToken);
         await db.StudyAttemptSelections.Where(item => item.StudyAttempt.StudySession.AccountId == id ||
             item.StudyAttempt.QuestionVersion.Question.OwnerAccountId == id)
