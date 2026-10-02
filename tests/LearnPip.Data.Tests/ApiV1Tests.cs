@@ -123,11 +123,11 @@ public sealed class ApiV1Tests
                             options.UseNpgsql(connection.ConnectionString));
                         services.AddAuthentication(options =>
                         {
-                            options.DefaultAuthenticateScheme = TestAuthenticationHandler.Scheme;
-                            options.DefaultChallengeScheme = TestAuthenticationHandler.Scheme;
-                            options.DefaultForbidScheme = TestAuthenticationHandler.Scheme;
+                            options.DefaultAuthenticateScheme = TestAuthenticationHandler.TestScheme;
+                            options.DefaultChallengeScheme = TestAuthenticationHandler.TestScheme;
+                            options.DefaultForbidScheme = TestAuthenticationHandler.TestScheme;
                         }).AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(
-                            TestAuthenticationHandler.Scheme, _ => { });
+                            TestAuthenticationHandler.TestScheme, _ => { });
                     });
                 });
 
@@ -546,14 +546,14 @@ public sealed class ApiV1Tests
     private static ClaimsPrincipal PrincipalFor(Guid accountId) =>
         new(new ClaimsIdentity(
             [new Claim(AccountIdentity.AccountIdClaim, accountId.ToString())],
-            TestAuthenticationHandler.Scheme));
+            TestAuthenticationHandler.TestScheme));
 
     private sealed class TestAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
     {
-        public const string Scheme = "Test";
+        public const string TestScheme = "Test";
 
         protected override Task<AuthenticateResult> HandleAuthenticateAsync()
         {
