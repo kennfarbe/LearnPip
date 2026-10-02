@@ -29,6 +29,7 @@ public sealed class UpdateService(
     private static readonly Regex Stable = new(@"^v\d+\.\d+\.\d+$", RegexOptions.Compiled);
     private static readonly string[] Intervals = ["daily", "weekly", "monthly", "never"];
 
+    /// <summary>Holt die aktuell konfigurierte installierte Version.</summary>
     public string InstalledVersion
     {
         get
@@ -41,6 +42,9 @@ public sealed class UpdateService(
         }
     }
 
+    /// <summary>Prüft bei Fälligkeit auf ein neues stabiles Release.</summary>
+    /// <param name="ct">Token zum Abbrechen.</param>
+    /// <returns>Ein Task für die Prüfung.</returns>
     public async Task CheckScheduledAsync(CancellationToken ct)
     {
         var status = await this.StatusAsync(ct);
@@ -50,6 +54,9 @@ public sealed class UpdateService(
             await this.CheckAsync(true, ct);
     }
 
+    /// <summary>Lädt den aktuellen Versions- und Auftragsstatus.</summary>
+    /// <param name="ct">Token zum Abbrechen.</param>
+    /// <returns>Aktueller Versionsstatus.</returns>
     public async Task<UpdateStatus> StatusAsync(CancellationToken ct)
     {
         await this.ImportOperatorStatusAsync(ct);
@@ -70,6 +77,10 @@ public sealed class UpdateService(
         return new(this.InstalledVersion, latest, state, interval, last, Next(last, interval), null, release, job);
     }
 
+    /// <summary>Prüft das Repository auf die neueste stabile Version.</summary>
+    /// <param name="force">Gibt an, ob das Prüfintervall ignoriert wird.</param>
+    /// <param name="ct">Token zum Abbrechen.</param>
+    /// <returns>Aktueller Versionsstatus.</returns>
     public async Task<UpdateStatus> CheckAsync(bool force, CancellationToken ct)
     {
         var current = await this.StatusAsync(ct);
@@ -111,6 +122,10 @@ public sealed class UpdateService(
         }
     }
 
+    /// <summary>Speichert das Intervall für automatische Release-Prüfungen.</summary>
+    /// <param name="interval">Gewähltes Intervall.</param>
+    /// <param name="ct">Token zum Abbrechen.</param>
+    /// <returns>Gibt an, ob das Intervall gültig ist.</returns>
     public async Task<bool> SetIntervalAsync(string interval, CancellationToken ct)
     {
         if (!Intervals.Contains(interval)) return false;
@@ -118,6 +133,11 @@ public sealed class UpdateService(
         return true;
     }
 
+    /// <summary>Validiert eine Zielversion und legt einen Operator-Auftrag an.</summary>
+    /// <param name="actor">Kennung des Administrators.</param>
+    /// <param name="target">Bestätigte Zielversion.</param>
+    /// <param name="ct">Token zum Abbrechen.</param>
+    /// <returns>Der angelegte Auftrag oder ein Fehlercode.</returns>
     public async Task<(UpdateJob? Job, string? Error)> QueueAsync(Guid actor, string target, CancellationToken ct)
     {
         if (!Stable.IsMatch(target)) return (null, "invalid_version");
@@ -167,6 +187,10 @@ public sealed class UpdateService(
         return (job, null);
     }
 
+    /// <summary>Vergleicht zwei stabile SemVer-Kennungen.</summary>
+    /// <param name="left">Erste Version.</param>
+    /// <param name="right">Zweite Version.</param>
+    /// <returns>Versionsvergleich als Ganzzahl.</returns>
     public static int Compare(string left, string right)
     {
         if (!Stable.IsMatch(left) || !Stable.IsMatch(right)) return 0;
