@@ -74,8 +74,8 @@ services:
       Ai__Quota__operator-local: ${LEARNPIP_AI_LOCAL_DAILY_QUOTA:-50}
       Ai__Quota__user-key: ${LEARNPIP_AI_USER_DAILY_QUOTA:-20}
     volumes:
-      - ../shared/update-queue:/var/lib/learnpip-update/queue
-      - ../shared/update-status:/var/lib/learnpip-update/status:ro
+      - ${LEARNPIP_SHARED_DIR:?Set LEARNPIP_SHARED_DIR in .env.production}/update-queue:/var/lib/learnpip-update/queue
+      - ${LEARNPIP_SHARED_DIR:?Set LEARNPIP_SHARED_DIR in .env.production}/update-status:/var/lib/learnpip-update/status:ro
     secrets:
       - ConnectionStrings__LearnPip
       - Authentication__EmailCodeKey
