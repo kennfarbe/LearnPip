@@ -1,5 +1,7 @@
 # Betrieb auf einer VM (VPS oder Proxmox-Gast)
 
+**Installationswege:** Diese Anleitung enthält auch den manuellen Compose-Betrieb. Für Neuinstallationen aus einem stabilen Release ohne vollständigen Repository-Clone ist [Release-Installation](RELEASE-INSTALL.md) vorgesehen. Die webbasierten Admin-Updates sind Bestandteil des noch offenen PR #91 und benötigen einen separat eingerichteten Rootless-Host-Operator; siehe [Update-Architektur](admin-web-updates.md). Ein API-Container besitzt selbst keine Docker-Host-Rechte.
+
 Die Produktionsumgebung steht in [`deploy/compose.prod.yaml`](../deploy/compose.prod.yaml), getrennt vom lokalen [`deploy/compose.yaml`](../deploy/compose.yaml). Sie benötigt eine Linux-VM mit Docker Engine, Compose v2, `openssl`, ein auf die VM zeigendes DNS A/AAAA-Record und eingehende TCP-Ports 80/443 (optional UDP 443). Weder der Docker-Socket noch ein Proxmox-Dienst wird in die Container eingebunden. Die VM sollte genug Speicher für PostgreSQL, drei Anwendungskomponenten und den Proxy haben.
 
 ## Erstinstallation
