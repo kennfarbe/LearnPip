@@ -12,10 +12,10 @@ trim_trailing_whitespace = true
 indent_style = space
 indent_size = 4
 dotnet_sort_system_directives_first = true
-dotnet_style_qualification_for_field = false:suggestion
-dotnet_style_qualification_for_property = false:suggestion
-dotnet_style_qualification_for_method = false:suggestion
-dotnet_style_qualification_for_event = false:suggestion
+dotnet_style_qualification_for_field = true:warning
+dotnet_style_qualification_for_property = true:warning
+dotnet_style_qualification_for_method = true:warning
+dotnet_style_qualification_for_event = true:warning
 csharp_style_namespace_declarations = file_scoped:suggestion
 csharp_style_var_for_built_in_types = true:suggestion
 csharp_style_var_when_type_is_apparent = true:suggestion
@@ -30,11 +30,10 @@ trim_trailing_whitespace = false
 
 
 # Legacy formatting baseline: the repository uses file-scoped namespaces,
-# top-level using directives, compact declarations and no mandatory this. prefix.
+# top-level using directives and explicit this. qualification of instance members.
 # Keep SDK, Sonar and remaining StyleCop diagnostics active; warnings fail the build.
 [*.cs]
 dotnet_diagnostic.SA0001.severity = none
-dotnet_diagnostic.SA1101.severity = none
 dotnet_diagnostic.SA1116.severity = none
 dotnet_diagnostic.SA1117.severity = none
 dotnet_diagnostic.SA1118.severity = none
