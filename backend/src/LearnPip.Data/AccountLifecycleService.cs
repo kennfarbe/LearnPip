@@ -84,7 +84,10 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
         }
 
         var days = (now - account.LastActivityAtUtc).TotalDays;
-        var phase = days >= 87 ? 87 : days >= 76 ? 76 : days >= 60 ? 60 : 0;
+        var phase = 0;
+        if (days >= 87) phase = 87;
+        else if (days >= 76) phase = 76;
+        else if (days >= 60) phase = 60;
         if (phase == 0 || !sender.IsAvailable) return "unchanged";
         var email = await db.ExternalIdentities.AsNoTracking()
             .Where(identity => identity.AccountId == id && identity.Provider == "email")
