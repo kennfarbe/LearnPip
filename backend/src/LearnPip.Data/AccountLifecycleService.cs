@@ -34,7 +34,7 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
         foreach (var id in ids)
         {
             db.ChangeTracker.Clear();
-            var action = await ProcessAsync(id, now, cancellationToken);
+            var action = await this.ProcessAsync(id, now, cancellationToken);
             if (action == "warned") warnings++;
             if (action == "deactivated") deactivated++;
             if (action == "deleted") deleted++;
@@ -46,9 +46,9 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
     {
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(1049071810)", cancellationToken);
-        var account = await LockedAccount(id, cancellationToken);
+        var account = await this.LockedAccount(id, cancellationToken);
         if (account == null || account.DeletedAtUtc != null) return false;
-        await DeleteAccountAsync(id, DateTimeOffset.UtcNow, cancellationToken, requireExpired: false);
+        await this.DeleteAccountAsync(id, DateTimeOffset.UtcNow, cancellationToken, requireExpired: false);
         await transaction.CommitAsync(cancellationToken);
         return true;
     }
@@ -57,8 +57,8 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
     {
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(1049071810)", cancellationToken);
-        var account = await LockedAccount(id, cancellationToken);
-        if (account == null || account.DeletedAtUtc != null || await IsPrivileged(id, cancellationToken))
+        var account = await this.LockedAccount(id, cancellationToken);
+        if (account == null || account.DeletedAtUtc != null || await this.IsPrivileged(id, cancellationToken))
             return "unchanged";
 
         if (account.DisabledAtUtc.HasValue)
@@ -66,7 +66,7 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
             // Require both thresholds, even if a previous job deactivated the account late.
             if (account.DisabledAtUtc.Value.AddDays(90) > now ||
                 account.LastActivityAtUtc.AddDays(180) > now) return "unchanged";
-            await DeleteAccountAsync(id, now, cancellationToken);
+            await this.DeleteAccountAsync(id, now, cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return "deleted";
         }
@@ -112,10 +112,10 @@ public sealed class AccountLifecycleService(LearnPipDbContext db, IInactivityNot
         db.Entry(account).State = EntityState.Detached;
 
         await using var sendTransaction = await db.Database.BeginTransactionAsync(cancellationToken);
-        var current = await LockedAccount(id, cancellationToken);
+        var current = await this.LockedAccount(id, cancellationToken);
         if (current == null || current.DeletedAtUtc != null || current.DisabledAtUtc != null ||
             current.LastActivityAtUtc != warning.ActivityAtUtc ||
-            await IsPrivileged(id, cancellationToken))
+            await this.IsPrivileged(id, cancellationToken))
         {
             warning.DeliveryStatus = "cancelled";
         }
