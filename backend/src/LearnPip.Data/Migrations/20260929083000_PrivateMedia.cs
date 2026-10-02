@@ -36,7 +36,6 @@ public sealed class PrivateMedia : Migration
     }
 
     /// <inheritdoc />
-
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable("MediaBlobs");

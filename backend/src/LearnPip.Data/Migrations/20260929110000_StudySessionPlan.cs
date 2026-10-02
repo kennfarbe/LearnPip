@@ -19,7 +19,6 @@ public sealed class StudySessionPlan : Migration
             maxLength: 8192, nullable: true);
 
     /// <inheritdoc />
-
     protected override void Down(MigrationBuilder migrationBuilder) =>
         migrationBuilder.DropColumn("PlanJson", "StudySessions");
 }

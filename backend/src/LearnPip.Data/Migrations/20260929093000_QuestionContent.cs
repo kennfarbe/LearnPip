@@ -86,7 +86,6 @@ public sealed class QuestionContent : Migration
     }
 
     /// <inheritdoc />
-
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable("QuestionContentBlocks");

@@ -115,7 +115,6 @@ public partial class IdentityPaths : Migration
     }
 
     /// <inheritdoc />
-
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable(name: "EmailLoginCodes");

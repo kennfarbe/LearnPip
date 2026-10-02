@@ -49,7 +49,6 @@ public sealed class Administration : Migration
     }
 
     /// <inheritdoc />
-
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable("AdministrationAuditEvents");

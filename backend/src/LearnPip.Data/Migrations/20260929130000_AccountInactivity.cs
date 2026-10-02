@@ -42,7 +42,6 @@ public sealed class AccountInactivity : Migration
     }
 
     /// <inheritdoc />
-
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable("AccountInactivityWarnings");

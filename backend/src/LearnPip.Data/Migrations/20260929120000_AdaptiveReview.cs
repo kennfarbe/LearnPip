@@ -67,7 +67,6 @@ public sealed class AdaptiveReview : Migration
     }
 
     /// <inheritdoc />
-
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable("FrequentLearningContents");

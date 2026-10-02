@@ -50,7 +50,6 @@ public sealed class PrivateCatalogs : Migration
     }
 
     /// <inheritdoc />
-
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable("QuestionDrafts");

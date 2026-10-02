@@ -5,13 +5,11 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LearnPip.Data.Migrations
 {
-    /// <inheritdoc />
     /// <summary>
-/// Enthält die Schemaänderungen der Datenbankmigration InitialSchema.
-/// </summary>
-public partial class InitialSchema : Migration
+    /// Enthält die Schemaänderungen der Datenbankmigration InitialSchema.
+    /// </summary>
+    public partial class InitialSchema : Migration
     {
-        /// <inheritdoc />
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -483,7 +481,6 @@ public partial class InitialSchema : Migration
                 columns: new[] { "AccountId", "StartedAtUtc" });
         }
 
-        /// <inheritdoc />
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
