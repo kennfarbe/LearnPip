@@ -28,7 +28,7 @@ public sealed class SmtpEmailCodeSender(IConfiguration configuration) : IEmailCo
 
     public async Task SendAsync(string email, string code, CancellationToken cancellationToken)
     {
-        if (!IsAvailable)
+        if (!this.IsAvailable)
         {
             throw new InvalidOperationException("Mail transport is not configured.");
         }
@@ -100,7 +100,7 @@ public sealed class IdentityService(
                                  credential.Account.DeletedAtUtc == null)
             .Select(credential => (Guid?)credential.AccountId)
             .SingleOrDefaultAsync(cancellationToken);
-        if (accountId.HasValue) await ReactivateAsync(accountId.Value, cancellationToken);
+        if (accountId.HasValue) await this.ReactivateAsync(accountId.Value, cancellationToken);
         return accountId;
     }
 
@@ -139,13 +139,13 @@ public sealed class IdentityService(
     }
 
     public bool EmailEnabled =>
-        sender.IsAvailable && TryGetCodeKey() != null;
+        sender.IsAvailable && this.TryGetCodeKey() != null;
 
     public async Task StartEmailCodeAsync(
         string email, string purpose, Guid? accountId, Guid? sessionId,
         CancellationToken cancellationToken)
     {
-        var key = TryGetCodeKey() ?? throw new InvalidOperationException("Email code key is not configured.");
+        var key = this.TryGetCodeKey() ?? throw new InvalidOperationException("Email code key is not configured.");
         if (!sender.IsAvailable)
         {
             throw new InvalidOperationException("Mail transport is not configured.");
@@ -202,7 +202,7 @@ public sealed class IdentityService(
         string email, string code, string purpose, Guid? accountId, Guid? sessionId,
         CancellationToken cancellationToken)
     {
-        var key = TryGetCodeKey();
+        var key = this.TryGetCodeKey();
         if (key == null || code.Length != 6 || code.Any(character => character is < '0' or > '9'))
         {
             return null;
@@ -289,7 +289,7 @@ public sealed class IdentityService(
         try
         {
             await dbContext.SaveChangesAsync(cancellationToken);
-            await ReactivateAsync(resolved, cancellationToken);
+            await this.ReactivateAsync(resolved, cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
         catch (DbUpdateException exception) when
@@ -327,7 +327,7 @@ public sealed class IdentityService(
                 throw new IdentityConflictException();
             }
 
-            await ReactivateAsync(identity.AccountId, cancellationToken);
+            await this.ReactivateAsync(identity.AccountId, cancellationToken);
             return identity.AccountId;
         }
 
