@@ -28,3 +28,30 @@ trim_trailing_whitespace = false
 
 [Makefile]
 indent_style = tab
+
+# Legacy formatting baseline: the repository uses file-scoped namespaces,
+# top-level using directives, compact declarations and no mandatory this. prefix.
+# Keep SDK, Sonar and remaining StyleCop diagnostics active; warnings fail the build.
+[*.cs]
+dotnet_diagnostic.SA0001.severity = none
+dotnet_diagnostic.SA1101.severity = none
+dotnet_diagnostic.SA1116.severity = none
+dotnet_diagnostic.SA1117.severity = none
+dotnet_diagnostic.SA1118.severity = none
+dotnet_diagnostic.SA1122.severity = none
+dotnet_diagnostic.SA1200.severity = none
+dotnet_diagnostic.SA1402.severity = none
+dotnet_diagnostic.SA1408.severity = none
+dotnet_diagnostic.SA1413.severity = none
+dotnet_diagnostic.SA1500.severity = none
+dotnet_diagnostic.SA1503.severity = none
+dotnet_diagnostic.SA1513.severity = none
+dotnet_diagnostic.SA1515.severity = none
+dotnet_diagnostic.SA1516.severity = none
+dotnet_diagnostic.SA1633.severity = none
+dotnet_diagnostic.SA1649.severity = none
+
+# EF migrations are generated snapshots and should not be hand-refactored.
+[**/Migrations/**/*.cs]
+generated_code = true
+dotnet_diagnostic.CA1861.severity = none
