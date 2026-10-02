@@ -10,27 +10,27 @@ namespace LearnPip.Data.Domain;
 public sealed class RoleDefinition
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft scope ab oder legt den Wert fest.
+    /// Holt oder setzt scope.
     /// </summary>
     public string Scope { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft fachlicher Code ab oder legt den Wert fest.
+    /// Holt oder setzt fachlicher Code.
     /// </summary>
     public string Code { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft Name ab oder legt den Wert fest.
+    /// Holt oder setzt Name.
     /// </summary>
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft account roles ab oder legt den Wert fest.
+    /// Holt oder setzt account roles.
     /// </summary>
     public ICollection<AccountRole> AccountRoles { get; set; } = [];
 }

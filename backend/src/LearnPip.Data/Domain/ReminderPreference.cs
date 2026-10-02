@@ -10,42 +10,42 @@ namespace LearnPip.Data.Domain;
 public sealed class ReminderPreference
 {
     /// <summary>
-    /// Ruft Kennung des Kontos ab oder legt den Wert fest.
+    /// Holt oder setzt Kennung des Kontos.
     /// </summary>
     public Guid AccountId { get; set; }
 
     /// <summary>
-    /// Ruft enabled ab oder legt den Wert fest.
+    /// Holt oder setzt enabled.
     /// </summary>
     public bool Enabled { get; set; }
 
     /// <summary>
-    /// Ruft interval days ab oder legt den Wert fest.
+    /// Holt oder setzt interval days.
     /// </summary>
     public int IntervalDays { get; set; } = 7;
 
     /// <summary>
-    /// Ruft quiet start minute ab oder legt den Wert fest.
+    /// Holt oder setzt quiet start minute.
     /// </summary>
     public int QuietStartMinute { get; set; } = 22 * 60;
 
     /// <summary>
-    /// Ruft quiet end minute ab oder legt den Wert fest.
+    /// Holt oder setzt quiet end minute.
     /// </summary>
     public int QuietEndMinute { get; set; } = 8 * 60;
 
     /// <summary>
-    /// Ruft time zone id ab oder legt den Wert fest.
+    /// Holt oder setzt time zone id.
     /// </summary>
     public string TimeZoneId { get; set; } = "Europe/Berlin";
 
     /// <summary>
-    /// Ruft last notified activity at utc ab oder legt den Wert fest.
+    /// Holt oder setzt last notified activity at utc.
     /// </summary>
     public DateTimeOffset? LastNotifiedActivityAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft last sent at utc ab oder legt den Wert fest.
+    /// Holt oder setzt last sent at utc.
     /// </summary>
     public DateTimeOffset? LastSentAtUtc { get; set; }
 }

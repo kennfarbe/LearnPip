@@ -10,22 +10,22 @@ namespace LearnPip.Data.Domain;
 public sealed class StudyAttemptSelection
 {
     /// <summary>
-    /// Ruft study attempt id ab oder legt den Wert fest.
+    /// Holt oder setzt study attempt id.
     /// </summary>
     public Guid StudyAttemptId { get; set; }
 
     /// <summary>
-    /// Ruft answer option id ab oder legt den Wert fest.
+    /// Holt oder setzt answer option id.
     /// </summary>
     public Guid AnswerOptionId { get; set; }
 
     /// <summary>
-    /// Ruft study attempt ab oder legt den Wert fest.
+    /// Holt oder setzt study attempt.
     /// </summary>
     public StudyAttempt StudyAttempt { get; set; } = null!;
 
     /// <summary>
-    /// Ruft answer option ab oder legt den Wert fest.
+    /// Holt oder setzt answer option.
     /// </summary>
     public AnswerOption AnswerOption { get; set; } = null!;
 }

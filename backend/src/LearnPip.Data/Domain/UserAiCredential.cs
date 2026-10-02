@@ -10,17 +10,17 @@ namespace LearnPip.Data.Domain;
 public sealed class UserAiCredential
 {
     /// <summary>
-    /// Ruft Kennung des Kontos ab oder legt den Wert fest.
+    /// Holt oder setzt Kennung des Kontos.
     /// </summary>
     public Guid AccountId { get; set; }
 
     /// <summary>
-    /// Ruft ciphertext ab oder legt den Wert fest.
+    /// Holt oder setzt ciphertext.
     /// </summary>
     public string Ciphertext { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft Änderungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Änderungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset UpdatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 }

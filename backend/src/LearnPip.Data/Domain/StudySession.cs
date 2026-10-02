@@ -10,37 +10,37 @@ namespace LearnPip.Data.Domain;
 public sealed class StudySession
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft Kennung des Kontos ab oder legt den Wert fest.
+    /// Holt oder setzt Kennung des Kontos.
     /// </summary>
     public Guid AccountId { get; set; }
 
     /// <summary>
-    /// Ruft started at utc ab oder legt den Wert fest.
+    /// Holt oder setzt started at utc.
     /// </summary>
     public DateTimeOffset StartedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft completed at utc ab oder legt den Wert fest.
+    /// Holt oder setzt completed at utc.
     /// </summary>
     public DateTimeOffset? CompletedAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft plan json ab oder legt den Wert fest.
+    /// Holt oder setzt plan json.
     /// </summary>
     public string? PlanJson { get; set; }
 
     /// <summary>
-    /// Ruft account ab oder legt den Wert fest.
+    /// Holt oder setzt account.
     /// </summary>
     public Account Account { get; set; } = null!;
 
     /// <summary>
-    /// Ruft attempts ab oder legt den Wert fest.
+    /// Holt oder setzt attempts.
     /// </summary>
     public ICollection<StudyAttempt> Attempts { get; set; } = [];
 }

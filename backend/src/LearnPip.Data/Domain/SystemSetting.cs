@@ -10,17 +10,17 @@ namespace LearnPip.Data.Domain;
 public sealed class SystemSetting
 {
     /// <summary>
-    /// Ruft key ab oder legt den Wert fest.
+    /// Holt oder setzt key.
     /// </summary>
     public string Key { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft value ab oder legt den Wert fest.
+    /// Holt oder setzt value.
     /// </summary>
     public string Value { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft Änderungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Änderungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset UpdatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 }

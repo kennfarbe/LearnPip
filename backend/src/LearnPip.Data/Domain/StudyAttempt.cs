@@ -10,52 +10,52 @@ namespace LearnPip.Data.Domain;
 public sealed class StudyAttempt
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft study session id ab oder legt den Wert fest.
+    /// Holt oder setzt study session id.
     /// </summary>
     public Guid StudySessionId { get; set; }
 
     /// <summary>
-    /// Ruft question version id ab oder legt den Wert fest.
+    /// Holt oder setzt question version id.
     /// </summary>
     public Guid QuestionVersionId { get; set; }
 
     /// <summary>
-    /// Ruft is correct ab oder legt den Wert fest.
+    /// Holt oder setzt is correct.
     /// </summary>
     public bool IsCorrect { get; set; }
 
     /// <summary>
-    /// Ruft was guessed ab oder legt den Wert fest.
+    /// Holt oder setzt was guessed.
     /// </summary>
     public bool WasGuessed { get; set; }
 
     /// <summary>
-    /// Ruft explanation viewed at utc ab oder legt den Wert fest.
+    /// Holt oder setzt explanation viewed at utc.
     /// </summary>
     public DateTimeOffset? ExplanationViewedAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft answered at utc ab oder legt den Wert fest.
+    /// Holt oder setzt answered at utc.
     /// </summary>
     public DateTimeOffset AnsweredAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft study session ab oder legt den Wert fest.
+    /// Holt oder setzt study session.
     /// </summary>
     public StudySession StudySession { get; set; } = null!;
 
     /// <summary>
-    /// Ruft question version ab oder legt den Wert fest.
+    /// Holt oder setzt question version.
     /// </summary>
     public QuestionVersion QuestionVersion { get; set; } = null!;
 
     /// <summary>
-    /// Ruft selections ab oder legt den Wert fest.
+    /// Holt oder setzt selections.
     /// </summary>
     public ICollection<StudyAttemptSelection> Selections { get; set; } = [];
 }
