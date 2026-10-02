@@ -1,4 +1,6 @@
+// <copyright file="AccountExamCredit.cs" company="LearnPip contributors">
 // Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
+// </copyright>
 
 namespace LearnPip.Data.Domain;
 
