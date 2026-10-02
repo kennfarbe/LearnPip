@@ -48,6 +48,7 @@ builder.Services.AddSingleton<IInactivityNoticeSender, DisabledInactivityNoticeS
 builder.Services.AddScoped<AdministrationService>();
 builder.Services.AddScoped<UpdateService>();
 builder.Services.AddHttpClient("github-releases", client => client.Timeout = TimeSpan.FromSeconds(15));
+builder.Services.AddHostedService<UpdateCheckBackgroundService>();
 builder.Services.AddScoped<GroupService>();
 builder.Services.AddScoped<PublicSubmissionService>();
 builder.Services.AddScoped<SessionService>();
