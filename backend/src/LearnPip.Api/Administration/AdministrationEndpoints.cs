@@ -30,6 +30,28 @@ public static class AdministrationEndpoints
                 _ => Results.NoContent()
             };
         });
+        admin.MapGet("/updates", async (UpdateService updates, CancellationToken cancellationToken) =>
+            Results.Ok(await updates.StatusAsync(cancellationToken)));
+        admin.MapPost("/updates/check", async (UpdateService updates, CancellationToken cancellationToken) =>
+            Results.Ok(await updates.CheckAsync(true, cancellationToken)))
+            .RequireRateLimiting("update-admin");
+        admin.MapPut("/updates/interval", async (UpdateIntervalRequest request, UpdateService updates,
+            CancellationToken cancellationToken) =>
+            await updates.SetIntervalAsync(request.Interval, cancellationToken)
+                ? Results.NoContent() : Results.BadRequest(new { error = "invalid_interval" }));
+        admin.MapPost("/updates/install", async (UpdateInstallRequest request, UpdateService updates,
+            ClaimsPrincipal user, CancellationToken cancellationToken) =>
+        {
+            if (!AccountIdentity.TryGetAccountId(user, out var actorId)) return Results.Forbid();
+            var result = await updates.QueueAsync(actorId, request.Version, cancellationToken);
+            return result.Error switch
+            {
+                null => Results.Accepted($"/api/v1/admin/updates", result.Job),
+                "update_in_progress" => Results.Conflict(new { error = result.Error }),
+                "invalid_version" or "unverified_release" => Results.BadRequest(new { error = result.Error }),
+                _ => Results.StatusCode(StatusCodes.Status503ServiceUnavailable)
+            };
+        }).RequireRateLimiting("update-admin");
         admin.MapGet("/audit", async (LearnPipDbContext db, CancellationToken cancellationToken) =>
             Results.Ok(await db.AdministrationAuditEvents.AsNoTracking()
                 .OrderByDescending(item => item.CreatedAtUtc).Take(100)
@@ -81,3 +103,6 @@ public static class AdministrationEndpoints
 
 public sealed record GroupRoleRequest(string Code);
 public sealed record MaintenanceNoticeRequest(string? Value);
+
+public sealed record UpdateIntervalRequest(string Interval);
+public sealed record UpdateInstallRequest(string Version);
