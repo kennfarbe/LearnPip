@@ -122,6 +122,13 @@ public sealed class UpdateService(
         var status = await CheckAsync(true, ct);
         if (status.Release?.Version != target || Compare(target, InstalledVersion) <= 0)
             return (null, "unverified_release");
+        var queue = configuration["LearnPip:UpdateQueuePath"];
+        var operatorStatus = configuration["LearnPip:UpdateStatusPath"];
+        if (string.IsNullOrWhiteSpace(queue) || !Directory.Exists(queue) ||
+            string.IsNullOrWhiteSpace(operatorStatus) || !Directory.Exists(operatorStatus))
+            return (null, "operator_unavailable");
+
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
         await db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(1049071811)", ct);
         var existing = Deserialize<UpdateJob>((await db.SystemSettings.AsNoTracking()
             .SingleOrDefaultAsync(x => x.Key == JobKey, ct))?.Value);
@@ -137,13 +144,23 @@ public sealed class UpdateService(
             NewValue = target
         });
         await db.SaveChangesAsync(ct);
-        var queue = configuration["LearnPip:UpdateQueuePath"];
-        if (!string.IsNullOrWhiteSpace(queue))
+        await transaction.CommitAsync(ct);
+
+        try
         {
-            Directory.CreateDirectory(queue);
             var tmp = Path.Combine(queue, $".{job.Id:N}.tmp");
             await File.WriteAllTextAsync(tmp, JsonSerializer.Serialize(job, JsonOptions), ct);
             File.Move(tmp, Path.Combine(queue, $"{job.Id:N}.json"));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger.LogError(ex, "Could not submit update job to the operator.");
+            job.State = "failed";
+            job.Phase = "queue";
+            job.Message = "Der Update-Operator konnte den Auftrag nicht entgegennehmen.";
+            job.UpdatedAtUtc = DateTimeOffset.UtcNow;
+            await PutAsync(JobKey, JsonSerializer.Serialize(job, JsonOptions), ct);
+            return (null, "operator_unavailable");
         }
         return (job, null);
     }
