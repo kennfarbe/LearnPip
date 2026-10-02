@@ -2,6 +2,8 @@ root = true
 
 [*]
 charset = utf-8
+indent_style = space
+indent_size = 2
 end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
@@ -26,8 +28,6 @@ indent_size = 2
 [*.md]
 trim_trailing_whitespace = false
 
-[Makefile]
-indent_style = tab
 
 # Legacy formatting baseline: the repository uses file-scoped namespaces,
 # top-level using directives, compact declarations and no mandatory this. prefix.
