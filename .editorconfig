@@ -87,3 +87,10 @@ dotnet_diagnostic.S1125.severity = none
 dotnet_diagnostic.S6610.severity = none
 dotnet_diagnostic.CA1866.severity = none
 dotnet_diagnostic.S6444.severity = none
+
+# Test names intentionally describe behavior using underscores; tests also retain
+# a few fixture-specific analyzer exceptions without relaxing production code.
+[tests/LearnPip.Data.Tests/*.cs]
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA1861.severity = none
+dotnet_diagnostic.S6966.severity = none
