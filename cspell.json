@@ -1,6 +1,6 @@
 {
   "version": "0.2",
-  "language": "de_DE,en_US",
+  "language": "de-DE,en-US",
   "import": [
     "@cspell/dict-de-de/cspell-ext.json"
   ],
