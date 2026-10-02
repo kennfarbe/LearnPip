@@ -1,7 +1,7 @@
 # Releases
 
 LearnPip verwendet eine gemeinsame Version für API, Worker und Web. Nach einem Merge auf `main`
-laufen Repository-Prüfungen, Backend-Tests, Web-Build und Restore-Smoke-Test. Anschließend berechnet
+laufen Repository- und Markdown-Prüfungen, Backend-Tests mit .NET-/StyleCop-/Sonar-Analyzern, Web-Build mit Angular ESLint sowie Installer- und Restore-Smoke-Tests. Analyzer- und Lint-Warnungen werden im aktiven Regelprofil als Fehler behandelt. Anschließend berechnet
 semantic-release aus den Conventional Commits die nächste Version, aktualisiert `CHANGELOG.md`,
 legt den Tag `vX.Y.Z` an und erstellt das GitHub Release.
 
