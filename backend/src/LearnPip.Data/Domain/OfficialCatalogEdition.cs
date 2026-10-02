@@ -10,52 +10,52 @@ namespace LearnPip.Data.Domain;
 public sealed class OfficialCatalogEdition
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft fachlicher Code ab oder legt den Wert fest.
+    /// Holt oder setzt fachlicher Code.
     /// </summary>
     public string Code { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft Titel ab oder legt den Wert fest.
+    /// Holt oder setzt Titel.
     /// </summary>
     public string Title { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft revision ab oder legt den Wert fest.
+    /// Holt oder setzt revision.
     /// </summary>
     public string Revision { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft source url ab oder legt den Wert fest.
+    /// Holt oder setzt source url.
     /// </summary>
     public string SourceUrl { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft license ab oder legt den Wert fest.
+    /// Holt oder setzt license.
     /// </summary>
     public string License { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft attribution ab oder legt den Wert fest.
+    /// Holt oder setzt attribution.
     /// </summary>
     public string Attribution { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft changed on ab oder legt den Wert fest.
+    /// Holt oder setzt changed on.
     /// </summary>
     public DateOnly ChangedOn { get; set; }
 
     /// <summary>
-    /// Ruft imported at utc ab oder legt den Wert fest.
+    /// Holt oder setzt imported at utc.
     /// </summary>
     public DateTimeOffset ImportedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft questions json ab oder legt den Wert fest.
+    /// Holt oder setzt questions json.
     /// </summary>
     public string QuestionsJson { get; set; } = string.Empty;
 }

@@ -10,22 +10,22 @@ namespace LearnPip.Data.Domain;
 public sealed class PublicSubmissionPreview
 {
     /// <summary>
-    /// Ruft question version id ab oder legt den Wert fest.
+    /// Holt oder setzt question version id.
     /// </summary>
     public Guid QuestionVersionId { get; set; }
 
     /// <summary>
-    /// Ruft Kennung des Kontos ab oder legt den Wert fest.
+    /// Holt oder setzt Kennung des Kontos.
     /// </summary>
     public Guid AccountId { get; set; }
 
     /// <summary>
-    /// Ruft token hash ab oder legt den Wert fest.
+    /// Holt oder setzt token hash.
     /// </summary>
     public string TokenHash { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft expires at utc ab oder legt den Wert fest.
+    /// Holt oder setzt expires at utc.
     /// </summary>
     public DateTimeOffset ExpiresAtUtc { get; set; }
 }

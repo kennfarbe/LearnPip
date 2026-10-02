@@ -10,17 +10,17 @@ namespace LearnPip.Data.Domain;
 public sealed class MediaBlob
 {
     /// <summary>
-    /// Ruft media asset id ab oder legt den Wert fest.
+    /// Holt oder setzt media asset id.
     /// </summary>
     public Guid MediaAssetId { get; set; }
 
     /// <summary>
-    /// Ruft data ab oder legt den Wert fest.
+    /// Holt oder setzt data.
     /// </summary>
     public byte[] Data { get; set; } = [];
 
     /// <summary>
-    /// Ruft media asset ab oder legt den Wert fest.
+    /// Holt oder setzt media asset.
     /// </summary>
     public MediaAsset MediaAsset { get; set; } = null!;
 }

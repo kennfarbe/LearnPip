@@ -10,22 +10,22 @@ namespace LearnPip.Data.Domain;
 public sealed class LearningContent
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft Kennung des Eigentümerkontos ab oder legt den Wert fest.
+    /// Holt oder setzt Kennung des Eigentümerkontos.
     /// </summary>
     public Guid OwnerAccountId { get; set; }
 
     /// <summary>
-    /// Ruft Titel ab oder legt den Wert fest.
+    /// Holt oder setzt Titel.
     /// </summary>
     public string Title { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft questions ab oder legt den Wert fest.
+    /// Holt oder setzt questions.
     /// </summary>
     public ICollection<Question> Questions { get; set; } = [];
 }

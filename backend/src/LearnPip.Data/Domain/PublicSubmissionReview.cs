@@ -10,52 +10,52 @@ namespace LearnPip.Data.Domain;
 public sealed class PublicSubmissionReview
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft question version id ab oder legt den Wert fest.
+    /// Holt oder setzt question version id.
     /// </summary>
     public Guid QuestionVersionId { get; set; }
 
     /// <summary>
-    /// Ruft moderator account id ab oder legt den Wert fest.
+    /// Holt oder setzt moderator account id.
     /// </summary>
     public Guid ModeratorAccountId { get; set; }
 
     /// <summary>
-    /// Ruft decision ab oder legt den Wert fest.
+    /// Holt oder setzt decision.
     /// </summary>
     public string Decision { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft correctness checked ab oder legt den Wert fest.
+    /// Holt oder setzt correctness checked.
     /// </summary>
     public bool CorrectnessChecked { get; set; }
 
     /// <summary>
-    /// Ruft image rights checked ab oder legt den Wert fest.
+    /// Holt oder setzt image rights checked.
     /// </summary>
     public bool ImageRightsChecked { get; set; }
 
     /// <summary>
-    /// Ruft personal data checked ab oder legt den Wert fest.
+    /// Holt oder setzt personal data checked.
     /// </summary>
     public bool PersonalDataChecked { get; set; }
 
     /// <summary>
-    /// Ruft duplicate checked ab oder legt den Wert fest.
+    /// Holt oder setzt duplicate checked.
     /// </summary>
     public bool DuplicateChecked { get; set; }
 
     /// <summary>
-    /// Ruft note ab oder legt den Wert fest.
+    /// Holt oder setzt note.
     /// </summary>
     public string Note { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft Erstellungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Erstellungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 }

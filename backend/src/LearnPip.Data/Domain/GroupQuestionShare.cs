@@ -10,42 +10,42 @@ namespace LearnPip.Data.Domain;
 public sealed class GroupQuestionShare
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft study group id ab oder legt den Wert fest.
+    /// Holt oder setzt study group id.
     /// </summary>
     public Guid StudyGroupId { get; set; }
 
     /// <summary>
-    /// Ruft question id ab oder legt den Wert fest.
+    /// Holt oder setzt question id.
     /// </summary>
     public Guid QuestionId { get; set; }
 
     /// <summary>
-    /// Ruft shared by account id ab oder legt den Wert fest.
+    /// Holt oder setzt shared by account id.
     /// </summary>
     public Guid SharedByAccountId { get; set; }
 
     /// <summary>
-    /// Ruft shared at utc ab oder legt den Wert fest.
+    /// Holt oder setzt shared at utc.
     /// </summary>
     public DateTimeOffset SharedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft revoked at utc ab oder legt den Wert fest.
+    /// Holt oder setzt revoked at utc.
     /// </summary>
     public DateTimeOffset? RevokedAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft study group ab oder legt den Wert fest.
+    /// Holt oder setzt study group.
     /// </summary>
     public StudyGroup StudyGroup { get; set; } = null!;
 
     /// <summary>
-    /// Ruft question ab oder legt den Wert fest.
+    /// Holt oder setzt question.
     /// </summary>
     public Question Question { get; set; } = null!;
 }

@@ -10,27 +10,27 @@ namespace LearnPip.Data.Domain;
 public sealed class PrivateCatalog
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft Kennung des Eigentümerkontos ab oder legt den Wert fest.
+    /// Holt oder setzt Kennung des Eigentümerkontos.
     /// </summary>
     public Guid OwnerAccountId { get; set; }
 
     /// <summary>
-    /// Ruft Name ab oder legt den Wert fest.
+    /// Holt oder setzt Name.
     /// </summary>
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft Erstellungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Erstellungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft questions ab oder legt den Wert fest.
+    /// Holt oder setzt questions.
     /// </summary>
     public ICollection<Question> Questions { get; set; } = [];
 }

@@ -10,57 +10,57 @@ namespace LearnPip.Data.Domain;
 public sealed class MediaAsset
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft Kennung des Eigentümerkontos ab oder legt den Wert fest.
+    /// Holt oder setzt Kennung des Eigentümerkontos.
     /// </summary>
     public Guid OwnerAccountId { get; set; }
 
     /// <summary>
-    /// Ruft question version id ab oder legt den Wert fest.
+    /// Holt oder setzt question version id.
     /// </summary>
     public Guid? QuestionVersionId { get; set; }
 
     /// <summary>
-    /// Ruft storage key ab oder legt den Wert fest.
+    /// Holt oder setzt storage key.
     /// </summary>
     public string StorageKey { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft media type ab oder legt den Wert fest.
+    /// Holt oder setzt media type.
     /// </summary>
     public string MediaType { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft alt text ab oder legt den Wert fest.
+    /// Holt oder setzt alt text.
     /// </summary>
     public string AltText { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft byte length ab oder legt den Wert fest.
+    /// Holt oder setzt byte length.
     /// </summary>
     public long ByteLength { get; set; }
 
     /// <summary>
-    /// Ruft Erstellungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Erstellungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft Löschzeitpunkt in UTC, sofern vorhanden ab oder legt den Wert fest.
+    /// Holt oder setzt Löschzeitpunkt in UTC, sofern vorhanden.
     /// </summary>
     public DateTimeOffset? DeletedAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft owner ab oder legt den Wert fest.
+    /// Holt oder setzt owner.
     /// </summary>
     public Account Owner { get; set; } = null!;
 
     /// <summary>
-    /// Ruft question version ab oder legt den Wert fest.
+    /// Holt oder setzt question version.
     /// </summary>
     public QuestionVersion? QuestionVersion { get; set; }
 }
