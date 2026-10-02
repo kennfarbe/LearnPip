@@ -1,0 +1,19 @@
+[Unit]
+Description=LearnPip rootless update operator
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/learnpip/current/scripts/update-operator.py
+Restart=on-failure
+RestartSec=5
+Environment=LEARNPIP_HOME=%h/learnpip
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=%h/learnpip %h/learnpip-backups
+ProtectHome=read-only
+
+[Install]
+WantedBy=default.target
