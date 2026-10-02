@@ -207,7 +207,7 @@ PY
   printf '%s\n' "$version" > "$source_dir/.learnpip-release"
   mv "$source_dir" "$target"
 fi
-install -d -m 700 "$shared/secrets"
+install -d -m 700 "$shared/secrets" "$shared/update-queue" "$shared/update-status"
 if [[ ! -e $shared/.env.production ]]; then
   cp "$target/deploy/.env.production.example" "$shared/.env.production"
 fi
