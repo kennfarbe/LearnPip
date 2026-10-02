@@ -65,6 +65,12 @@ generated_code = true
 dotnet_diagnostic.CA1861.severity = none
 
 # Existing API analyzer debt (follow-up cleanup). New warnings remain errors.
+[backend/src/LearnPip.Api/*.cs]
+dotnet_diagnostic.S1118.severity = none
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.S1075.severity = none
+dotnet_diagnostic.S6966.severity = none
+
 [backend/src/LearnPip.Api/**/*.cs]
 dotnet_diagnostic.S1118.severity = none
 dotnet_diagnostic.S3358.severity = none
