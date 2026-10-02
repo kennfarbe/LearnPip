@@ -1,3 +1,7 @@
+// <copyright file="PrivateMediaCatalog.cs" company="LearnPip contributors">
+// Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
+// </copyright>
+
 using LearnPip.Data.Domain;
 using Microsoft.EntityFrameworkCore;
 
