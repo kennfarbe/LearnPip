@@ -1,5 +1,7 @@
 # LearnPip aus Docker Hub installieren und aktualisieren
 
+**Stand: 2. Oktober 2026.** Der folgende Weg installiert und aktualisiert stabile Releases über das Installationsskript. Die in PR #91 ergänzten webbasierten Admin-Updates benötigen nach Merge und Veröffentlichung einen separat eingerichteten und aktivierten Rootless-Host-Operator; siehe [Update-Architektur](admin-web-updates.md).
+
 Stabile LearnPip-Releases werden nach erfolgreichem semantic-release automatisch als Multi-Arch-Images
 für `linux/amd64` und `linux/arm64` nach Docker Hub veröffentlicht:
 
