@@ -1,3 +1,7 @@
+// <copyright file="UpdateService.cs" company="LearnPip contributors">
+// Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
+// </copyright>
+
 using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -7,25 +11,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Administration;
 
-public sealed record ReleaseInfo(string Version, string Name, string Notes, string Url, DateTimeOffset? PublishedAtUtc);
-public sealed record UpdateStatus(
-    string InstalledVersion, string? LatestVersion, string State, string Interval,
-    DateTimeOffset? LastCheckedAtUtc, DateTimeOffset? NextCheckAtUtc, string? Error,
-    ReleaseInfo? Release, UpdateJob? Job);
-
-public sealed class UpdateJob
-{
-    public Guid Id { get; init; } = Guid.NewGuid();
-    public Guid ActorAccountId { get; init; }
-    public string FromVersion { get; init; } = "";
-    public string TargetVersion { get; init; } = "";
-    public string State { get; set; } = "queued";
-    public string Phase { get; set; } = "queued";
-    public string? Message { get; set; }
-    public DateTimeOffset CreatedAtUtc { get; init; } = DateTimeOffset.UtcNow;
-    public DateTimeOffset UpdatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
-}
-
+/// <summary>Prüft Releases und verwaltet Aufträge für den separaten Update-Operator.</summary>
+/// <param name="db">Datenbankkontext.</param>
+/// <param name="clients">HTTP-Client-Factory.</param>
+/// <param name="configuration">Anwendungskonfiguration.</param>
+/// <param name="logger">Protokollierung.</param>
 public sealed class UpdateService(
     LearnPipDbContext db, IHttpClientFactory clients, IConfiguration configuration, ILogger<UpdateService> logger)
 {
