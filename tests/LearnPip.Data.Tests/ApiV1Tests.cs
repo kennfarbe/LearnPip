@@ -563,7 +563,7 @@ public sealed class ApiV1Tests
                 return Task.FromResult(AuthenticateResult.NoResult());
             }
 
-            var ticket = new AuthenticationTicket(PrincipalFor(parsed), Scheme);
+            var ticket = new AuthenticationTicket(PrincipalFor(parsed), TestScheme);
             return Task.FromResult(AuthenticateResult.Success(ticket));
         }
     }
