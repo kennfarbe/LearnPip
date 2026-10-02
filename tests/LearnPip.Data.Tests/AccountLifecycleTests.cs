@@ -193,7 +193,7 @@ public sealed class AccountLifecycleTests
         public Task SendAsync(string email, int phaseDays, DateTimeOffset lastActivityAtUtc,
             CancellationToken cancellationToken)
         {
-            Phases.Add(phaseDays);
+            this.Phases.Add(phaseDays);
             return Task.CompletedTask;
         }
     }
