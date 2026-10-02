@@ -382,9 +382,12 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
                 .HasForeignKey(x => x.AnswerOptionId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.MediaAsset).WithMany()
                 .HasForeignKey(x => x.MediaAssetId).OnDelete(DeleteBehavior.Restrict);
-            entity.ToTable(table => table.HasCheckConstraint("CK_QuestionContentBlocks_Owner",
+            const string questionContentOwnerConstraint =
                 "(\"QuestionVersionId\" IS NOT NULL AND \"AnswerOptionId\" IS NULL) OR " +
-                "(\"QuestionVersionId\" IS NULL AND \"AnswerOptionId\" IS NOT NULL)"));
+                "(\"QuestionVersionId\" IS NULL AND \"AnswerOptionId\" IS NOT NULL)";
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_QuestionContentBlocks_Owner",
+                questionContentOwnerConstraint));
         });
 
         modelBuilder.Entity<MediaAsset>(entity =>
