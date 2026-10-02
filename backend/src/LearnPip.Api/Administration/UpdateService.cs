@@ -129,8 +129,11 @@ public sealed class UpdateService(
         await PutAsync(JobKey, JsonSerializer.Serialize(job), ct);
         db.AdministrationAuditEvents.Add(new AdministrationAuditEvent
         {
-            ActorAccountId = actor, Action = "update.queued", Target = $"release:{target}",
-            PreviousValue = InstalledVersion, NewValue = target
+            ActorAccountId = actor,
+            Action = "update.queued",
+            Target = $"release:{target}",
+            PreviousValue = InstalledVersion,
+            NewValue = target
         });
         await db.SaveChangesAsync(ct);
         var queue = configuration["LearnPip:UpdateQueuePath"];
@@ -163,14 +166,28 @@ public sealed class UpdateService(
     private static T? Deserialize<T>(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return default;
-        try { return JsonSerializer.Deserialize<T>(value); } catch (JsonException) { return default; }
+        try
+        {
+            return JsonSerializer.Deserialize<T>(value);
+        }
+        catch (JsonException)
+        {
+            return default;
+        }
     }
 
     private async Task PutAsync(string key, string value, CancellationToken ct)
     {
         var setting = await db.SystemSettings.SingleOrDefaultAsync(x => x.Key == key, ct);
-        if (setting == null) db.SystemSettings.Add(new SystemSetting { Key = key, Value = value });
-        else { setting.Value = value; setting.UpdatedAtUtc = DateTimeOffset.UtcNow; }
+        if (setting == null)
+        {
+            db.SystemSettings.Add(new SystemSetting { Key = key, Value = value });
+        }
+        else
+        {
+            setting.Value = value;
+            setting.UpdatedAtUtc = DateTimeOffset.UtcNow;
+        }
         await db.SaveChangesAsync(ct);
     }
 
@@ -196,8 +213,10 @@ public sealed class UpdateService(
                 {
                     db.AdministrationAuditEvents.Add(new AdministrationAuditEvent
                     {
-                        ActorAccountId = updated.ActorAccountId, Action = action,
-                        Target = $"update-job:{updated.Id}", PreviousValue = updated.FromVersion,
+                        ActorAccountId = updated.ActorAccountId,
+                        Action = action,
+                        Target = $"update-job:{updated.Id}",
+                        PreviousValue = updated.FromVersion,
                         NewValue = updated.TargetVersion
                     });
                     await db.SaveChangesAsync(ct);
