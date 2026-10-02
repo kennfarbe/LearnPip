@@ -52,6 +52,6 @@ dotnet_diagnostic.SA1633.severity = none
 dotnet_diagnostic.SA1649.severity = none
 
 # EF migrations are generated snapshots and should not be hand-refactored.
-[**/Migrations/**/*.cs]
+[**/Migrations/*.cs]
 generated_code = true
 dotnet_diagnostic.CA1861.severity = none
