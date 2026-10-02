@@ -42,6 +42,15 @@ public sealed class UpdateService(
         Stable.IsMatch(Environment.GetEnvironmentVariable("LEARNPIP_VERSION") ?? "")
             ? Environment.GetEnvironmentVariable("LEARNPIP_VERSION")! : "unknown";
 
+    public async Task CheckScheduledAsync(CancellationToken ct)
+    {
+        var status = await StatusAsync(ct);
+        if (status.Interval == "never") return;
+        if (status.LastCheckedAtUtc is null || status.NextCheckAtUtc is null ||
+            DateTimeOffset.UtcNow >= status.NextCheckAtUtc)
+            await CheckAsync(true, ct);
+    }
+
     public async Task<UpdateStatus> StatusAsync(CancellationToken ct)
     {
         await ImportOperatorStatusAsync(ct);
