@@ -10,57 +10,57 @@ namespace LearnPip.Data.Domain;
 public sealed class ExamSimulation
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft Kennung des Kontos ab oder legt den Wert fest.
+    /// Holt oder setzt Kennung des Kontos.
     /// </summary>
     public Guid AccountId { get; set; }
 
     /// <summary>
-    /// Ruft profile version id ab oder legt den Wert fest.
+    /// Holt oder setzt profile version id.
     /// </summary>
     public Guid ProfileVersionId { get; set; }
 
     /// <summary>
-    /// Ruft profile version ab oder legt den Wert fest.
+    /// Holt oder setzt profile version.
     /// </summary>
     public ExamProfileVersion ProfileVersion { get; set; } = null!;
 
     /// <summary>
-    /// Ruft snapshot json ab oder legt den Wert fest.
+    /// Holt oder setzt snapshot json.
     /// </summary>
     public string SnapshotJson { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft answers json ab oder legt den Wert fest.
+    /// Holt oder setzt answers json.
     /// </summary>
     public string AnswersJson { get; set; } = "{}";
 
     /// <summary>
-    /// Ruft current part index ab oder legt den Wert fest.
+    /// Holt oder setzt current part index.
     /// </summary>
     public int CurrentPartIndex { get; set; }
 
     /// <summary>
-    /// Ruft started at utc ab oder legt den Wert fest.
+    /// Holt oder setzt started at utc.
     /// </summary>
     public DateTimeOffset StartedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft part started at utc ab oder legt den Wert fest.
+    /// Holt oder setzt part started at utc.
     /// </summary>
     public DateTimeOffset PartStartedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft completed at utc ab oder legt den Wert fest.
+    /// Holt oder setzt completed at utc.
     /// </summary>
     public DateTimeOffset? CompletedAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft result json ab oder legt den Wert fest.
+    /// Holt oder setzt result json.
     /// </summary>
     public string? ResultJson { get; set; }
 }

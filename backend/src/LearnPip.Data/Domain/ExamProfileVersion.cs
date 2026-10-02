@@ -10,62 +10,62 @@ namespace LearnPip.Data.Domain;
 public sealed class ExamProfileVersion
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft fachlicher Code ab oder legt den Wert fest.
+    /// Holt oder setzt fachlicher Code.
     /// </summary>
     public string Code { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft Titel ab oder legt den Wert fest.
+    /// Holt oder setzt Titel.
     /// </summary>
     public string Title { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft amateur class ab oder legt den Wert fest.
+    /// Holt oder setzt amateur class.
     /// </summary>
     public string AmateurClass { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft version ab oder legt den Wert fest.
+    /// Holt oder setzt version.
     /// </summary>
     public int Version { get; set; }
 
     /// <summary>
-    /// Ruft catalog edition id ab oder legt den Wert fest.
+    /// Holt oder setzt catalog edition id.
     /// </summary>
     public Guid CatalogEditionId { get; set; }
 
     /// <summary>
-    /// Ruft catalog edition ab oder legt den Wert fest.
+    /// Holt oder setzt catalog edition.
     /// </summary>
     public OfficialCatalogEdition CatalogEdition { get; set; } = null!;
 
     /// <summary>
-    /// Ruft parts json ab oder legt den Wert fest.
+    /// Holt oder setzt parts json.
     /// </summary>
     public string PartsJson { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft schedule json ab oder legt den Wert fest.
+    /// Holt oder setzt schedule json.
     /// </summary>
     public string ScheduleJson { get; set; } = "[]";
 
     /// <summary>
-    /// Ruft rules source url ab oder legt den Wert fest.
+    /// Holt oder setzt rules source url.
     /// </summary>
     public string? RulesSourceUrl { get; set; }
 
     /// <summary>
-    /// Ruft rules checked on ab oder legt den Wert fest.
+    /// Holt oder setzt rules checked on.
     /// </summary>
     public DateOnly? RulesCheckedOn { get; set; }
 
     /// <summary>
-    /// Ruft Erstellungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Erstellungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 }

@@ -10,67 +10,67 @@ namespace LearnPip.Data.Domain;
 public sealed class FamilyLink
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft child account id ab oder legt den Wert fest.
+    /// Holt oder setzt child account id.
     /// </summary>
     public Guid ChildAccountId { get; set; }
 
     /// <summary>
-    /// Ruft parent account id ab oder legt den Wert fest.
+    /// Holt oder setzt parent account id.
     /// </summary>
     public Guid? ParentAccountId { get; set; }
 
     /// <summary>
-    /// Ruft invite hash ab oder legt den Wert fest.
+    /// Holt oder setzt invite hash.
     /// </summary>
     public string InviteHash { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft invite expires at utc ab oder legt den Wert fest.
+    /// Holt oder setzt invite expires at utc.
     /// </summary>
     public DateTimeOffset InviteExpiresAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft Bearbeitungsstatus ab oder legt den Wert fest.
+    /// Holt oder setzt Bearbeitungsstatus.
     /// </summary>
     public string Status { get; set; } = "invited";
 
     /// <summary>
-    /// Ruft verified by account id ab oder legt den Wert fest.
+    /// Holt oder setzt verified by account id.
     /// </summary>
     public Guid? VerifiedByAccountId { get; set; }
 
     /// <summary>
-    /// Ruft verification reference ab oder legt den Wert fest.
+    /// Holt oder setzt verification reference.
     /// </summary>
     public string? VerificationReference { get; set; }
 
     /// <summary>
-    /// Ruft verified at utc ab oder legt den Wert fest.
+    /// Holt oder setzt verified at utc.
     /// </summary>
     public DateTimeOffset? VerifiedAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft activated at utc ab oder legt den Wert fest.
+    /// Holt oder setzt activated at utc.
     /// </summary>
     public DateTimeOffset? ActivatedAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft revoked at utc ab oder legt den Wert fest.
+    /// Holt oder setzt revoked at utc.
     /// </summary>
     public DateTimeOffset? RevokedAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft revoked by account id ab oder legt den Wert fest.
+    /// Holt oder setzt revoked by account id.
     /// </summary>
     public Guid? RevokedByAccountId { get; set; }
 
     /// <summary>
-    /// Ruft Erstellungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Erstellungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 }

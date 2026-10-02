@@ -10,22 +10,22 @@ namespace LearnPip.Data.Domain;
 public sealed class FrequentLearningContent
 {
     /// <summary>
-    /// Ruft Kennung des Kontos ab oder legt den Wert fest.
+    /// Holt oder setzt Kennung des Kontos.
     /// </summary>
     public Guid AccountId { get; set; }
 
     /// <summary>
-    /// Ruft learning content id ab oder legt den Wert fest.
+    /// Holt oder setzt learning content id.
     /// </summary>
     public Guid LearningContentId { get; set; }
 
     /// <summary>
-    /// Ruft Erstellungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Erstellungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft learning content ab oder legt den Wert fest.
+    /// Holt oder setzt learning content.
     /// </summary>
     public LearningContent LearningContent { get; set; } = null!;
 }

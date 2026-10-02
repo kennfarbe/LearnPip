@@ -10,37 +10,37 @@ namespace LearnPip.Data.Domain;
 public sealed class GroupMembership
 {
     /// <summary>
-    /// Ruft study group id ab oder legt den Wert fest.
+    /// Holt oder setzt study group id.
     /// </summary>
     public Guid StudyGroupId { get; set; }
 
     /// <summary>
-    /// Ruft Kennung des Kontos ab oder legt den Wert fest.
+    /// Holt oder setzt Kennung des Kontos.
     /// </summary>
     public Guid AccountId { get; set; }
 
     /// <summary>
-    /// Ruft role definition id ab oder legt den Wert fest.
+    /// Holt oder setzt role definition id.
     /// </summary>
     public Guid RoleDefinitionId { get; set; }
 
     /// <summary>
-    /// Ruft joined at utc ab oder legt den Wert fest.
+    /// Holt oder setzt joined at utc.
     /// </summary>
     public DateTimeOffset JoinedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft study group ab oder legt den Wert fest.
+    /// Holt oder setzt study group.
     /// </summary>
     public StudyGroup StudyGroup { get; set; } = null!;
 
     /// <summary>
-    /// Ruft account ab oder legt den Wert fest.
+    /// Holt oder setzt account.
     /// </summary>
     public Account Account { get; set; } = null!;
 
     /// <summary>
-    /// Ruft role definition ab oder legt den Wert fest.
+    /// Holt oder setzt role definition.
     /// </summary>
     public RoleDefinition RoleDefinition { get; set; } = null!;
 }

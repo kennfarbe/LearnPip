@@ -10,27 +10,27 @@ namespace LearnPip.Data.Domain;
 public sealed class FamilyGoal
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft family link id ab oder legt den Wert fest.
+    /// Holt oder setzt family link id.
     /// </summary>
     public Guid FamilyLinkId { get; set; }
 
     /// <summary>
-    /// Ruft Titel ab oder legt den Wert fest.
+    /// Holt oder setzt Titel.
     /// </summary>
     public string Title { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft target at utc ab oder legt den Wert fest.
+    /// Holt oder setzt target at utc.
     /// </summary>
     public DateTimeOffset? TargetAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft Erstellungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Erstellungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 }

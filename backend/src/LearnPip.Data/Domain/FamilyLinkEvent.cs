@@ -10,27 +10,27 @@ namespace LearnPip.Data.Domain;
 public sealed class FamilyLinkEvent
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft family link id ab oder legt den Wert fest.
+    /// Holt oder setzt family link id.
     /// </summary>
     public Guid FamilyLinkId { get; set; }
 
     /// <summary>
-    /// Ruft actor account id ab oder legt den Wert fest.
+    /// Holt oder setzt actor account id.
     /// </summary>
     public Guid ActorAccountId { get; set; }
 
     /// <summary>
-    /// Ruft action ab oder legt den Wert fest.
+    /// Holt oder setzt action.
     /// </summary>
     public string Action { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft Erstellungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Erstellungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 }

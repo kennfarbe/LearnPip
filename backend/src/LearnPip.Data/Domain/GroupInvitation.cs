@@ -10,52 +10,52 @@ namespace LearnPip.Data.Domain;
 public sealed class GroupInvitation
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft study group id ab oder legt den Wert fest.
+    /// Holt oder setzt study group id.
     /// </summary>
     public Guid StudyGroupId { get; set; }
 
     /// <summary>
-    /// Ruft code hash ab oder legt den Wert fest.
+    /// Holt oder setzt code hash.
     /// </summary>
     public string CodeHash { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft created by account id ab oder legt den Wert fest.
+    /// Holt oder setzt created by account id.
     /// </summary>
     public Guid CreatedByAccountId { get; set; }
 
     /// <summary>
-    /// Ruft Erstellungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Erstellungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft expires at utc ab oder legt den Wert fest.
+    /// Holt oder setzt expires at utc.
     /// </summary>
     public DateTimeOffset ExpiresAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft max uses ab oder legt den Wert fest.
+    /// Holt oder setzt max uses.
     /// </summary>
     public int MaxUses { get; set; }
 
     /// <summary>
-    /// Ruft used count ab oder legt den Wert fest.
+    /// Holt oder setzt used count.
     /// </summary>
     public int UsedCount { get; set; }
 
     /// <summary>
-    /// Ruft revoked at utc ab oder legt den Wert fest.
+    /// Holt oder setzt revoked at utc.
     /// </summary>
     public DateTimeOffset? RevokedAtUtc { get; set; }
 
     /// <summary>
-    /// Ruft study group ab oder legt den Wert fest.
+    /// Holt oder setzt study group.
     /// </summary>
     public StudyGroup StudyGroup { get; set; } = null!;
 }

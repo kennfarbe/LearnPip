@@ -10,32 +10,32 @@ namespace LearnPip.Data.Domain;
 public sealed class ExternalIdentity
 {
     /// <summary>
-    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// Holt oder setzt eindeutige Kennung.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Ruft Kennung des Kontos ab oder legt den Wert fest.
+    /// Holt oder setzt Kennung des Kontos.
     /// </summary>
     public Guid AccountId { get; set; }
 
     /// <summary>
-    /// Ruft provider ab oder legt den Wert fest.
+    /// Holt oder setzt provider.
     /// </summary>
     public string Provider { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft subject ab oder legt den Wert fest.
+    /// Holt oder setzt subject.
     /// </summary>
     public string Subject { get; set; } = string.Empty;
 
     /// <summary>
-    /// Ruft Erstellungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// Holt oder setzt Erstellungszeitpunkt in UTC.
     /// </summary>
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ruft account ab oder legt den Wert fest.
+    /// Holt oder setzt account.
     /// </summary>
     public Account Account { get; set; } = null!;
 }
