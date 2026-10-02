@@ -557,7 +557,7 @@ public sealed class ApiV1Tests
 
         protected override Task<AuthenticateResult> HandleAuthenticateAsync()
         {
-            if (!Request.Headers.TryGetValue("X-Test-Account", out var accountId) ||
+            if (!this.Request.Headers.TryGetValue("X-Test-Account", out var accountId) ||
                 !Guid.TryParse(accountId, out var parsed))
             {
                 return Task.FromResult(AuthenticateResult.NoResult());
