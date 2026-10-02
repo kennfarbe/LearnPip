@@ -245,7 +245,7 @@ public sealed class IdentityFlowTests
 
         public Task SendAsync(string email, string code, CancellationToken cancellationToken)
         {
-            Code = code;
+            this.Code = code;
             return Task.CompletedTask;
         }
     }
