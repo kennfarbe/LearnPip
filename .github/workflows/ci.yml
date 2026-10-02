@@ -28,6 +28,35 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Reject tab characters in tracked text files
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          files = subprocess.check_output(["git", "ls-files", "-z"]).split(b"\0")
+          violations = []
+          for raw_path in files:
+              if not raw_path:
+                  continue
+              path = Path(raw_path.decode("utf-8"))
+              content = path.read_bytes()
+              if b"\0" in content:
+                  continue
+              try:
+                  text = content.decode("utf-8")
+              except UnicodeDecodeError:
+                  continue
+              for number, line in enumerate(text.splitlines(), 1):
+                  if "\t" in line:
+                      violations.append(f"{path}:{number}: tab character; use spaces")
+          if violations:
+              print("\n".join(violations), file=sys.stderr)
+              raise SystemExit(1)
+          print("Tracked UTF-8 text files contain no tab characters.")
+          PY
+
       - name: Check whitespace errors
         env:
           EVENT_NAME: ${{ github.event_name }}
