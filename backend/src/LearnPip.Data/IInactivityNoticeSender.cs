@@ -2,14 +2,15 @@
 // Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
 // </copyright>
 
-using LearnPip.Data.Domain;
-using Microsoft.EntityFrameworkCore;
-
 namespace LearnPip.Data;
 
 public interface IInactivityNoticeSender
 {
     bool IsAvailable { get; }
-    Task SendAsync(string email, int phaseDays, DateTimeOffset lastActivityAtUtc,
+
+    Task SendAsync(
+        string email,
+        int phaseDays,
+        DateTimeOffset lastActivityAtUtc,
         CancellationToken cancellationToken);
 }
