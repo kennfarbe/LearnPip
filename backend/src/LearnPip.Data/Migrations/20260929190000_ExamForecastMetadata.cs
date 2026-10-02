@@ -23,7 +23,6 @@ public sealed class ExamForecastMetadata : Migration
     }
 
     /// <inheritdoc />
-
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropColumn("ScheduleJson", "ExamProfileVersions");

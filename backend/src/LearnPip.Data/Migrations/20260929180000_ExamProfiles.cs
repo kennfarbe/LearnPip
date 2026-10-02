@@ -92,7 +92,6 @@ public sealed class ExamProfiles : Migration
     }
 
     /// <inheritdoc />
-
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable("AccountExamCredits");

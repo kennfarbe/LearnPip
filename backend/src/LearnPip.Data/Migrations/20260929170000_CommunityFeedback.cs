@@ -100,7 +100,6 @@ public sealed class CommunityFeedback : Migration
     }
 
     /// <inheritdoc />
-
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable("QuestionModerationEvents");

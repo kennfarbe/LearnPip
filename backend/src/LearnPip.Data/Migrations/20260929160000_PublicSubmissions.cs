@@ -96,7 +96,6 @@ public sealed class PublicSubmissions : Migration
     }
 
     /// <inheritdoc />
-
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable("PublicSubmissionReviews");

@@ -61,7 +61,6 @@ public sealed class GroupInvitationsAndCatalogs : Migration
     }
 
     /// <inheritdoc />
-
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable("GroupCatalogShares");

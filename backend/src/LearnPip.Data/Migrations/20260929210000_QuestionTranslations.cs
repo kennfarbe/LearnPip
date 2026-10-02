@@ -62,7 +62,6 @@ public sealed class QuestionTranslations : Migration
     }
 
     /// <inheritdoc />
-
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable("TranslationReports");

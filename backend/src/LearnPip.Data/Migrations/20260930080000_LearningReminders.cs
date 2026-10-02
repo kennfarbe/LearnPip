@@ -31,6 +31,7 @@ public sealed class LearningReminders : Migration
                 "Accounts", "Id", onDelete: ReferentialAction.Cascade);
         });
     }
+
     /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder) =>
         migrationBuilder.DropTable("ReminderPreferences");

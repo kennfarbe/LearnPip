@@ -52,7 +52,6 @@ public sealed class VersionVisibility : Migration
     }
 
     /// <inheritdoc />
-
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable("GroupVersionShares");
