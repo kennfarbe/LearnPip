@@ -1,10 +1,9 @@
 # Entity Framework Core regenerates migrations and the model snapshot.
 # Keep generated C# isolated from hand-written formatting conventions.
-# Compiler, security and Sonar code-quality diagnostics are not disabled here.
+# Compiler, security and Sonar code-quality diagnostics remain enabled.
 root = false
 
 [*.cs]
-generated_code = true
 indent_style = space
 indent_size = 4
 
