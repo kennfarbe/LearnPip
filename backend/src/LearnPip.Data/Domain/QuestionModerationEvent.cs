@@ -4,19 +4,43 @@
 
 namespace LearnPip.Data.Domain;
 
+/// <summary>
+/// Beschreibt das LearnPip-Datenmodell QuestionModerationEvent.
+/// </summary>
 public sealed class QuestionModerationEvent
 {
+    /// <summary>
+    /// Ruft eindeutige Kennung ab oder legt den Wert fest.
+    /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    /// <summary>
+    /// Ruft question version id ab oder legt den Wert fest.
+    /// </summary>
     public Guid QuestionVersionId { get; set; }
 
+    /// <summary>
+    /// Ruft moderator account id ab oder legt den Wert fest.
+    /// </summary>
     public Guid ModeratorAccountId { get; set; }
 
+    /// <summary>
+    /// Ruft action ab oder legt den Wert fest.
+    /// </summary>
     public string Action { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Ruft note ab oder legt den Wert fest.
+    /// </summary>
     public string Note { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Ruft replacement version id ab oder legt den Wert fest.
+    /// </summary>
     public Guid? ReplacementVersionId { get; set; }
 
+    /// <summary>
+    /// Ruft Erstellungszeitpunkt in UTC ab oder legt den Wert fest.
+    /// </summary>
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 }
