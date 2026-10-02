@@ -24,7 +24,7 @@ public sealed class GroupService(LearnPipDbContext db)
         Guid groupId, Guid actorId, DateTimeOffset expiresAtUtc, int maxUses,
         CancellationToken cancellationToken)
     {
-        if (!await CanManageAsync(groupId, actorId, cancellationToken)) return (null, null);
+        if (!await this.CanManageAsync(groupId, actorId, cancellationToken)) return (null, null);
         var code = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
         var invitation = new GroupInvitation
         {
@@ -80,7 +80,7 @@ public sealed class GroupService(LearnPipDbContext db)
     public async Task<bool> RevokeInvitationAsync(Guid groupId, Guid invitationId, Guid actorId,
         CancellationToken cancellationToken)
     {
-        if (!await CanManageAsync(groupId, actorId, cancellationToken)) return false;
+        if (!await this.CanManageAsync(groupId, actorId, cancellationToken)) return false;
         var count = await db.GroupInvitations.Where(invitation => invitation.Id == invitationId &&
                 invitation.StudyGroupId == groupId && invitation.RevokedAtUtc == null)
             .ExecuteUpdateAsync(setters => setters.SetProperty(invitation => invitation.RevokedAtUtc,
@@ -91,7 +91,7 @@ public sealed class GroupService(LearnPipDbContext db)
     public async Task<bool> RemoveMemberAsync(Guid groupId, Guid targetId, Guid actorId,
         CancellationToken cancellationToken)
     {
-        if (actorId != targetId && !await CanManageAsync(groupId, actorId, cancellationToken))
+        if (actorId != targetId && !await this.CanManageAsync(groupId, actorId, cancellationToken))
             return false;
         // The owner cannot leave; management must transfer ownership before closing the group.
         if (await db.StudyGroups.AnyAsync(group => group.Id == groupId &&
