@@ -34,3 +34,7 @@ dotnet_diagnostic.SA1519.severity = none
 dotnet_diagnostic.SA1520.severity = none
 dotnet_diagnostic.SA1633.severity = none
 dotnet_diagnostic.SA1649.severity = none
+
+# EF generates inline arrays in migration definitions; do not alter generated output.
+# CA1861 stays enabled in every hand-written C# file outside this directory.
+dotnet_diagnostic.CA1861.severity = none
