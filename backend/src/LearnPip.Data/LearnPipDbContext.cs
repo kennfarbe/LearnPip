@@ -10,54 +10,79 @@ namespace LearnPip.Data;
 public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> options) : DbContext(options)
 {
     public DbSet<SystemSetting> SystemSettings => this.Set<SystemSetting>();
+
     public DbSet<AdministrationAuditEvent> AdministrationAuditEvents => this.Set<AdministrationAuditEvent>();
     public DbSet<Account> Accounts => this.Set<Account>();
+
     public DbSet<ReminderPreference> ReminderPreferences => this.Set<ReminderPreference>();
     public DbSet<FamilyLink> FamilyLinks => this.Set<FamilyLink>();
+
     public DbSet<FamilyLinkEvent> FamilyLinkEvents => this.Set<FamilyLinkEvent>();
     public DbSet<FamilyGoal> FamilyGoals => this.Set<FamilyGoal>();
+
     public DbSet<AccountInactivityWarning> AccountInactivityWarnings => this.Set<AccountInactivityWarning>();
     public DbSet<ExternalIdentity> ExternalIdentities => this.Set<ExternalIdentity>();
+
     public DbSet<RoleDefinition> Roles => this.Set<RoleDefinition>();
     public DbSet<AccountRole> AccountRoles => this.Set<AccountRole>();
+
     public DbSet<PrivateCatalog> PrivateCatalogs => this.Set<PrivateCatalog>();
     public DbSet<QuestionDraft> QuestionDrafts => this.Set<QuestionDraft>();
+
     public DbSet<Question> Questions => this.Set<Question>();
     public DbSet<LearningContent> LearningContents => this.Set<LearningContent>();
+
     public DbSet<FrequentLearningContent> FrequentLearningContents => this.Set<FrequentLearningContent>();
     public DbSet<QuestionVersion> QuestionVersions => this.Set<QuestionVersion>();
+
     public DbSet<QuestionTranslation> QuestionTranslations => this.Set<QuestionTranslation>();
     public DbSet<TranslationReport> TranslationReports => this.Set<TranslationReport>();
+
     public DbSet<AnswerOption> AnswerOptions => this.Set<AnswerOption>();
     public DbSet<QuestionContentBlock> QuestionContentBlocks => this.Set<QuestionContentBlock>();
+
     public DbSet<MediaAsset> MediaAssets => this.Set<MediaAsset>();
     public DbSet<MediaBlob> MediaBlobs => this.Set<MediaBlob>();
+
     public DbSet<StudySession> StudySessions => this.Set<StudySession>();
     public DbSet<StudyAttempt> StudyAttempts => this.Set<StudyAttempt>();
+
     public DbSet<StudyAttemptSelection> StudyAttemptSelections => this.Set<StudyAttemptSelection>();
     public DbSet<ExamObjective> ExamObjectives => this.Set<ExamObjective>();
+
     public DbSet<OfficialCatalogEdition> OfficialCatalogEditions => this.Set<OfficialCatalogEdition>();
     public DbSet<ExamProfileVersion> ExamProfileVersions => this.Set<ExamProfileVersion>();
+
     public DbSet<ExamSimulation> ExamSimulations => this.Set<ExamSimulation>();
     public DbSet<AccountExamCredit> AccountExamCredits => this.Set<AccountExamCredit>();
+
     public DbSet<QuestionObjective> QuestionObjectives => this.Set<QuestionObjective>();
     public DbSet<StudyGroup> StudyGroups => this.Set<StudyGroup>();
+
     public DbSet<GroupMembership> GroupMemberships => this.Set<GroupMembership>();
     public DbSet<GroupQuestionShare> GroupQuestionShares => this.Set<GroupQuestionShare>();
+
     public DbSet<GroupInvitation> GroupInvitations => this.Set<GroupInvitation>();
     public DbSet<GroupCatalogShare> GroupCatalogShares => this.Set<GroupCatalogShare>();
+
     public DbSet<GroupVersionShare> GroupVersionShares => this.Set<GroupVersionShare>();
     public DbSet<PublicSubmission> PublicSubmissions => this.Set<PublicSubmission>();
+
     public DbSet<PublicSubmissionPreview> PublicSubmissionPreviews => this.Set<PublicSubmissionPreview>();
     public DbSet<PublicSubmissionReview> PublicSubmissionReviews => this.Set<PublicSubmissionReview>();
+
     public DbSet<QuestionReport> QuestionReports => this.Set<QuestionReport>();
     public DbSet<QuestionComment> QuestionComments => this.Set<QuestionComment>();
+
     public DbSet<QuestionHelpfulVote> QuestionHelpfulVotes => this.Set<QuestionHelpfulVote>();
     public DbSet<QuestionModerationEvent> QuestionModerationEvents => this.Set<QuestionModerationEvent>();
+
     public DbSet<RecoveryCredential> RecoveryCredentials => this.Set<RecoveryCredential>();
     public DbSet<AccountSession> AccountSessions => this.Set<AccountSession>();
+
     public DbSet<EmailLoginCode> EmailLoginCodes => this.Set<EmailLoginCode>();
     public DbSet<UserAiCredential> UserAiCredentials => this.Set<UserAiCredential>();
+
     public DbSet<AiDailyUsage> AiDailyUsages => this.Set<AiDailyUsage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
