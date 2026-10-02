@@ -1,34 +1,13 @@
-# Entity Framework Core generates and updates the files in this folder.
-# Formatting stays under EF Core control; handwritten C# elsewhere keeps the
-# repository-wide spacing, this. qualification and warnings-as-errors policy.
+# Entity Framework Core regenerates migrations and the model snapshot.
+# Apply the parent EditorConfig everywhere else. Generated files retain spaces,
+# but hand-written member-qualification formatting is not enforced here.
 root = false
 
 [*.cs]
 generated_code = true
-dotnet_diagnostic.CA1861.severity = none
+indent_style = space
+indent_size = 4
 
-# Do not force handwritten layout conventions on EF-generated migrations/snapshots.
+# Generated formatting can differ from the hand-written this. convention.
 dotnet_diagnostic.SA1101.severity = none
 dotnet_diagnostic.IDE0009.severity = none
-dotnet_diagnostic.SA1116.severity = none
-dotnet_diagnostic.SA1117.severity = none
-dotnet_diagnostic.SA1118.severity = none
-dotnet_diagnostic.SA1122.severity = none
-dotnet_diagnostic.SA1402.severity = none
-dotnet_diagnostic.SA1408.severity = none
-dotnet_diagnostic.SA1413.severity = none
-dotnet_diagnostic.SA1500.severity = none
-dotnet_diagnostic.SA1503.severity = none
-dotnet_diagnostic.SA1513.severity = none
-dotnet_diagnostic.SA1515.severity = none
-dotnet_diagnostic.SA1516.severity = none
-dotnet_diagnostic.SA1633.severity = none
-dotnet_diagnostic.SA1649.severity = none
-dotnet_diagnostic.SA1407.severity = none
-dotnet_diagnostic.SA1107.severity = none
-dotnet_diagnostic.SA1520.severity = none
-dotnet_diagnostic.SA1501.severity = none
-dotnet_diagnostic.SA1519.severity = none
-dotnet_diagnostic.SA1204.severity = none
-dotnet_diagnostic.SA1202.severity = none
-dotnet_diagnostic.SA1201.severity = none
