@@ -34,6 +34,9 @@ services:
     command: ["--migrate"]
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+      LEARNPIP_VERSION: ${LEARNPIP_VERSION}
+      LearnPip__UpdateQueuePath: /var/lib/learnpip-update/queue
+      LearnPip__UpdateStatusPath: /var/lib/learnpip-update/status
     secrets:
       - ConnectionStrings__LearnPip
     networks:
@@ -70,6 +73,9 @@ services:
       Ai__Quota__operator-cloud: ${LEARNPIP_AI_CLOUD_DAILY_QUOTA:-10}
       Ai__Quota__operator-local: ${LEARNPIP_AI_LOCAL_DAILY_QUOTA:-50}
       Ai__Quota__user-key: ${LEARNPIP_AI_USER_DAILY_QUOTA:-20}
+    volumes:
+      - ../shared/update-queue:/var/lib/learnpip-update/queue
+      - ../shared/update-status:/var/lib/learnpip-update/status:ro
     secrets:
       - ConnectionStrings__LearnPip
       - Authentication__EmailCodeKey
