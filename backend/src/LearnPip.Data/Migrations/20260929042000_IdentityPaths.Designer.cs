@@ -11,10 +11,12 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace LearnPip.Data.Migrations
 {
+    /// <summary>Enthält das generierte Zielmodell der Datenbankmigration IdentityPaths.</summary>
     [DbContext(typeof(LearnPipDbContext))]
     [Migration("20260929042000_IdentityPaths")]
     public partial class IdentityPaths : Migration
     {
+        /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
