@@ -60,17 +60,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           EVENT: ${{ github.event_name }}
         run: |
-          if [ "$EVENT" = schedule ] || [ "$EVENT" = workflow_dispatch ]; then
+          if [ "$EVENT" = schedule ] || [ "$EVENT" = workflow_dispatch ] || [ "$EVENT" = pull_request ]; then
             python3 scripts/security-inventory.py --output "$RUNNER_TEMP/sources.json" >> "$GITHUB_OUTPUT"
           else
             echo 'matrix={"include":[{"ref":"","label":"main"}]}' >> "$GITHUB_OUTPUT"
           fi
       - name: Set up Buildx for manifest inspection
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
       - name: Resolve immutable image digests for every supported platform
         id: images
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 scripts/security-inventory.py --images --resolved-sources "$RUNNER_TEMP/sources.json" --output "$RUNNER_TEMP/images.json" >> "$GITHUB_OUTPUT"
@@ -219,7 +219,7 @@ jobs:
   published-images:
     name: Published image audit (${{ matrix.label }})
     needs: inventory
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
@@ -385,4 +385,6 @@ jobs:
         run: |
           test "$INVENTORY" = success
           test "$DEPENDENCIES" = success
+          test "$IMAGES" = success || test "$IMAGES" = skipped
+          test "$CANDIDATES" = success || test "$CANDIDATES" = skipped
           test "$IMAGES" = success || test "$CANDIDATES" = success
