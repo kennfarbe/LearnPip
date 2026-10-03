@@ -1,6 +1,6 @@
 # Austauschformat für eigenständige LearnPip-Kataloge
 
-Status: **Entwurf 0.1.0, noch kein freigegebenes stabiles Format**. Dieses Dokument und die JSON-Schemas legen den öffentlichen Vertragsentwurf fest. Die Integration in API, Import/Export, Migrationen und Instanztests fehlt noch. Ein öffentliches stabiles 1.0.0 darf erst mit entsprechend getesteten Readern und Golden-Files veröffentlicht werden. Siehe Issues #108, #114, #115, #116 und #118.
+Status: **Entwurf 0.1.0, noch kein freigegebenes stabiles Format**. Dieses Dokument und die JSON-Schemas legen den öffentlichen Vertragsentwurf fest. Ein schreibgeschützter Offline-Reader und ein lokaler Writer für vollständige geprüfte Pakete sind vorhanden. Die Integration in API, gezielten Benutzerexport, Datenbankimport, Migrationen und Instanztests fehlt noch. Ein öffentliches stabiles 1.0.0 darf erst mit entsprechend getesteten Readern und Golden-Files veröffentlicht werden. Siehe Issues #108, #114, #115, #116 und #118.
 
 ## Trennung und Versionierung
 
@@ -37,3 +37,7 @@ Ein LearnPip-Release enthält keine realen Fragenkataloge. Die zwei vorgeschlage
 5. Jede stabile Schema-Version und ihren Reader dauerhaft in CI testen. Für neue Major-Versionen Migration und unverändertes Originalarchiv nachweisen.
 
 Der Reader extrahiert keine Archive auf das Dateisystem und führt keine Paketinhalte aus. Er akzeptiert nur Entwurfsversion 0.1.0; ein unbekanntes Schema führt zu einer Ablehnung vor Ausgabe von Paketdaten. Die Einführung dieses **Entwurfs** schließt die genannten Issues ausdrücklich noch nicht.
+
+## Lokale Weitergabe eines vollständigen Entwurfspakets
+
+`scripts/read-catalog.py` liest nur zuvor vollständig geprüfte ZIP-Pakete. `scripts/write-catalog.py` schreibt einen solchen vollständigen Snapshot in eine neue ZIP-Datei, berechnet die Dateiprüfsummen erneut und validiert das Ergebnis vor dem atomaren Austausch der Zieldatei. Die Ursprungsdatei bleibt unverändert. Tests prüfen Fragen, Lösungen, Medien und Attributionsdateien nach einem erneuten Einlesen. Der Writer ist kein Export privater Daten aus LearnPip: Filter, Rollenrechte, Lizenzentscheidungen, Freigabe sowie Import in die Datenbank bleiben in eigenen Aufgaben offen. Die Version 0.1.0 bleibt ein Entwurf.
