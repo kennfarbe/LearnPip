@@ -1,3 +1,7 @@
+// <copyright file="AiProviderTests.cs" company="LearnPip contributors">
+// Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
+// </copyright>
+
 using System.Net;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -6,11 +10,14 @@ using Microsoft.Extensions.Configuration;
 
 namespace LearnPip.Data.Tests;
 
+/// <summary>
+/// Enthält Regressionstests für die KI-Anbieter und deren Datenschutzgrenzen.
+/// </summary>
 public sealed class AiProviderTests
 {
-    private static IConfiguration Configure(Dictionary<string, string?> values) =>
-        new ConfigurationBuilder().AddInMemoryCollection(values).Build();
-
+    /// <summary>
+    /// Prüft deaktivierte KI-Vorgaben und die ausdrückliche HTTPS-Freigabe für Cloud-Anbieter.
+    /// </summary>
     [Fact]
     public void Default_is_off_and_cloud_requires_explicit_permission_and_https()
     {
@@ -18,7 +25,7 @@ public sealed class AiProviderTests
         {
             ["Ai:CloudEndpoint"] = "http://example.org/v1/chat/completions",
             ["Ai:CloudModel"] = "test",
-            ["Ai:CloudKey"] = "secret"
+            ["Ai:CloudKey"] = "secret",
         });
         Assert.True(AiPolicy.Describe("off", config, false).Available);
         Assert.False(AiPolicy.Describe("operator-cloud", config, false).Available);
@@ -28,11 +35,14 @@ public sealed class AiProviderTests
             ["Ai:CloudEndpoint"] = "https://example.org/v1/chat/completions",
             ["Ai:CloudModel"] = "test",
             ["Ai:CloudKey"] = "secret",
-            ["Ai:Quota:operator-cloud"] = "0"
+            ["Ai:Quota:operator-cloud"] = "0",
         });
         Assert.False(AiPolicy.Describe("operator-cloud", config, false).Available);
     }
 
+    /// <summary>
+    /// Prüft die Kontobindung persönlicher KI-Schlüssel und deren Ausschluss aus Modusmetadaten.
+    /// </summary>
     [Fact]
     public void User_key_is_bound_to_account_and_never_exposed_by_mode_metadata()
     {
@@ -41,7 +51,7 @@ public sealed class AiProviderTests
             ["Ai:KeyEncryptionKey"] = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)),
             ["Ai:AllowedModes"] = "off,user-key",
             ["Ai:CloudEndpoint"] = "https://example.org/v1/chat/completions",
-            ["Ai:CloudModel"] = "test"
+            ["Ai:CloudModel"] = "test",
         });
         var owner = Guid.NewGuid();
         var sealedKey = AiKeyVault.Seal("secret-key-0123456789", owner, config);
@@ -53,6 +63,10 @@ public sealed class AiProviderTests
         Assert.DoesNotContain("secret-key", AiPolicy.Describe("user-key", config, true).ToString());
     }
 
+    /// <summary>
+    /// Prüft, dass ein Anbieterfehler keinen Wechsel zu einem anderen KI-Anbieter auslöst.
+    /// </summary>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     [Fact]
     public async Task Provider_failure_does_not_trigger_another_provider()
     {
@@ -62,12 +76,19 @@ public sealed class AiProviderTests
             attempts++;
             return new HttpResponseMessage(HttpStatusCode.BadGateway);
         }));
-        var adapter = new ChatCompletionProvider(new Uri("https://example.org/v1/chat/completions"),
-            "test", "secret", client);
+        var adapter = new ChatCompletionProvider(
+            new Uri("https://example.org/v1/chat/completions"),
+            "test",
+            "secret",
+            client);
         await Assert.ThrowsAsync<HttpRequestException>(() => adapter.GenerateAsync("test", default));
         Assert.Equal(1, attempts);
     }
 
+    /// <summary>
+    /// Prüft die Übermittlung des ausgewählten Bilds ohne zusätzliche Kontodaten.
+    /// </summary>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     [Fact]
     public async Task Photo_request_sends_the_selected_image_and_no_extra_account_data()
     {
@@ -77,20 +98,28 @@ public sealed class AiProviderTests
             body = await request.Content!.ReadAsStringAsync();
             return new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new StringContent("{\"choices\":[{\"message\":{\"content\":\"{}\"}}]}")
+                Content = new StringContent("{\"choices\":[{\"message\":{\"content\":\"{}\"}}]}"),
             };
         }));
-        var adapter = new ChatCompletionProvider(new Uri("https://example.org/v1/chat/completions"),
-            "vision-test", "secret", client);
+        var adapter = new ChatCompletionProvider(
+            new Uri("https://example.org/v1/chat/completions"),
+            "vision-test",
+            "secret",
+            client);
         await adapter.AnalyzeImageAsync("Recognize this", [1, 2, 3], "image/jpeg", default);
         using var json = JsonDocument.Parse(body!);
         var message = json.RootElement.GetProperty("messages")[0];
         Assert.Equal("Recognize this", message.GetProperty("content")[0].GetProperty("text").GetString());
-        Assert.Equal("data:image/jpeg;base64,AQID", message.GetProperty("content")[1]
+        Assert.Equal(
+            "data:image/jpeg;base64,AQID",
+            message.GetProperty("content")[1]
             .GetProperty("image_url").GetProperty("url").GetString());
         Assert.DoesNotContain("secret", body);
     }
 
+    /// <summary>
+    /// Prüft die Ablehnung unvollständiger Fotoergebnisse und die Grenzen des Lösungsvergleichs.
+    /// </summary>
     [Fact]
     public void Photo_review_rejects_incomplete_output_and_never_claims_mathematical_verification()
     {
@@ -108,20 +137,30 @@ public sealed class AiProviderTests
         Assert.Contains("nicht bewiesen", review.ComparisonExplanation);
         Assert.Contains(review.Recognition.Uncertainties, item => item.Contains("ungeprüft"));
         Assert.Equal("2 + 2", review.Recognition.ReferenceSolution);
-        Assert.Null(PhotoDraftParser.Parse(output.Replace("\"suggestedCorrectIndex\":1",
-            "\"suggestedCorrectIndex\":7"), mediaId, "operator-local", null));
+        Assert.Null(PhotoDraftParser.Parse(
+                output.Replace(
+                    "\"suggestedCorrectIndex\":1",
+                    "\"suggestedCorrectIndex\":7"),
+                mediaId,
+                "operator-local",
+                null));
     }
+
+    private static IConfiguration Configure(Dictionary<string, string?> values) =>
+        new ConfigurationBuilder().AddInMemoryCollection(values).Build();
 
     private sealed class StubHandler(Func<HttpResponseMessage> response) : HttpMessageHandler
     {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
             CancellationToken cancellationToken) => Task.FromResult(response());
     }
 
     private sealed class PhotoHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> response)
         : HttpMessageHandler
     {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
             CancellationToken cancellationToken) => response(request);
     }
 }

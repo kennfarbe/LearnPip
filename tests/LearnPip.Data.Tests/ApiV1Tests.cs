@@ -1,3 +1,7 @@
+// <copyright file="ApiV1Tests.cs" company="LearnPip contributors">
+// Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
+// </copyright>
+
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
@@ -23,8 +27,15 @@ using SkiaSharp;
 
 namespace LearnPip.Data.Tests;
 
+/// <summary>
+/// Enthält Regressionstests für die API-Zugriffsrechte.
+/// </summary>
 public sealed class ApiV1Tests
 {
+    /// <summary>
+    /// Prüft den Zugriff auf private Ressourcen durch Besitzer oder ausdrückliche Gruppenfreigaben.
+    /// </summary>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     [Fact]
     public async Task Private_resources_require_the_owner_or_explicit_group_share()
     {
@@ -65,7 +76,7 @@ public sealed class ApiV1Tests
                     QuestionId = questionId,
                     CreatedByAccountId = owner,
                     VersionNumber = 1,
-                    Prompt = "Private prompt"
+                    Prompt = "Private prompt",
                 });
                 db.MediaAssets.Add(new MediaAsset
                 {
@@ -73,14 +84,14 @@ public sealed class ApiV1Tests
                     OwnerAccountId = owner,
                     StorageKey = "private/secret-object-key",
                     MediaType = "image/jpeg",
-                    ByteLength = 123
+                    ByteLength = 123,
                 });
                 var groupRole = new RoleDefinition
                 {
                     Id = Guid.NewGuid(),
                     Scope = "group",
                     Code = "member",
-                    Name = "Member"
+                    Name = "Member",
                 };
                 db.Roles.Add(groupRole);
                 db.StudyGroups.Add(new StudyGroup { Id = groupId, OwnerAccountId = owner, Name = "Study" });
@@ -88,26 +99,26 @@ public sealed class ApiV1Tests
                 {
                     StudyGroupId = groupId,
                     AccountId = member,
-                    RoleDefinitionId = groupRole.Id
+                    RoleDefinitionId = groupRole.Id,
                 });
                 db.GroupQuestionShares.Add(new GroupQuestionShare
                 {
                     StudyGroupId = groupId,
                     QuestionId = questionId,
-                    SharedByAccountId = owner
+                    SharedByAccountId = owner,
                 });
                 var moderatorRole = new RoleDefinition
                 {
                     Id = Guid.NewGuid(),
                     Scope = "system",
                     Code = "moderator",
-                    Name = "Moderator"
+                    Name = "Moderator",
                 };
                 db.Roles.Add(moderatorRole);
                 db.AccountRoles.Add(new AccountRole
                 {
                     AccountId = member,
-                    RoleDefinitionId = moderatorRole.Id
+                    RoleDefinitionId = moderatorRole.Id,
                 });
                 await db.SaveChangesAsync();
             }
@@ -127,7 +138,8 @@ public sealed class ApiV1Tests
                             options.DefaultChallengeScheme = TestAuthenticationHandler.TestScheme;
                             options.DefaultForbidScheme = TestAuthenticationHandler.TestScheme;
                         }).AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(
-                            TestAuthenticationHandler.TestScheme, _ => { });
+                                TestAuthenticationHandler.TestScheme,
+                                _ => { });
                     });
                 });
 
@@ -138,30 +150,39 @@ public sealed class ApiV1Tests
             }
 
             using var anonymous = factory.CreateClient();
-            Assert.Equal(HttpStatusCode.Unauthorized,
+            Assert.Equal(
+                HttpStatusCode.Unauthorized,
                 (await anonymous.GetAsync($"/api/v1/questions/{questionId}")).StatusCode);
 
             using var ownerClient = ClientFor(factory, owner);
             using var memberClient = ClientFor(factory, member);
             using var strangerClient = ClientFor(factory, stranger);
-            Assert.Equal(HttpStatusCode.OK,
+            Assert.Equal(
+                HttpStatusCode.OK,
                 (await ownerClient.GetAsync($"/api/v1/questions/{questionId}")).StatusCode);
-            Assert.Equal(HttpStatusCode.NotFound,
+            Assert.Equal(
+                HttpStatusCode.NotFound,
                 (await strangerClient.GetAsync($"/api/v1/questions/{questionId}")).StatusCode);
-            Assert.Equal(HttpStatusCode.OK,
+            Assert.Equal(
+                HttpStatusCode.OK,
                 (await memberClient.GetAsync($"/api/v1/questions/{questionId}")).StatusCode);
-            Assert.Equal(HttpStatusCode.NotFound,
+            Assert.Equal(
+                HttpStatusCode.NotFound,
                 (await strangerClient.GetAsync($"/api/v1/media/{mediaId}")).StatusCode);
-            Assert.Equal(HttpStatusCode.NotFound,
+            Assert.Equal(
+                HttpStatusCode.NotFound,
                 (await memberClient.GetAsync($"/api/v1/media/{mediaId}")).StatusCode);
             var mediaResponse = await ownerClient.GetAsync($"/api/v1/media/{mediaId}");
             Assert.Equal(HttpStatusCode.OK, mediaResponse.StatusCode);
             Assert.DoesNotContain("secret-object-key", await mediaResponse.Content.ReadAsStringAsync());
-            Assert.Equal(HttpStatusCode.OK,
+            Assert.Equal(
+                HttpStatusCode.OK,
                 (await memberClient.GetAsync($"/api/v1/groups/{groupId}/questions")).StatusCode);
-            Assert.Equal(HttpStatusCode.NotFound,
+            Assert.Equal(
+                HttpStatusCode.NotFound,
                 (await strangerClient.GetAsync($"/api/v1/groups/{groupId}/questions")).StatusCode);
-            Assert.Equal(HttpStatusCode.BadRequest,
+            Assert.Equal(
+                HttpStatusCode.BadRequest,
                 (await ownerClient.GetAsync("/api/v1/questions?pageSize=101")).StatusCode);
 
             var ownPage = await ownerClient.GetFromJsonAsync<ApiResponse<PageResponse<QuestionSummary>>>(
@@ -197,36 +218,44 @@ public sealed class ApiV1Tests
             upload.Add(imageContent, "file", "photo.jpg");
             upload.Add(new StringContent("Grünes Quadrat"), "altText");
             var uploadResponse = await ownerClient.PostAsync("/api/v1/media/", upload);
-            Assert.True(uploadResponse.StatusCode == HttpStatusCode.Created,
+            Assert.True(
+                uploadResponse.StatusCode == HttpStatusCode.Created,
                 await uploadResponse.Content.ReadAsStringAsync());
             var uploaded = await uploadResponse.Content.ReadFromJsonAsync<ApiResponse<MediaDetails>>();
             var uploadedId = uploaded!.Data.Id;
             Assert.Equal("Grünes Quadrat", uploaded.Data.AltText);
-            Assert.Equal(HttpStatusCode.NotFound,
+            Assert.Equal(
+                HttpStatusCode.NotFound,
                 (await strangerClient.GetAsync($"/api/v1/media/{uploadedId}/content")).StatusCode);
             var contentResponse = await ownerClient.GetAsync($"/api/v1/media/{uploadedId}/content");
             Assert.Equal(HttpStatusCode.OK, contentResponse.StatusCode);
             Assert.True(contentResponse.Headers.CacheControl?.Private);
             Assert.True(contentResponse.Headers.CacheControl?.NoStore);
-            Assert.DoesNotContain("GPSDATA-private", System.Text.Encoding.Latin1.GetString(
+            Assert.DoesNotContain(
+                "GPSDATA-private",
+                System.Text.Encoding.Latin1.GetString(
                 await contentResponse.Content.ReadAsByteArrayAsync()));
             using var invalidUpload = new MultipartFormDataContent();
             var invalidImage = new ByteArrayContent([1, 2, 3, 4]);
             invalidImage.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
             invalidUpload.Add(invalidImage, "file", "bad.jpg");
             invalidUpload.Add(new StringContent("Ungültig"), "altText");
-            Assert.Equal(HttpStatusCode.BadRequest,
+            Assert.Equal(
+                HttpStatusCode.BadRequest,
                 (await ownerClient.PostAsync("/api/v1/media/", invalidUpload)).StatusCode);
             using var tooLargeUpload = new MultipartFormDataContent();
-            var tooLargeImage = new ByteArrayContent(new byte[5 * 1024 * 1024 + 1]);
+            var tooLargeImage = new ByteArrayContent(new byte[(5 * 1024 * 1024) + 1]);
             tooLargeImage.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
             tooLargeUpload.Add(tooLargeImage, "file", "large.jpg");
             tooLargeUpload.Add(new StringContent("Zu groß"), "altText");
-            Assert.Equal(HttpStatusCode.RequestEntityTooLarge,
+            Assert.Equal(
+                HttpStatusCode.RequestEntityTooLarge,
                 (await ownerClient.PostAsync("/api/v1/media/", tooLargeUpload)).StatusCode);
-            Assert.Equal(HttpStatusCode.NoContent,
+            Assert.Equal(
+                HttpStatusCode.NoContent,
                 (await ownerClient.DeleteAsync($"/api/v1/media/{uploadedId}")).StatusCode);
-            Assert.Equal(HttpStatusCode.NotFound,
+            Assert.Equal(
+                HttpStatusCode.NotFound,
                 (await ownerClient.GetAsync($"/api/v1/media/{uploadedId}/content")).StatusCode);
             await using (var checkDb = new LearnPipDbContext(options))
             {
@@ -243,7 +272,12 @@ public sealed class ApiV1Tests
             Assert.Equal(HttpStatusCode.Created, questionImageResponse.StatusCode);
             var questionMedia = (await questionImageResponse.Content
                 .ReadFromJsonAsync<ApiResponse<MediaDetails>>())!.Data.Id;
-            var draft = new QuestionPublishRequest("multiple", "Biologie", "Pflanzen", "de", "Eigene Frage",
+            var draft = new QuestionPublishRequest(
+                "multiple",
+                "Biologie",
+                "Pflanzen",
+                "de",
+                "Eigene Frage",
                 "CC-BY-4.0",
                 [new ContentBlockInput("text", "Welche Aussagen treffen zu?", null),
                     new ContentBlockInput("image", null, questionMedia)],
@@ -270,69 +304,100 @@ public sealed class ApiV1Tests
                 Prompt = [new LocalizedBlock("text", "Which statements are correct?", null, null),
                     new LocalizedBlock("image", null, questionMedia, "Green symbol")],
                 Explanation = [new LocalizedBlock("text", "Green is correct.", null, null)],
-                Answers = [new LocalizedAnswer(firstVersion.Answers[0].Id,
-                        [new LocalizedBlock("image", null, questionMedia, "Green symbol")]),
-                    new LocalizedAnswer(firstVersion.Answers[1].Id,
-                        [new LocalizedBlock("text", "Chlorophyll", null, null)]),
-                    new LocalizedAnswer(firstVersion.Answers[2].Id,
-                        [new LocalizedBlock("text", "Neither", null, null)])]
+                Answers = [new LocalizedAnswer(
+                firstVersion.Answers[0].Id,
+                [new LocalizedBlock("image", null, questionMedia, "Green symbol")]),
+                    new LocalizedAnswer(
+                firstVersion.Answers[1].Id,
+                [new LocalizedBlock("text", "Chlorophyll", null, null)]),
+                    new LocalizedAnswer(
+                firstVersion.Answers[2].Id,
+                [new LocalizedBlock("text", "Neither", null, null)])],
             };
-            var translatedVersion = TranslationEndpoints.Apply(firstVersion, translated, "en",
-                "Owner translation", "CC-BY-4.0");
-            Assert.Equal(firstVersion.Answers.Select(option => (option.Id, option.IsCorrect)),
+            var translatedVersion = TranslationEndpoints.Apply(
+                firstVersion,
+                translated,
+                "en",
+                "Owner translation",
+                "CC-BY-4.0");
+            Assert.Equal(
+                firstVersion.Answers.Select(option => (option.Id, option.IsCorrect)),
                 translatedVersion.Answers.Select(option => (option.Id, option.IsCorrect)));
-            Assert.False(TranslationEndpoints.Valid(translated with
-            {
-                Answers = translated.Answers.Select((answer, index) => index == 0 ?
-                    answer with { OptionId = Guid.NewGuid() } : answer).ToArray()
-            }, firstVersion));
-            Assert.Equal(HttpStatusCode.NotFound,
+            Assert.False(TranslationEndpoints.Valid(
+                    translated with
+                    {
+                        Answers = translated.Answers.Select((answer, index) => index == 0 ?
+                            answer with { OptionId = Guid.NewGuid() } : answer).ToArray(),
+                    },
+                    firstVersion));
+            Assert.Equal(
+                HttpStatusCode.NotFound,
                 (await strangerClient.GetAsync($"{translationsPath}/en")).StatusCode);
-            var translationDraft = await ownerClient.PostAsJsonAsync($"{translationsPath}/drafts",
+            var translationDraft = await ownerClient.PostAsJsonAsync(
+                $"{translationsPath}/drafts",
                 new TranslationDraftInput("en", translated, "Owner translation", "CC-BY-4.0", "manual"));
             Assert.Equal(HttpStatusCode.Created, translationDraft.StatusCode);
             var translationId = (await translationDraft.Content.ReadFromJsonAsync<
                 ApiResponse<TranslationDraftCreated>>())!.Data.Id;
             Assert.True((await ownerClient.GetFromJsonAsync<ApiResponse<TranslationView>>(
                 $"{translationsPath}/en"))!.Data.Missing);
-            Assert.Equal(HttpStatusCode.OK,
+            Assert.Equal(
+                HttpStatusCode.OK,
                 (await ownerClient.PostAsync($"{translationsPath}/{translationId}/approve", null)).StatusCode);
             var approved = (await ownerClient.GetFromJsonAsync<ApiResponse<TranslationView>>(
                 $"{translationsPath}/en"))!.Data;
             Assert.False(approved.Missing);
             Assert.Equal("Which statements are correct?", approved.Payload.Prompt[0].Text);
-            Assert.Equal(HttpStatusCode.Created,
-                (await ownerClient.PostAsJsonAsync($"{translationsPath}/{translationId}/reports",
-                    new TranslationReportInput("Check image caption"))).StatusCode);
-            var correction = await ownerClient.PostAsJsonAsync($"{translationsPath}/drafts",
-                new TranslationDraftInput("en", translated with
-                {
-                    Explanation = [new LocalizedBlock("text", "The green color is correct.", null, null)]
-                }, "Corrected by owner", "CC-BY-4.0", "manual"));
+            var expectedResult1 = HttpStatusCode.Created;
+            var actualResult2 = (await ownerClient.PostAsJsonAsync(
+                $"{translationsPath}/{translationId}/reports",
+                new TranslationReportInput("Check image caption"))).StatusCode;
+            Assert.Equal(
+                expectedResult1,
+                actualResult2);
+            var correction = await ownerClient.PostAsJsonAsync(
+                $"{translationsPath}/drafts",
+                new TranslationDraftInput(
+                    "en",
+                    translated with
+                    {
+                        Explanation = [new LocalizedBlock("text", "The green color is correct.", null, null)],
+                    },
+                    "Corrected by owner",
+                    "CC-BY-4.0",
+                    "manual"));
             Assert.Equal(HttpStatusCode.Created, correction.StatusCode);
-            Assert.Equal(1, (await ownerClient.GetFromJsonAsync<ApiResponse<TranslationView>>(
-                $"{translationsPath}/en"))!.Data.Revision);
-            Assert.Equal(HttpStatusCode.Conflict,
+            var actualResult3 = (await ownerClient.GetFromJsonAsync<ApiResponse<TranslationView>>(
+                $"{translationsPath}/en"))!.Data.Revision;
+            Assert.Equal(
+                1,
+                actualResult3);
+            Assert.Equal(
+                HttpStatusCode.Conflict,
                 (await ownerClient.DeleteAsync($"/api/v1/media/{questionMedia}")).StatusCode);
-            Assert.Equal(HttpStatusCode.NotFound,
+            Assert.Equal(
+                HttpStatusCode.NotFound,
                 (await strangerClient.GetAsync($"/api/v1/questions/{createdQuestionId}/versions/1")).StatusCode);
             var selected = firstVersion.Answers.Take(2).Select(answer => answer.Id).ToArray();
-            var grade = await ownerClient.PostAsJsonAsync($"/api/v1/questions/{createdQuestionId}/attempts",
+            var grade = await ownerClient.PostAsJsonAsync(
+                $"/api/v1/questions/{createdQuestionId}/attempts",
                 new GradeRequest(firstVersion.Id, selected));
             Assert.Equal(HttpStatusCode.OK, grade.StatusCode);
             var firstGrade = (await grade.Content.ReadFromJsonAsync<ApiResponse<GradeResult>>())!.Data;
             Assert.True(firstGrade.IsCorrect);
-            var partial = await ownerClient.PostAsJsonAsync($"/api/v1/questions/{createdQuestionId}/attempts",
+            var partial = await ownerClient.PostAsJsonAsync(
+                $"/api/v1/questions/{createdQuestionId}/attempts",
                 new GradeRequest(firstVersion.Id, [selected[0]]));
             Assert.False((await partial.Content.ReadFromJsonAsync<ApiResponse<GradeResult>>())!.Data.IsCorrect);
             var changedDraft = draft with
             {
                 Answers = [new AnswerInput(false, draft.Answers[0].Blocks),
                     new AnswerInput(true, draft.Answers[1].Blocks),
-                    new AnswerInput(true, draft.Answers[2].Blocks)]
+                    new AnswerInput(true, draft.Answers[2].Blocks)],
             };
             var published = await ownerClient.PostAsJsonAsync(
-                $"/api/v1/questions/{createdQuestionId}/versions", changedDraft);
+                $"/api/v1/questions/{createdQuestionId}/versions",
+                changedDraft);
             Assert.Equal(HttpStatusCode.Created, published.StatusCode);
             var secondVersion = (await published.Content
                 .ReadFromJsonAsync<ApiResponse<PublishedQuestionVersion>>())!.Data;
@@ -350,31 +415,44 @@ public sealed class ApiV1Tests
                 Assert.Equal(selected.Order(), saved.Selections.Select(item => item.AnswerOptionId).Order());
             }
 
-            var catalogResponse = await ownerClient.PostAsJsonAsync("/api/v1/catalogs/",
+            var catalogResponse = await ownerClient.PostAsJsonAsync(
+                "/api/v1/catalogs/",
                 new CatalogInput("Prüfungsvorbereitung"));
             Assert.Equal(HttpStatusCode.Created, catalogResponse.StatusCode);
             var catalogId = (await catalogResponse.Content.ReadFromJsonAsync<ApiResponse<CatalogView>>())!.Data.Id;
-            var emptyDraft = new QuestionPublishRequest("single", "", "", "de", "", "", [], [], []);
-            var savedDraft = await ownerClient.PostAsJsonAsync("/api/v1/questions/drafts",
+            var emptyDraft = new QuestionPublishRequest("single", string.Empty, string.Empty, "de", string.Empty, string.Empty, [], [], []);
+            var savedDraft = await ownerClient.PostAsJsonAsync(
+                "/api/v1/questions/drafts",
                 new DraftSaveRequest(emptyDraft, catalogId));
             Assert.Equal(HttpStatusCode.Created, savedDraft.StatusCode);
             var privateDraftId = (await savedDraft.Content.ReadFromJsonAsync<ApiResponse<DraftView>>())!.Data.QuestionId;
-            Assert.Equal(HttpStatusCode.NotFound,
+            Assert.Equal(
+                HttpStatusCode.NotFound,
                 (await strangerClient.GetAsync($"/api/v1/questions/{privateDraftId}/draft")).StatusCode);
-            Assert.Equal(HttpStatusCode.NotFound,
+            Assert.Equal(
+                HttpStatusCode.NotFound,
                 (await strangerClient.GetAsync($"/api/v1/catalogs/{catalogId}/questions")).StatusCode);
-            Assert.Equal(HttpStatusCode.BadRequest,
+            Assert.Equal(
+                HttpStatusCode.BadRequest,
                 (await ownerClient.PostAsync($"/api/v1/questions/{privateDraftId}/publish", null)).StatusCode);
             await using (var checkPrivate = new LearnPipDbContext(options))
             {
                 Assert.False(await checkPrivate.QuestionVersions.AnyAsync(item => item.QuestionId == privateDraftId));
             }
-            Assert.Equal(HttpStatusCode.NoContent,
-                (await ownerClient.PutAsJsonAsync($"/api/v1/questions/{privateDraftId}/draft",
-                    new DraftSaveRequest(draft, catalogId))).StatusCode);
-            Assert.Equal(HttpStatusCode.Created,
+
+            var expectedResult4 = HttpStatusCode.NoContent;
+            var actualResult5 = (await ownerClient.PutAsJsonAsync(
+                $"/api/v1/questions/{privateDraftId}/draft",
+                new DraftSaveRequest(draft, catalogId))).StatusCode;
+
+            Assert.Equal(
+                expectedResult4,
+                actualResult5);
+            Assert.Equal(
+                HttpStatusCode.Created,
                 (await ownerClient.PostAsync($"/api/v1/questions/{privateDraftId}/publish", null)).StatusCode);
-            var learningStart = await ownerClient.PostAsJsonAsync("/api/v1/learning/sessions/",
+            var learningStart = await ownerClient.PostAsJsonAsync(
+                "/api/v1/learning/sessions/",
                 new StartLearningRequest(catalogId, 5));
             Assert.Equal(HttpStatusCode.Created, learningStart.StatusCode);
             var learning = (await learningStart.Content
@@ -383,9 +461,12 @@ public sealed class ApiV1Tests
             Assert.NotNull(learning.Current);
             Assert.Equal(privateDraftId, learning.Current.QuestionId);
             Assert.Equal(3, learning.Current.Answers.Select(option => option.Id).Distinct().Count());
-            Assert.DoesNotContain("isCorrect", await learningStart.Content.ReadAsStringAsync(),
+            Assert.DoesNotContain(
+                "isCorrect",
+                await learningStart.Content.ReadAsStringAsync(),
                 StringComparison.OrdinalIgnoreCase);
-            Assert.Equal(HttpStatusCode.NotFound,
+            Assert.Equal(
+                HttpStatusCode.NotFound,
                 (await strangerClient.GetAsync($"/api/v1/learning/sessions/{learning.Id}")).StatusCode);
             var partialLearning = await ownerClient.PostAsJsonAsync(
                 $"/api/v1/learning/sessions/{learning.Id}/answer",
@@ -393,9 +474,13 @@ public sealed class ApiV1Tests
             Assert.Equal(HttpStatusCode.OK, partialLearning.StatusCode);
             Assert.False((await partialLearning.Content
                 .ReadFromJsonAsync<ApiResponse<LearningFeedback>>())!.Data.IsCorrect);
-            Assert.Equal(HttpStatusCode.Conflict,
-                (await ownerClient.PostAsJsonAsync($"/api/v1/learning/sessions/{learning.Id}/answer",
-                    new LearningAnswerRequest([learning.Current.Answers[0].Id]))).StatusCode);
+            var expectedResult6 = HttpStatusCode.Conflict;
+            var actualResult7 = (await ownerClient.PostAsJsonAsync(
+                $"/api/v1/learning/sessions/{learning.Id}/answer",
+                new LearningAnswerRequest([learning.Current.Answers[0].Id]))).StatusCode;
+            Assert.Equal(
+                expectedResult6,
+                actualResult7);
             var finishedLearning = (await ownerClient.GetFromJsonAsync<ApiResponse<LearningSessionView>>(
                 $"/api/v1/learning/sessions/{learning.Id}"))!.Data;
             Assert.True(finishedLearning.Completed);
@@ -403,7 +488,8 @@ public sealed class ApiV1Tests
             Assert.Equal(0, finishedLearning.Skipped);
             Assert.Null(finishedLearning.Current);
 
-            var correctStart = await ownerClient.PostAsJsonAsync("/api/v1/learning/sessions/",
+            var correctStart = await ownerClient.PostAsJsonAsync(
+                "/api/v1/learning/sessions/",
                 new StartLearningRequest(catalogId, 1));
             var correctSession = (await correctStart.Content
                 .ReadFromJsonAsync<ApiResponse<LearningSessionView>>())!.Data;
@@ -418,38 +504,61 @@ public sealed class ApiV1Tests
             Assert.True(correctFeedback.IsCorrect);
             var beforeMark = (await ownerClient.GetFromJsonAsync<ApiResponse<ReviewOverview>>(
                 "/api/v1/learning/review"))!.Data;
-            Assert.Contains(beforeMark.Contents, item => item.Id == correctFeedback.ContentId &&
+            Assert.Contains(
+                beforeMark.Contents,
+                item => item.Id == correctFeedback.ContentId &&
                 item.Answers == 2);
-            Assert.Equal(HttpStatusCode.NotFound,
-                (await strangerClient.PutAsync($"/api/v1/learning/contents/{correctFeedback.ContentId}/often-for-me",
-                    null)).StatusCode);
-            Assert.Equal(HttpStatusCode.NoContent,
-                (await ownerClient.PutAsync($"/api/v1/learning/contents/{correctFeedback.ContentId}/often-for-me",
-                    null)).StatusCode);
+            var expectedResult8 = HttpStatusCode.NotFound;
+            var actualResult9 = (await strangerClient.PutAsync(
+                $"/api/v1/learning/contents/{correctFeedback.ContentId}/often-for-me",
+                null)).StatusCode;
+            Assert.Equal(
+                expectedResult8,
+                actualResult9);
+            var expectedResult10 = HttpStatusCode.NoContent;
+            var actualResult11 = (await ownerClient.PutAsync(
+                $"/api/v1/learning/contents/{correctFeedback.ContentId}/often-for-me",
+                null)).StatusCode;
+            Assert.Equal(
+                expectedResult10,
+                actualResult11);
             var afterMark = (await ownerClient.GetFromJsonAsync<ApiResponse<ReviewOverview>>(
                 "/api/v1/learning/review"))!.Data;
             Assert.Equal(beforeMark.MasteredContents, afterMark.MasteredContents);
             Assert.Equal(beforeMark.TotalContents, afterMark.TotalContents);
             Assert.Equal(1, afterMark.OftenForMeCount);
-            Assert.Equal(HttpStatusCode.NoContent,
-                (await ownerClient.PostAsJsonAsync(
-                    $"/api/v1/learning/sessions/{correctSession.Id}/explanation",
-                    new ExplanationViewRequest(correctFeedback.AttemptId))).StatusCode);
+            var expectedResult12 = HttpStatusCode.NoContent;
+            var actualResult13 = (await ownerClient.PostAsJsonAsync(
+                $"/api/v1/learning/sessions/{correctSession.Id}/explanation",
+                new ExplanationViewRequest(correctFeedback.AttemptId))).StatusCode;
+            Assert.Equal(
+                expectedResult12,
+                actualResult13);
             var explained = (await ownerClient.GetFromJsonAsync<ApiResponse<ReviewOverview>>(
                 "/api/v1/learning/review"))!.Data;
-            Assert.Equal(1, explained.Contents.Single(item => item.Id == correctFeedback.ContentId)
-                .ExplanationsViewed);
+            var actualResult14 = explained.Contents.Single(item => item.Id == correctFeedback.ContentId)
+                .ExplanationsViewed;
+            Assert.Equal(
+                1,
+                actualResult14);
+            var expectedResult15 = HttpStatusCode.NoContent;
+            var actualResult16 = (await ownerClient.PutAsJsonAsync(
+                $"/api/v1/learning/questions/{createdQuestionId}/content",
+                new ContentAssignment(correctFeedback.ContentId))).StatusCode;
 
-            Assert.Equal(HttpStatusCode.NoContent,
-                (await ownerClient.PutAsJsonAsync(
-                    $"/api/v1/learning/questions/{createdQuestionId}/content",
-                    new ContentAssignment(correctFeedback.ContentId))).StatusCode);
+            Assert.Equal(
+                expectedResult15,
+                actualResult16);
             var grouped = (await ownerClient.GetFromJsonAsync<ApiResponse<ReviewOverview>>(
                 "/api/v1/learning/review"))!.Data;
             Assert.Equal(afterMark.TotalContents - 1, grouped.TotalContents);
-            Assert.Equal(2, grouped.Contents.Single(item => item.Id == correctFeedback.ContentId)
-                .QuestionIds.Count);
-            Assert.Equal(HttpStatusCode.Unauthorized,
+            var actualResult17 = grouped.Contents.Single(item => item.Id == correctFeedback.ContentId)
+                .QuestionIds.Count;
+            Assert.Equal(
+                2,
+                actualResult17);
+            Assert.Equal(
+                HttpStatusCode.Unauthorized,
                 (await anonymous.GetAsync("/api/v1/learning/progress")).StatusCode);
             var privateProgress = (await strangerClient.GetFromJsonAsync<ApiResponse<LearningProgress>>(
                 "/api/v1/learning/progress"))!.Data;
@@ -462,7 +571,8 @@ public sealed class ApiV1Tests
             Assert.True(progressBeforeSkip.ParticipationPoints > 0);
             Assert.Equal(2, progressBeforeSkip.RecentWeeks.Sum(week => week.CompletedSessions));
 
-            var mixedStart = await ownerClient.PostAsJsonAsync("/api/v1/learning/sessions/",
+            var mixedStart = await ownerClient.PostAsJsonAsync(
+                "/api/v1/learning/sessions/",
                 new StartLearningRequest(null, 10));
             var mixed = (await mixedStart.Content
                 .ReadFromJsonAsync<ApiResponse<LearningSessionView>>())!.Data;
@@ -471,11 +581,13 @@ public sealed class ApiV1Tests
             while (mixed.Current != null)
             {
                 Assert.True(seen.Add(mixed.Current.QuestionId));
-                Assert.Equal(HttpStatusCode.NoContent,
+                Assert.Equal(
+                    HttpStatusCode.NoContent,
                     (await ownerClient.PostAsync($"/api/v1/learning/sessions/{mixed.Id}/skip", null)).StatusCode);
                 mixed = (await ownerClient.GetFromJsonAsync<ApiResponse<LearningSessionView>>(
                     $"/api/v1/learning/sessions/{mixed.Id}"))!.Data;
             }
+
             Assert.True(mixed.Completed);
             Assert.Equal(0, mixed.Answered);
             Assert.Equal(mixed.Total, mixed.Skipped);
@@ -483,19 +595,28 @@ public sealed class ApiV1Tests
                 "/api/v1/learning/progress"))!.Data;
             Assert.Equal(progressBeforeSkip.ParticipationPoints, progressAfterSkip.ParticipationPoints);
             Assert.Equal(progressBeforeSkip.MasteredContents, progressAfterSkip.MasteredContents);
-            Assert.Equal(progressBeforeSkip.RecentWeeks.Sum(week => week.CompletedSessions),
+            Assert.Equal(
+                progressBeforeSkip.RecentWeeks.Sum(week => week.CompletedSessions),
                 progressAfterSkip.RecentWeeks.Sum(week => week.CompletedSessions));
             await using (var checkSkipped = new LearnPipDbContext(options))
+            {
                 Assert.False(await checkSkipped.StudyAttempts.AnyAsync(item => item.StudySessionId == mixed.Id));
+            }
 
             var catalogItems = await ownerClient.GetStringAsync($"/api/v1/catalogs/{catalogId}/questions");
             Assert.Contains(privateDraftId.ToString(), catalogItems);
-            Assert.Equal(HttpStatusCode.NoContent,
-                (await ownerClient.PutAsJsonAsync($"/api/v1/questions/{privateDraftId}/catalog",
-                    new CatalogMoveRequest(null))).StatusCode);
-            Assert.Equal(HttpStatusCode.NoContent,
+            var expectedResult18 = HttpStatusCode.NoContent;
+            var actualResult19 = (await ownerClient.PutAsJsonAsync(
+                $"/api/v1/questions/{privateDraftId}/catalog",
+                new CatalogMoveRequest(null))).StatusCode;
+            Assert.Equal(
+                expectedResult18,
+                actualResult19);
+            Assert.Equal(
+                HttpStatusCode.NoContent,
                 (await ownerClient.DeleteAsync($"/api/v1/catalogs/{catalogId}")).StatusCode);
-            Assert.Equal(HttpStatusCode.NotFound,
+            Assert.Equal(
+                HttpStatusCode.NotFound,
                 (await ownerClient.GetAsync($"/api/v1/catalogs/{catalogId}/questions")).StatusCode);
 
             using var scope = factory.Services.CreateScope();
@@ -514,9 +635,11 @@ public sealed class ApiV1Tests
                 await db.SaveChangesAsync();
             }
 
-            Assert.Equal(HttpStatusCode.NotFound,
+            Assert.Equal(
+                HttpStatusCode.NotFound,
                 (await memberClient.GetAsync($"/api/v1/questions/{questionId}")).StatusCode);
-            Assert.Equal(HttpStatusCode.NotFound,
+            Assert.Equal(
+                HttpStatusCode.NotFound,
                 (await ownerClient.GetAsync($"/api/v1/media/{mediaId}")).StatusCode);
         }
         finally
@@ -536,7 +659,9 @@ public sealed class ApiV1Tests
         }
     }
 
-    private static HttpClient ClientFor(WebApplicationFactory<Program> factory, Guid accountId)
+    private static HttpClient ClientFor(
+        WebApplicationFactory<Program> factory,
+        Guid accountId)
     {
         var client = factory.CreateClient();
         client.DefaultRequestHeaders.Add("X-Test-Account", accountId.ToString());
@@ -549,9 +674,12 @@ public sealed class ApiV1Tests
             TestAuthenticationHandler.TestScheme));
 
     private sealed class TestAuthenticationHandler(
-        IOptionsMonitor<AuthenticationSchemeOptions> options,
-        ILoggerFactory logger,
-        UrlEncoder encoder) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
+            IOptionsMonitor<AuthenticationSchemeOptions> options,
+            ILoggerFactory logger,
+            UrlEncoder encoder) : AuthenticationHandler<AuthenticationSchemeOptions>(
+            options,
+            logger,
+            encoder)
     {
         public const string TestScheme = "Test";
 

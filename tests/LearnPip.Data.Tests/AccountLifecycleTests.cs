@@ -1,3 +1,7 @@
+// <copyright file="AccountLifecycleTests.cs" company="LearnPip contributors">
+// Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
+// </copyright>
+
 using LearnPip.Api.Identity;
 using LearnPip.Data;
 using LearnPip.Data.Domain;
@@ -7,8 +11,15 @@ using Npgsql;
 
 namespace LearnPip.Data.Tests;
 
+/// <summary>
+/// Enthält Regressionstests für den Kontolebenszyklus.
+/// </summary>
 public sealed class AccountLifecycleTests
 {
+    /// <summary>
+    /// Prüft einmalige Inaktivitätswarnungen, erneute Aktivität und die Löschung privater Daten.
+    /// </summary>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     [Fact]
     public async Task Lifecycle_warns_once_per_phase_rechecks_activity_and_deletes_private_data()
     {
@@ -40,12 +51,14 @@ public sealed class AccountLifecycleTests
                 await db.Database.MigrateAsync();
                 var moderator = new Account { Id = moderatorId, LastActivityAtUtc = lastActivity.AddDays(-200) };
                 var role = new RoleDefinition { Scope = "system", Code = "moderator", Name = "Moderator" };
-                db.Accounts.AddRange(new Account { Id = accountId, LastActivityAtUtc = lastActivity }, moderator,
+                db.Accounts.AddRange(
+                    new Account { Id = accountId, LastActivityAtUtc = lastActivity },
+                    moderator,
                     new Account { Id = recoverableId, LastActivityAtUtc = lastActivity.AddDays(-30) });
                 db.RecoveryCredentials.Add(new RecoveryCredential
                 {
                     AccountId = recoverableId,
-                    SecretHash = SessionAuthentication.Hash(secret)
+                    SecretHash = SessionAuthentication.Hash(secret),
                 });
                 db.Roles.Add(role);
                 db.AccountRoles.Add(new AccountRole { AccountId = moderatorId, RoleDefinition = role });
@@ -53,7 +66,7 @@ public sealed class AccountLifecycleTests
                 {
                     AccountId = accountId,
                     Provider = "email",
-                    Subject = "old@example.org"
+                    Subject = "old@example.org",
                 });
                 db.Questions.Add(new Question { OwnerAccountId = accountId });
                 db.MediaAssets.Add(new MediaAsset
@@ -62,7 +75,7 @@ public sealed class AccountLifecycleTests
                     OwnerAccountId = accountId,
                     StorageKey = $"private/{accountId:N}/{mediaId:N}",
                     MediaType = "image/png",
-                    ByteLength = 3
+                    ByteLength = 3,
                 });
                 db.MediaBlobs.Add(new MediaBlob { MediaAssetId = mediaId, Data = [1, 2, 3] });
                 await db.SaveChangesAsync();
@@ -97,16 +110,22 @@ public sealed class AccountLifecycleTests
             await using var admin = new NpgsqlConnection(maintenance.ConnectionString);
             await admin.OpenAsync();
             await using (var terminate = new NpgsqlCommand(
-                "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = @name AND pid <> pg_backend_pid()", admin))
+                "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = @name AND pid <> pg_backend_pid()",
+                admin))
             {
                 terminate.Parameters.AddWithValue("name", name);
                 await terminate.ExecuteNonQueryAsync();
             }
+
             await using var drop = new NpgsqlCommand($"DROP DATABASE IF EXISTS \"{name}\"", admin);
             await drop.ExecuteNonQueryAsync();
         }
     }
 
+    /// <summary>
+    /// Prüft die sofortige Löschung privater Medien und Lernverläufe nach bestätigter Kontolöschung.
+    /// </summary>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     [Fact]
     public async Task Voluntary_deletion_removes_private_media_and_learning_history_immediately()
     {
@@ -121,6 +140,7 @@ public sealed class AccountLifecycleTests
             await using var create = new NpgsqlCommand($"CREATE DATABASE \"{name}\"", admin);
             await create.ExecuteNonQueryAsync();
         }
+
         try
         {
             var options = new DbContextOptionsBuilder<LearnPipDbContext>()
@@ -141,14 +161,14 @@ public sealed class AccountLifecycleTests
                     QuestionId = questionId,
                     CreatedByAccountId = accountId,
                     VersionNumber = 1,
-                    Prompt = "Private question"
+                    Prompt = "Private question",
                 });
                 db.StudySessions.Add(new StudySession { Id = sessionId, AccountId = accountId });
                 db.StudyAttempts.Add(new StudyAttempt
                 {
                     StudySessionId = sessionId,
                     QuestionVersionId = versionId,
-                    IsCorrect = true
+                    IsCorrect = true,
                 });
                 db.MediaAssets.Add(new MediaAsset
                 {
@@ -156,11 +176,12 @@ public sealed class AccountLifecycleTests
                     OwnerAccountId = accountId,
                     StorageKey = "private/test",
                     MediaType = "image/png",
-                    ByteLength = 3
+                    ByteLength = 3,
                 });
                 db.MediaBlobs.Add(new MediaBlob { MediaAssetId = mediaId, Data = [1, 2, 3] });
                 await db.SaveChangesAsync();
             }
+
             await using (var db = new LearnPipDbContext(options))
             {
                 var service = new AccountLifecycleService(db, new DisabledInactivityNoticeSender());
@@ -176,11 +197,13 @@ public sealed class AccountLifecycleTests
             await using var admin = new NpgsqlConnection(maintenance.ConnectionString);
             await admin.OpenAsync();
             await using (var terminate = new NpgsqlCommand(
-                "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = @name AND pid <> pg_backend_pid()", admin))
+                "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = @name AND pid <> pg_backend_pid()",
+                admin))
             {
                 terminate.Parameters.AddWithValue("name", name);
                 await terminate.ExecuteNonQueryAsync();
             }
+
             await using var drop = new NpgsqlCommand($"DROP DATABASE IF EXISTS \"{name}\"", admin);
             await drop.ExecuteNonQueryAsync();
         }
@@ -189,8 +212,13 @@ public sealed class AccountLifecycleTests
     private sealed class RecordingSender : IInactivityNoticeSender
     {
         public bool IsAvailable => true;
+
         public List<int> Phases { get; } = [];
-        public Task SendAsync(string email, int phaseDays, DateTimeOffset lastActivityAtUtc,
+
+        public Task SendAsync(
+            string email,
+            int phaseDays,
+            DateTimeOffset lastActivityAtUtc,
             CancellationToken cancellationToken)
         {
             this.Phases.Add(phaseDays);
@@ -201,6 +229,7 @@ public sealed class AccountLifecycleTests
     private sealed class NoMailSender : IEmailCodeSender
     {
         public bool IsAvailable => false;
+
         public Task SendAsync(string email, string code, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

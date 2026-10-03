@@ -1,11 +1,21 @@
+// <copyright file="ExamPlanEstimatorTests.cs" company="LearnPip contributors">
+// Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
+// </copyright>
+
 using LearnPip.Api.Questions;
 
 namespace LearnPip.Data.Tests;
 
+/// <summary>
+/// Enthält Regressionstests für das Prüfungsdreieck.
+/// </summary>
 public sealed class ExamPlanEstimatorTests
 {
     private static readonly DateOnly Start = new(2026, 9, 29);
 
+    /// <summary>
+    /// Prüft unterschiedliche Lerntage und Lerninhalte für sichere Wiederholungen.
+    /// </summary>
     [Fact]
     public void Repetition_needs_separate_days_and_a_distinct_content()
     {
@@ -14,17 +24,29 @@ public sealed class ExamPlanEstimatorTests
         Assert.Equal(0, ExamPlanEstimator.Estimate(shortPlan, 1, 0, Start).ExpectedNewlyMastered);
         Assert.Equal(1, ExamPlanEstimator.Estimate(longPlan, 1, 0, Start).ExpectedNewlyMastered);
         var id = Guid.NewGuid();
-        Assert.False(ExamPlanEstimator.HasSpacedMastery(Enumerable.Range(0, 3)
-            .Select(index => new ReviewEvent(Guid.NewGuid(),
-                new DateTimeOffset(2026, 9, 29, 12, index, 0, TimeSpan.Zero), "answer", true))));
+        Assert.False(ExamPlanEstimator.HasSpacedMastery(Enumerable.Range(
+                    0,
+                    3)
+            .Select(index => new ReviewEvent(
+                        Guid.NewGuid(),
+                        new DateTimeOffset(2026, 9, 29, 12, index, 0, TimeSpan.Zero),
+                        "answer",
+                        true))));
         Assert.True(ExamPlanEstimator.HasSpacedMastery(new[]
         {
             new ReviewEvent(id, new DateTimeOffset(2026, 9, 29, 12, 0, 0, TimeSpan.Zero), "answer", true),
             new ReviewEvent(Guid.NewGuid(), new DateTimeOffset(2026, 9, 30, 12, 0, 0, TimeSpan.Zero), "answer", true),
-            new ReviewEvent(Guid.NewGuid(), new DateTimeOffset(2026, 10, 3, 12, 0, 0, TimeSpan.Zero), "answer", true)
+            new ReviewEvent(
+                    Guid.NewGuid(),
+                    new DateTimeOffset(2026, 10, 3, 12, 0, 0, TimeSpan.Zero),
+                    "answer",
+                    true),
         }));
     }
 
+    /// <summary>
+    /// Prüft die Auswirkungen von Pausen, Schultagen und Tageslimits auf die Machbarkeit des Prüfungstermins.
+    /// </summary>
     [Fact]
     public void Breaks_school_days_and_daily_limit_make_an_optimistic_date_infeasible()
     {
@@ -38,6 +60,9 @@ public sealed class ExamPlanEstimatorTests
         Assert.Contains("Zielquote anpassen", target.Options);
     }
 
+    /// <summary>
+    /// Prüft die einmalige Anrechnung beherrschter Inhalte und die Begrenzung der Lernzeit.
+    /// </summary>
     [Fact]
     public void Already_mastered_content_counts_once_and_time_is_bounded()
     {
