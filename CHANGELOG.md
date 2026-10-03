@@ -1,3 +1,39 @@
+# [1.4.0](https://github.com/kennfarbe/LearnPip/compare/v1.3.1...v1.4.0) (2026-10-03)
+
+
+### Bug Fixes
+
+* **deploy:** mount update operator directories from shared absolute path ([15176c3](https://github.com/kennfarbe/LearnPip/commit/15176c34c42c5785e5a7e5336ec1a5a10aa76d2e))
+* **deploy:** pass update operator queue, status and version into API ([53ab634](https://github.com/kennfarbe/LearnPip/commit/53ab6346e526223eaf1a39c5d45aab2eea676d99))
+* **domain:** restore LearningContent after splitting its collection file ([b266037](https://github.com/kennfarbe/LearnPip/commit/b266037594e7457015c2531520fb439be900b69a))
+* **installer:** persist shared path for mounted operator directories ([24d1d77](https://github.com/kennfarbe/LearnPip/commit/24d1d77bd67422cb0f3f0f864bf13819e19b4cf1))
+* **tests:** avoid hiding inherited authentication Scheme property ([0127226](https://github.com/kennfarbe/LearnPip/commit/012722667acdac90f9a69a2bb51a959db5b24ab5))
+* **tests:** use named authentication test scheme in ticket ([c31e2e7](https://github.com/kennfarbe/LearnPip/commit/c31e2e7aabe4a2543f6726ac39be42b24bcbbea5))
+* **updates:** serialize queue writes and fail safely if operator is unavailable ([701765d](https://github.com/kennfarbe/LearnPip/commit/701765d1d9c04b9d86c92855697d67bf2f276309))
+* **updates:** use consistent camel-case JSON across API and operator ([ea66ffa](https://github.com/kennfarbe/LearnPip/commit/ea66ffaa7ea07caf94675d394308a05bf4d7b73d))
+* **web:** align ESLint dependency versions ([669f8ee](https://github.com/kennfarbe/LearnPip/commit/669f8eee999eacd7dc06f940749dc0d34c000ce4))
+* **web:** associate each translation input with its label ([71efbc9](https://github.com/kennfarbe/LearnPip/commit/71efbc97899ca8ac1a6bbec9accd511ecb2d3ed2))
+* **web:** restore Angular dependency pins and nested ESLint locks ([1ea0081](https://github.com/kennfarbe/LearnPip/commit/1ea008144decee4c15c70f23b1845cc2cebe865d))
+* **web:** synchronize ESLint lockfile dependency graph ([caea7d2](https://github.com/kennfarbe/LearnPip/commit/caea7d2b25e3f766eeb9b27fd4f17be04139d9ef))
+* **web:** use native accessible dialog close control ([ae1541f](https://github.com/kennfarbe/LearnPip/commit/ae1541fa81f4e505e7a52625eb8d33b18f5ecd5e))
+
+
+### Features
+
+* add admin release and update service ([10a82d6](https://github.com/kennfarbe/LearnPip/commit/10a82d69eba9b15f61db109f78b33407a0f7ac6d))
+* add responsive admin update UI ([bc9b3c4](https://github.com/kennfarbe/LearnPip/commit/bc9b3c4317f0341922a0447c5e23d70db30d1260))
+* add rootless restricted update operator ([15b5443](https://github.com/kennfarbe/LearnPip/commit/15b5443c618248848e56a8a529b7f0e111db3cfb))
+* add rootless update operator service ([605f9d2](https://github.com/kennfarbe/LearnPip/commit/605f9d22f4ed682f87aaeb5296c2fc19b07b6fcf))
+* enable scheduled stable release checks ([e3161d2](https://github.com/kennfarbe/LearnPip/commit/e3161d2e84068a9e1eb159c08c5b2a5052a2d4c1))
+* expose admin update endpoints ([7bcee12](https://github.com/kennfarbe/LearnPip/commit/7bcee12a3a6c7e9214fa90d4599316f785c2f3c5))
+* expose release version and private update queue ([d667411](https://github.com/kennfarbe/LearnPip/commit/d667411a1958006e5b791d2bfeb774054bc0be84))
+* prepare private web update state directories ([5348efd](https://github.com/kennfarbe/LearnPip/commit/5348efd742df8eeb2d08937ee6583cfcf90670ca))
+* register admin update UI ([b900412](https://github.com/kennfarbe/LearnPip/commit/b9004122b80e4aef10a957bd906f0fc00af2ebc6))
+* register secure update services and rate limit ([b964979](https://github.com/kennfarbe/LearnPip/commit/b9649795f3e29b5c9df1c332c95dac58972609da))
+* run update checks without an open browser ([d098c18](https://github.com/kennfarbe/LearnPip/commit/d098c1839b0c78293b5970695fdc6e0450a00bce))
+* show update status to administrators ([8febcb1](https://github.com/kennfarbe/LearnPip/commit/8febcb1cd785d53d3121fbfc02125966370429d8))
+* support server-side scheduled update checks ([9349c52](https://github.com/kennfarbe/LearnPip/commit/9349c52e0292b315f7daec3b88e182139c2da6c3))
+
 ## [1.3.1](https://github.com/kennfarbe/LearnPip/compare/v1.3.0...v1.3.1) (2026-10-01)
 
 
