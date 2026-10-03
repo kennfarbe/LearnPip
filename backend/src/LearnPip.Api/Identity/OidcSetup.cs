@@ -168,50 +168,12 @@ public static class OidcSetup
                         return;
                     }
 
-                    Guid? linkingAccountId = null;
-                    if (context.Properties?.Items.TryGetValue(LinkSessionKey, out var value) == true)
-                    {
-                        if (!Guid.TryParse(value, out var sessionId))
-                        {
-                            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                            return;
-                        }
-
-                        var dbContext = context.HttpContext.RequestServices
-                            .GetRequiredService<LearnPipDbContext>();
-                        var now = DateTimeOffset.UtcNow;
-                        linkingAccountId = await dbContext.AccountSessions.AsNoTracking()
-                            .Where(session => session.Id == sessionId &&
-                                              session.RevokedAtUtc == null &&
-                                              session.ExpiresAtUtc > now &&
-                                              session.Account.DeletedAtUtc == null)
-                            .Select(session => (Guid?)session.AccountId)
-                            .SingleOrDefaultAsync(context.HttpContext.RequestAborted);
-                        if (!linkingAccountId.HasValue)
-                        {
-                            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                            return;
-                        }
-                    }
-
-                    var identity = context.HttpContext.RequestServices.GetRequiredService<IdentityService>();
-                    try
-                    {
-                        var accountId = await identity.ResolveOidcAsync(
-                            authority,
-                            subject,
-                            linkingAccountId,
-                            context.HttpContext.RequestAborted);
-                        var sessions = context.HttpContext.RequestServices.GetRequiredService<SessionService>();
-                        var grant = await sessions.CreateAsync(accountId, context.HttpContext.RequestAborted);
-                        SessionAuthentication.SetCookie(context.HttpContext, grant.Token, grant.ExpiresAtUtc);
-                        var path = configuration[section + ":PostLoginPath"];
-                        context.Response.Redirect(IsSafePath(path) ? path! : "/");
-                    }
-                    catch (IdentityConflictException)
-                    {
-                        context.Response.StatusCode = StatusCodes.Status409Conflict;
-                    }
+                    await ExternalLoginCompletion.CompleteAsync(
+                        context.HttpContext,
+                        context.Properties,
+                        authority,
+                        subject,
+                        configuration[section + ":PostLoginPath"]);
                 };
                 options.Events.OnRemoteFailure = context =>
                 {
