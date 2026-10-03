@@ -79,7 +79,8 @@ builder.Services.AddAuthentication(SessionAuthentication.Scheme)
         SessionAuthenticationHandler>(
     SessionAuthentication.Scheme,
     _ => { })
-    .AddLearnPipOidc(builder.Configuration);
+    .AddLearnPipOidc(builder.Configuration)
+    .AddLearnPipGithub(builder.Configuration);
 builder.Services.AddApiAuthorization();
 builder.Services.AddRateLimiter(options =>
 {
