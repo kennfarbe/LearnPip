@@ -98,6 +98,22 @@ public static class AuthEndpoints
             CompleteEmailLink)
             .RequireRateLimiting("auth")
             .Produces(StatusCodes.Status204NoContent);
+        secured.MapGet("/github/link/start", (IConfiguration configuration, ClaimsPrincipal principal) =>
+        {
+            if (!GithubOAuthSetup.IsEnabled(configuration))
+            {
+                return Results.NotFound();
+            }
+
+            if (!SessionAuthentication.TryGetSessionId(principal, out var sessionId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var properties = new AuthenticationProperties { RedirectUri = "/" };
+            properties.Items[OidcSetup.LinkSessionKey] = sessionId.ToString();
+            return Results.Challenge(properties, [GithubOAuthSetup.Scheme]);
+        }).RequireRateLimiting("auth");
         secured.MapGet("/oidc/{provider}/link/start", StartNamedOidcLink)
             .RequireRateLimiting("auth");
         secured.MapGet(
