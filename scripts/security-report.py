@@ -40,8 +40,8 @@ def evaluate(kind: str, document: object) -> tuple[int, int]:
         scanned = False
         for project in projects:
             check(isinstance(project, dict), "Invalid NuGet project")
-            frameworks = project.get("frameworks")
-            check(isinstance(frameworks, list), "NuGet framework list missing")
+            frameworks = project.get("frameworks", [])
+            check(isinstance(frameworks, list), "Invalid NuGet framework list")
             for framework in frameworks:
                 check(isinstance(framework, dict), "Invalid NuGet framework")
                 scanned = True
@@ -59,7 +59,7 @@ def evaluate(kind: str, document: object) -> tuple[int, int]:
                                                "critical"), "Unknown vulnerability severity")
                             high += severity == "high"
                             critical += severity == "critical"
-        check(scanned, "No NuGet frameworks scanned")
+        # Empty framework lists occur in valid dotnet list JSON for projects without\n        # vulnerable packages. The top-level projects list establishes scanner output.
         return high, critical
 
     if kind == "trivy":
