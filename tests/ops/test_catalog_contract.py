@@ -112,13 +112,13 @@ class CatalogContractTests(unittest.TestCase):
     def test_reader_rejects_unknown_future_version(self):
         self.manifest["schema_version"] = "2.0.0"
         Path(self.filename).write_bytes(make_zip(self.manifest, self.files))
-        with self.assertRaisesRegex(InvalidPackage, "Unsupported schema_version"):
+        with self.assertRaisesRegex(ReaderInvalidPackage, "Unsupported schema_version"):
             read_catalog(self.filename)
 
     def test_reader_rejects_tampered_media(self):
         self.files["media/test.txt"] = b"not the declared bytes"
         Path(self.filename).write_bytes(make_zip(self.manifest, self.files))
-        with self.assertRaisesRegex(InvalidPackage, "mismatch"):
+        with self.assertRaisesRegex(ReaderInvalidPackage, "mismatch"):
             read_catalog(self.filename)
 
     def test_unsupported_schema_is_not_silently_downgraded(self):
