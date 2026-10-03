@@ -431,6 +431,14 @@ jobs:
                      if item['result'] not in ('success', 'skipped')}
           if results['changes']['result'] != 'success' or results['repository-policy']['result'] != 'success':
               invalid['required'] = 'change detection and repository policy must succeed'
+          flags = results['changes'].get('outputs', {})
+          selected = {'markdown': 'markdown', 'backend': 'backend', 'web': 'web',
+                      'installer': 'installer-smoke', 'restore': 'restore-smoke',
+                      'integration': 'integration-smoke'}
+          for flag, job in selected.items():
+              expected = 'success' if flags.get(flag) == 'true' else 'skipped'
+              if results[job]['result'] != expected:
+                  invalid[job] = f"expected {expected}, received {results[job]['result']}"
           if invalid:
               raise SystemExit(f'CI checks failed or were cancelled: {invalid}')
           print('All selected CI checks succeeded; inapplicable jobs were skipped.')
