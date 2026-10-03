@@ -103,6 +103,39 @@ class CatalogContractTests(unittest.TestCase):
         self.assertEqual(self.check(make_zip(self.manifest, self.files)),
                          ("example.synthetic", 1))
 
+    def test_frozen_draft_fixture_remains_readable_and_roundtrips(self):
+        # This file is independent of base_files(), so future test helper edits
+        # cannot silently rewrite the older format's compatibility example.
+        fixture_path = (Path(__file__).resolve().parents[1] / "fixtures" /
+                        "catalog" / "0.1.0" / "frozen.json")
+        frozen = json.loads(fixture_path.read_text(encoding="utf-8"))
+        question = frozen.pop("questions")
+        expected = {"questions": question}
+        files = {
+            "questions.json": json.dumps(expected, ensure_ascii=False).encode("utf-8"),
+            "LICENSES.md": b"CC0-1.0 synthetic fixture only\\n",
+            "NOTICE": b"Frozen offline compatibility test\\n",
+            "ATTRIBUTION": b"Synthetic test author\\n",
+        }
+        frozen["files"] = [
+            {"path": path, "size": len(content),
+             "sha256": hashlib.sha256(content).hexdigest()}
+            for path, content in files.items()
+        ]
+        original = make_zip(frozen, files)
+        Path(self.filename).write_bytes(original)
+        self.assertEqual(validate(self.filename), ("example.frozen", 1))
+        snapshot = read_catalog(self.filename)
+        target = Path(self.tempdir.name) / "frozen-export.zip"
+        write_catalog(snapshot, target)
+        exported = read_catalog(target)
+        self.assertEqual(exported.questions, expected)
+        self.assertEqual(exported.questions["questions"][0]["correct_answer_ids"], ["b"])
+        self.assertEqual(exported.manifest["schema_version"], "0.1.0")
+        self.assertEqual(exported.manifest["source_revision"], "fixture-v1")
+        self.assertEqual(exported.notices, snapshot.notices)
+        self.assertEqual(Path(self.filename).read_bytes(), original)
+
     def test_reader_preserves_questions_media_and_attribution(self):
         original = make_zip(self.manifest, self.files)
         Path(self.filename).write_bytes(original)
