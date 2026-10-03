@@ -1,3 +1,17 @@
+# [1.8.0](https://github.com/kennfarbe/LearnPip/compare/v1.7.1...v1.8.0) (2026-10-03)
+
+
+### Bug Fixes
+
+* **catalog:** assert reader validator exception from its loaded module ([6f3942b](https://github.com/kennfarbe/LearnPip/commit/6f3942b21ee1afa384296e9cfaca37b9c59b95f0))
+* **catalog:** define reader exception used by negative contract tests ([065d7b4](https://github.com/kennfarbe/LearnPip/commit/065d7b4e21da473c469d970ae964fc4890185e5e))
+* **catalog:** use immutable NamedTuple snapshot compatible with script loading ([ad256d6](https://github.com/kennfarbe/LearnPip/commit/ad256d6a1209c5b74a809254313b63a4064a527d))
+
+
+### Features
+
+* **catalog:** add validated read-only offline ZIP reader ([83912fb](https://github.com/kennfarbe/LearnPip/commit/83912fb156621753691b9a6dea0c819476a87e79))
+
 ## [1.7.1](https://github.com/kennfarbe/LearnPip/compare/v1.7.0...v1.7.1) (2026-10-03)
 
 
