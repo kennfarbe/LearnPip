@@ -98,6 +98,7 @@ public sealed class OidcProviderConfigurationTests
     /// <summary>
     /// Microsoft tenant strategies are explicit and support organization or consumer accounts.
     /// </summary>
+    /// <param name="authority">The Microsoft authority to test.</param>
     [Theory]
     [InlineData("https://login.microsoftonline.com/organizations/v2.0")]
     [InlineData("https://login.microsoftonline.com/consumers/v2.0")]
@@ -117,6 +118,9 @@ public sealed class OidcProviderConfigurationTests
     /// <summary>
     /// Microsoft tokens must match the exact tenant strategy selected by the operator.
     /// </summary>
+    /// <param name="authority">The configured Microsoft authority.</param>
+    /// <param name="issuer">The issuer returned in the identity token.</param>
+    /// <param name="expected">Whether the issuer should be accepted.</param>
     [Theory]
     [InlineData(
         "https://login.microsoftonline.com/organizations/v2.0",
