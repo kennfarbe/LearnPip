@@ -28,7 +28,7 @@ public static class GithubOAuthSetup
     /// <summary>Registers GitHub's server-side OAuth authorization-code flow.</summary>
     /// <param name="authentication">Authentication builder.</param>
     /// <param name="configuration">Server configuration.</param>
-    /// <returns>Authentication builder.</returns>
+    /// <returns>The builder with the GitHub OAuth handler registered when configured.</returns>
     public static AuthenticationBuilder AddLearnPipGithub(
         this AuthenticationBuilder authentication,
         IConfiguration configuration)
