@@ -15,7 +15,7 @@ Diese Übersicht beschreibt, für welche Bestandteile von LearnPip welche Rechte
 
 Die AGPL erlaubt kommerzielle Nutzung unter Einhaltung ihrer Bedingungen. Daneben kann für diejenigen Softwarerechte, über die das Projekt selbst verfügen darf, optional eine gesonderte kommerzielle Lizenz angeboten werden. Fremdmaterial und Community-Beiträge können nur einbezogen werden, wenn die nötigen Rechte wirksam vorliegen.
 
-Der geplante CLA-Prozess wird in [Issue #3](https://github.com/kennfarbe/LearnPip/issues/3) nachverfolgt. Bis er überprüft und eingerichtet ist, dürfen Rechte zur kommerziellen Unterlizenzierung externer Beiträge nicht einfach vorausgesetzt werden. Eine zusätzliche kommerzielle Lizenz hebt die öffentliche AGPL-Veröffentlichung des zugehörigen offiziellen Projektcodes nicht auf.
+Die [individuelle](CLA-INDIVIDUAL-DRAFT.md) und die [organisationsbezogene CLA](CLA-ENTITY-DRAFT.md) liegen derzeit ausdrücklich nur als **Erstfassungen V0.1 zur erneuten juristischen Prüfung** vor und sind nicht aktiv. [CONTRIBUTING](../CONTRIBUTING.md) und die [Einführungscheckliste](CLA-ROLLOUT.md) beschreiben die noch offenen Freigabe- und Nachweisschritte. Bis dahin dürfen Rechte zur kommerziellen Unterlizenzierung externer Beiträge nicht vorausgesetzt und keine externen Codebeiträge übernommen werden. Eine zusätzliche kommerzielle Lizenz hebt die öffentliche AGPL-Veröffentlichung des zugehörigen offiziellen Projektcodes nicht auf.
 
 ## Quellcode-Link für betriebene Versionen
 
