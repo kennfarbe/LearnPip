@@ -124,7 +124,16 @@ class CatalogContractTests(unittest.TestCase):
         self.assertEqual(exported.questions, snapshot.questions)
         self.assertEqual(exported.media, snapshot.media)
         self.assertEqual(exported.notices, snapshot.notices)
-        self.assertEqual(exported.manifest, snapshot.manifest)
+        # JSON reserialization may change bytes and therefore the recorded hashes.
+        # Metadata and content must survive; the validator checks regenerated hashes.
+        original_metadata = {key: value for key, value in snapshot.manifest.items()
+                             if key != "files"}
+        exported_metadata = {key: value for key, value in exported.manifest.items()
+                             if key != "files"}
+        self.assertEqual(exported_metadata, original_metadata)
+        self.assertEqual([record["path"] for record in exported.manifest["files"]],
+                         [record["path"] for record in snapshot.manifest["files"]])
+        self.assertEqual(validate(str(target)), ("example.synthetic", 1))
         self.assertEqual(Path(self.filename).read_bytes(), original)
 
     def test_writer_refuses_invalid_snapshot_without_replacing_target(self):
