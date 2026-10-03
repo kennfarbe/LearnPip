@@ -1,3 +1,10 @@
+## [1.9.2](https://github.com/kennfarbe/LearnPip/compare/v1.9.1...v1.9.2) (2026-10-03)
+
+
+### Bug Fixes
+
+* **catalog:** reject undeclared question document fields ([bd7c774](https://github.com/kennfarbe/LearnPip/commit/bd7c77467bfdd4c3baddf38a6dc0219e66b20ece))
+
 ## [1.9.1](https://github.com/kennfarbe/LearnPip/compare/v1.9.0...v1.9.1) (2026-10-03)
 
 
