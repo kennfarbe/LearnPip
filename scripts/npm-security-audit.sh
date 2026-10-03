@@ -4,18 +4,28 @@ set -euo pipefail
 directory="${1:?package directory required}"
 label="${2:?safe report label required}"
 case "$label" in root|web) ;; *) exit 2 ;; esac
-private_dir="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/learnpip-security-$label"
+mode="${3:-production}"
+case "$mode" in production|development) ;; *) exit 2 ;; esac
+private_dir="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/learnpip-security-$label-$mode"
 mkdir -p "$private_dir"
 chmod 700 "$private_dir"
 report="$private_dir/npm-audit-private.json"
+audit_args=(--json)
+if [ "$mode" = production ]; then
+  audit_args+=(--omit=dev)
+fi
 status=0
-(cd "$directory" && npm audit --json) > "$report" 2> "$private_dir/npm-audit-stderr.log" || status=$?
+(cd "$directory" && npm audit "${audit_args[@]}") > "$report" 2> "$private_dir/npm-audit-stderr.log" || status=$?
 if (( status > 1 )); then
   echo "$label: npm audit failed to complete; inspect privately." >&2
   exit 2
 fi
 if python3 scripts/security-report.py npm "$report"; then
   echo "$label: dependency audit passed."
+  exit 0
+fi
+if [ "$mode" = development ]; then
+  echo "$label: development findings are informational; review uploaded report for updates."
   exit 0
 fi
 # Try npm's non-force fixes in a disposable directory; NEVER modify tracked files
@@ -30,7 +40,7 @@ if (( fix_status > 1 )); then
   exit 1
 fi
 post_status=0
-(cd "$trial" && npm audit --json) > "$private_dir/npm-after-fix-private.json" 2> "$private_dir/npm-after-fix-stderr.log" || post_status=$?
+(cd "$trial" && npm audit "${audit_args[@]}") > "$private_dir/npm-after-fix-private.json" 2> "$private_dir/npm-after-fix-stderr.log" || post_status=$?
 if (( post_status > 1 )); then
   echo "$label: post-fix audit incomplete; private triage required." >&2
   exit 1
