@@ -25,7 +25,7 @@ public static class OidcSetup
     /// </summary>
     public const string LinkSessionKey = "link_session_id";
 
-    private static readonly string[] ProviderNames = ["apple", "microsoft", "github", "facebook"];
+    private static readonly string[] ProviderNames = ["apple", "microsoft"];
 
     /// <summary>Returns configured OIDC names without exposing credentials.</summary>
     /// <param name="configuration">The application configuration.</param>
@@ -92,9 +92,16 @@ public static class OidcSetup
     }
 
     private static bool IsConfigured(IConfiguration configuration, string name) =>
-        !string.IsNullOrWhiteSpace(configuration[$"Oidc:Providers:{name}:Authority"]) &&
+        HasHttpsAuthority(configuration[$"Oidc:Providers:{name}:Authority"]) &&
         !string.IsNullOrWhiteSpace(configuration[$"Oidc:Providers:{name}:ClientId"]) &&
         !string.IsNullOrWhiteSpace(configuration[$"Oidc:Providers:{name}:ClientSecret"]);
+
+    private static bool HasHttpsAuthority(string? authority) =>
+        Uri.TryCreate(authority, UriKind.Absolute, out var uri) &&
+        uri.Scheme == Uri.UriSchemeHttps &&
+        string.IsNullOrEmpty(uri.UserInfo) &&
+        string.IsNullOrEmpty(uri.Query) &&
+        string.IsNullOrEmpty(uri.Fragment);
 
     private static void AddProvider(
         AuthenticationBuilder authentication,

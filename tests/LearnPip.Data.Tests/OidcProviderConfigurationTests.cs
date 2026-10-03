@@ -12,7 +12,7 @@ namespace LearnPip.Data.Tests;
 /// </summary>
 public sealed class OidcProviderConfigurationTests
 {
-    private static readonly string[] GithubOnly = ["github"];
+    private static readonly string[] NoProviders = [];
     private static readonly string[] AppleAndMicrosoft = ["apple", "microsoft"];
 
     /// <summary>
@@ -28,16 +28,20 @@ public sealed class OidcProviderConfigurationTests
             ["Oidc:Providers:github:Authority"] = "https://other.example.invalid",
             ["Oidc:Providers:github:ClientId"] = "client",
             ["Oidc:Providers:github:ClientSecret"] = "secret",
+            ["Oidc:Providers:facebook:Authority"] = "https://other.example.invalid",
+            ["Oidc:Providers:facebook:ClientId"] = "client",
+            ["Oidc:Providers:facebook:ClientSecret"] = "secret",
             ["Oidc:Providers:unknown:Authority"] = "https://other.example.invalid",
             ["Oidc:Providers:unknown:ClientId"] = "client",
             ["Oidc:Providers:unknown:ClientSecret"] = "secret",
         });
 
-        Assert.Equal(GithubOnly, OidcSetup.EnabledProviders(configuration));
+        Assert.Equal(NoProviders, OidcSetup.EnabledProviders(configuration));
         Assert.Null(OidcSetup.ProviderScheme(configuration, "apple"));
         Assert.Null(OidcSetup.ProviderScheme(configuration, "unknown"));
         Assert.Null(OidcSetup.ProviderScheme(configuration, "GitHub"));
-        Assert.Equal("LearnPipOidc-github", OidcSetup.ProviderScheme(configuration, "github"));
+        Assert.Null(OidcSetup.ProviderScheme(configuration, "github"));
+        Assert.Null(OidcSetup.ProviderScheme(configuration, "facebook"));
         Assert.False(OidcSetup.IsEnabled(configuration));
     }
 
@@ -66,6 +70,29 @@ public sealed class OidcProviderConfigurationTests
             OidcSetup.ProviderScheme(configuration, "apple"),
             OidcSetup.ProviderScheme(configuration, "microsoft"));
         Assert.Null(OidcSetup.ProviderScheme(configuration, "facebook"));
+    }
+
+    /// <summary>
+    /// Fehlerhafte Issuer-Adressen werden nicht als Anmeldeanbieter angeboten.
+    /// </summary>
+    /// <param name="authority">Die zu prüfende Issuer-Adresse.</param>
+    [Theory]
+    [InlineData("http://issuer.example.invalid")]
+    [InlineData("not-a-url")]
+    [InlineData("https://user:password@issuer.example.invalid")]
+    [InlineData("https://issuer.example.invalid/?token=example")]
+    [InlineData("https://issuer.example.invalid/#fragment")]
+    public void InvalidIssuerDoesNotEnableProvider(string authority)
+    {
+        var configuration = CreateConfiguration(new Dictionary<string, string?>
+        {
+            ["Oidc:Providers:microsoft:Authority"] = authority,
+            ["Oidc:Providers:microsoft:ClientId"] = "client",
+            ["Oidc:Providers:microsoft:ClientSecret"] = "secret",
+        });
+
+        Assert.Empty(OidcSetup.EnabledProviders(configuration));
+        Assert.Null(OidcSetup.ProviderScheme(configuration, "microsoft"));
     }
 
     private static IConfiguration CreateConfiguration(Dictionary<string, string?> values) =>
