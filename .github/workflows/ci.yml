@@ -447,12 +447,21 @@ jobs:
           print('All selected CI checks succeeded; inapplicable jobs were skipped.')
           PY
 
+  release-security:
+    name: Security gate before release
+    needs: [changes]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.release == 'true'
+    uses: ./.github/workflows/security.yml
+    permissions:
+      contents: read
+      actions: read
+
   release:
     name: Semantic release
     outputs:
       release_tag: ${{ steps.released.outputs.release_tag }}
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.ci-result.result == 'success'
-    needs: [ci-result]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.ci-result.result == 'success' && needs.release-security.result == 'success'
+    needs: [ci-result, release-security]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -520,6 +529,11 @@ jobs:
             dockerfile: backend/src/LearnPip.Worker/Dockerfile
           - component: web
             dockerfile: frontend/web/Dockerfile
+          - component: db
+            dockerfile: deploy/postgres.Dockerfile
+          - component: build-node
+            dockerfile: frontend/web/Dockerfile
+            target: node-toolchain
     steps:
       - name: Check out released source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -540,6 +554,7 @@ jobs:
         with:
           context: .
           file: ${{ matrix.dockerfile }}
+          target: ${{ matrix.target }}
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |

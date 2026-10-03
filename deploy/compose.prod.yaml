@@ -3,7 +3,7 @@ name: learnpip
 
 services:
   db:
-    image: postgres:18-alpine
+    image: kennfarbe/learnpip:db-${LEARNPIP_VERSION:?Set LEARNPIP_VERSION in deploy/.env.production}
     restart: unless-stopped
     logging:
       driver: json-file
@@ -32,6 +32,27 @@ services:
     image: kennfarbe/learnpip:api-${LEARNPIP_VERSION:?Set LEARNPIP_VERSION in deploy/.env.production}
     restart: "no"
     command: ["--migrate"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      LEARNPIP_VERSION: ${LEARNPIP_VERSION}
+      LearnPip__UpdateQueuePath: /var/lib/learnpip-update/queue
+      LearnPip__UpdateStatusPath: /var/lib/learnpip-update/status
+    volumes:
+      - data-protection-keys:/var/lib/learnpip/data-protection
+    secrets:
+      - ConnectionStrings__LearnPip
+    networks:
+      - private
+    depends_on:
+      db:
+        condition: service_healthy
+
+  initialize-admin:
+    profiles: [ops]
+    image: kennfarbe/learnpip:api-${LEARNPIP_VERSION:?Set LEARNPIP_VERSION in deploy/.env.production}
+    restart: "no"
+    command: ["--initialize-admin"]
+    stdin_open: true
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       LEARNPIP_VERSION: ${LEARNPIP_VERSION}

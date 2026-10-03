@@ -1,6 +1,9 @@
 services:
   db:
-    image: postgres:18-alpine
+    image: learnpip-db:development
+    build:
+      context: ..
+      dockerfile: deploy/postgres.Dockerfile
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in deploy/.env}

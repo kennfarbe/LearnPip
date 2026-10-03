@@ -17,6 +17,7 @@ import { PrivateMedia } from './private-media';
 import { GroupSpace } from './group-space';
 import { CommunityFeedback } from './community-feedback';
 import { FamilySpace } from './family-space';
+import { PasswordAccess } from './password-access';
 import { AccountActivity } from './account-activity';
 import { AdminUpdates } from './admin-updates';
 import { ModerationQueue } from './moderation-queue';
@@ -223,7 +224,7 @@ export class AdministrationWorkspace {
 
 @Component({
   selector: 'app-settings-workspace',
-  imports: [AccountActivity, FamilySpace],
+  imports: [AccountActivity, FamilySpace, PasswordAccess],
   template: `
     <section class="workspace-card" aria-labelledby="appearance-title">
       <h2 id="appearance-title">{{ language.t('Sprache und Design') }}</h2>
@@ -253,6 +254,7 @@ export class AdministrationWorkspace {
         </div>
       </div>
     </section>
+    <app-password-access />
     <app-account-activity />
     <details
       class="workspace-disclosure"

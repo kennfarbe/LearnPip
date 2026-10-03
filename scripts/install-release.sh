@@ -6,7 +6,7 @@ umask 077
 export PATH="${PATH:-/usr/local/bin:/usr/bin:/bin}:/usr/local/sbin:/usr/sbin:/sbin"
 
 usage() {
-  echo 'Usage: install-release.sh [prepare|install|update] [--version latest|vX.Y.Z] [--domain HOST] [--internal] [--rootless-standard-ports] [--directory PATH] [--yes]'
+  echo 'Usage: install-release.sh [prepare|install|update] [--version latest|vX.Y.Z] [--domain HOST] [--internal] [--rootless-standard-ports] [--directory PATH] [--yes] [--admin-user NAME] [--admin-password-file PATH]'
   echo 'Default: prepare only. Docker/Compose must already be installed for install/update.'
 }
 die() { echo "Error: $*" >&2; exit 1; }
@@ -18,15 +18,20 @@ domain=''
 internal=false
 rootless_standard_ports=false
 confirmed=false
+admin_user=admin
+admin_password_file=''
+admin_options=false
 if [[ ${1:-} =~ ^(prepare|install|update)$ ]]; then action=$1; shift; fi
 while (($#)); do
   case "$1" in
-    --version|--domain|--directory)
+    --version|--domain|--directory|--admin-user|--admin-password-file)
       (($# >= 2)) || die "Missing value for $1"
       case "$1" in
         --version) version=$2 ;;
         --domain) domain=$2 ;;
         --directory) install_dir=$2 ;;
+        --admin-user) admin_user=$2; admin_options=true ;;
+        --admin-password-file) admin_password_file=$2; admin_options=true ;;
       esac
       shift 2 ;;
     --internal) internal=true; shift ;;
@@ -36,6 +41,8 @@ while (($#)); do
     *) usage; die "Unknown argument: $1" ;;
   esac
 done
+[[ $action == install || $admin_options == false ]] || die 'Admin-Zugangsdaten sind nur bei install zulässig; Updates erhalten Konten und Rollen.'
+[[ $admin_user =~ ^[a-zA-Z0-9_.-]{1,64}$ ]] || die 'Benutzername: 1–64 Buchstaben, Ziffern, Punkt, Unterstrich oder Bindestrich.'
 ! command -v pveversion >/dev/null || die 'Do not run this on the Proxmox host. Use a Debian VM.'
 
 ensure_dependencies() {
@@ -282,6 +289,59 @@ fi
 "${compose[@]}" pull
 "${compose[@]}" up -d db
 "${compose[@]}" --profile ops run --rm migrate
+if [[ $action == install ]]; then
+  # Secret is transported over stdin, never through process arguments or environment.
+  generated=false
+  if [[ -n $admin_password_file ]]; then
+    python3 - "$admin_password_file" > "$staging/admin-password" <<'ADMINPY'
+import os, stat, sys
+p = sys.argv[1]
+fd = os.open(p, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+with os.fdopen(fd, 'r', encoding='utf-8') as stream:
+    info = os.fstat(stream.fileno())
+    if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
+        raise SystemExit('Passwortdatei muss eine eigene reguläre Datei mit Modus 600 oder 400 sein.')
+    password = stream.read(1024)
+    if password.endswith('\n'):
+        password = password[:-1]
+    if not 12 <= len(password) <= 128 or not password.strip() or any(c in password for c in '\n\r\0'):
+        raise SystemExit('Passwort: 12–128 Zeichen, genau eine Zeile, nicht ausschließlich Leerzeichen.')
+    print(password)
+ADMINPY
+  elif [[ -t 0 && -t 1 ]]; then
+    read -r -p "Administrator-Benutzername [$admin_user]: " chosen_user
+    admin_user=${chosen_user:-$admin_user}
+    [[ $admin_user =~ ^[a-zA-Z0-9_.-]{1,64}$ ]] || die 'Ungültiger Benutzername.'
+    echo 'Passwort: 12–128 Zeichen; keine zusätzlichen Zeichenklassen erforderlich. Leer lassen für Zufallspasswort.'
+    read -r -s -p 'Passwort: ' admin_password
+    printf '\n'
+    if [[ -n $admin_password ]]; then
+      read -r -s -p 'Passwort wiederholen: ' confirmation
+      printf '\n'
+      [[ $admin_password == "$confirmation" ]] || die 'Passwörter stimmen nicht überein.'
+      [[ ${#admin_password} -ge 12 && ${#admin_password} -le 128 && $admin_password != *$'\r'* ]] || die 'Ungültige Passwortlänge oder Zeilenumbruch.'
+    else
+      admin_password=$(openssl rand -hex 24)
+      generated=true
+    fi
+    printf '%s\n' "$admin_password" > "$staging/admin-password"
+    unset admin_password confirmation
+  else
+    die 'Nichtinteraktive Installation benötigt --admin-password-file mit geschützter Datei; keine Passwörter in CI-Logs.'
+  fi
+  bootstrap_status=0
+  { printf '%s\n' "$admin_user"; cat "$staging/admin-password"; } |
+    "${compose[@]}" --profile ops run --rm -T initialize-admin || bootstrap_status=$?
+  if (( bootstrap_status == 0 )); then
+    if [[ $generated == true ]]; then
+      printf 'Administrator %s – zufälliges Passwort (jetzt sicher speichern): ' "$admin_user"
+      cat "$staging/admin-password"
+    fi
+  elif (( bootstrap_status != 10 )); then
+    die 'Administrator-Einrichtung fehlgeschlagen; Installation nicht abgeschlossen.'
+  fi
+  rm -f "$staging/admin-password"
+fi
 "${compose[@]}" up -d
 "${compose[@]}" ps
 if [[ $internal_mode == true ]]; then

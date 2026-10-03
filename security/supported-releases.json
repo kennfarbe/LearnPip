@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "supported_releases": ["latest"],
+  "owner": "kennfarbe",
+  "platforms": ["linux/amd64", "linux/arm64"]
+}

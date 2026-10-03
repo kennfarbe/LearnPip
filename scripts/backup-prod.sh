@@ -40,7 +40,7 @@ fi
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"
 {
   printf 'sha256=%s\n' "$(sha256sum "$temporary" | cut -d ' ' -f 1)"
-  printf 'postgres_image=postgres:18-alpine\n'
+  printf 'postgres_image=%s\n' "$(docker compose --env-file "$repo_root/deploy/.env.production" --file "$repo_root/deploy/compose.prod.yaml" config --format json | python3 -c 'import json,sys; print(json.load(sys.stdin)["services"]["db"]["image"])')"
   printf 'MediaBlobs=%s\nStudyAttempts=%s\nmedia_bytes=%s\n' \
     "${expected[0]}" "${expected[1]}" "${expected[2]}"
 } > "$temporary_manifest"

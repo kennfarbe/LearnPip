@@ -1,6 +1,7 @@
 name: Dependency and image security audit
 
 on:
+  workflow_call:
   workflow_dispatch:
   schedule:
     - cron: '30 3 * * 0'
@@ -17,21 +18,84 @@ on:
       - 'backend/**/Dockerfile'
       - 'frontend/web/Dockerfile'
       - 'deploy/compose*.yaml'
-      - 'scripts/security-report.py'
+      - 'deploy/*.Dockerfile'
+      - 'scripts/security-report.mjs'
       - 'scripts/npm-security-audit.sh'
       - 'scripts/try-security-overrides.sh'
-      - 'tests/ops/test_security_report.py'
+      - 'tests/ops/test_security*.py'
+      - 'tests/ops/test_security*.mjs'
+      - 'scripts/security-*.py'
+      - 'security/**'
+      - 'Directory.Build.props'
+      - '.github/workflows/ci.yml'
 
 permissions:
   contents: read
 
 concurrency:
   group: security-audit-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  inventory:
+    name: Resolve supported releases and shipped image inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      sources: ${{ steps.sources.outputs.matrix }}
+      images: ${{ steps.images.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Set up pinned scanner runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+      - name: Exercise real advisory lookup and controlled scanner failure
+        run: python3 scripts/security-scanner-selftest.py
+      - name: Test Node.js aggregate scanner parser
+        run: node --test tests/ops/test_security_report.mjs
+      - name: Test inventory, report and ledger failures
+        run: python3 -m unittest discover -s tests/ops -p 'test_security*.py' -v
+      - name: Resolve sources
+        id: sources
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" = schedule ] || [ "$EVENT" = workflow_dispatch ] || [ "$EVENT" = pull_request ]; then
+            python3 scripts/security-inventory.py --output "$RUNNER_TEMP/sources.json" >> "$GITHUB_OUTPUT"
+          else
+            echo 'matrix={"include":[{"ref":"","label":"main"}]}' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Set up Buildx for manifest inspection
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
+      - name: Resolve immutable image digests for every supported platform
+        id: images
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/security-inventory.py --images --resolved-sources "$RUNNER_TEMP/sources.json" --output "$RUNNER_TEMP/images.json" >> "$GITHUB_OUTPUT"
+      - name: Keep datestamped inventory
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: security-inventory
+          path: |
+            ${{ runner.temp }}/sources.json
+            ${{ runner.temp }}/images.json
+          retention-days: 14
+          if-no-files-found: ignore
+
   dependencies:
-    name: NuGet and npm dependency audit
+    name: NuGet and npm audit (${{ matrix.label }})
+    needs: inventory
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.inventory.outputs.sources) }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
@@ -42,42 +106,31 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Test aggregate scanner parser
-        run: python3 -m unittest discover -s tests/ops -p 'test_security_report.py' -v
-
-      - name: Set up .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
-        with:
-          dotnet-version: 10.0.x
-
-      - name: Set up Node
+      - name: Set up pinned report runtime
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: 24
+          node-version: 24.19.0
+          package-manager-cache: false
 
-      - name: Audit root and Angular dependencies; test safe lockfile fixes
+      - name: Fetch audited source as a validated data archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AUDIT_SOURCE_REF: ${{ matrix.label == 'main' && github.event_name == 'pull_request' && github.event.pull_request.head.sha || matrix.ref }}
+        run: python3 scripts/security-fetch-source.py --ref "$AUDIT_SOURCE_REF" --output source
+
+      - name: Test aggregate scanner parser
+        run: node --test tests/ops/test_security_report.mjs
+
+      - name: Audit npm manifests in credential-free sandbox
         id: npm_audit
         continue-on-error: true
-        shell: bash
-        run: |
-          set -euo pipefail
-          status=0
-          bash scripts/npm-security-audit.sh . root production || status=1
-          bash scripts/npm-security-audit.sh frontend/web web production || status=1
-          bash scripts/npm-security-audit.sh . root development || status=1
-          bash scripts/npm-security-audit.sh frontend/web web development || status=1
-          exit "$status"
-
-      - name: Trial targeted transitive overrides without changing checkout
-        if: always()
-        shell: bash
-        run: bash scripts/try-security-overrides.sh
+        run: bash scripts/security-dependency-sandbox.sh npm
 
       - name: Upload override trial candidate for review
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: npm-override-trial
+          name: npm-override-trial-${{ matrix.label }}
           path: |
             ${{ runner.temp }}/learnpip-override-trial/package.json
             ${{ runner.temp }}/learnpip-override-trial/package-lock.json
@@ -85,22 +138,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-      - name: Restore NuGet graph
-        shell: bash
-        run: |
-          if ! dotnet restore backend/LearnPip.sln > "$RUNNER_TEMP/nuget-restore.log" 2>&1; then
-            echo "NuGet restore incomplete. Inspect locally; no scan success claimed." >&2
-            exit 1
-          fi
-
-      - name: Scan direct and transitive NuGet packages
-        shell: bash
-        run: |
-          if ! dotnet list backend/LearnPip.sln package --vulnerable --include-transitive --format json > "$RUNNER_TEMP/nuget.json" 2> "$RUNNER_TEMP/nuget-error.log"; then
-            echo "NuGet vulnerability scan incomplete. Inspect locally." >&2
-            exit 1
-          fi
-          python3 scripts/security-report.py nuget "$RUNNER_TEMP/nuget.json"
+      - name: Audit NuGet manifests in credential-free sandbox
+        run: bash scripts/security-dependency-sandbox.sh nuget
 
       - name: Collect complete scanner reports
         if: always()
@@ -124,11 +163,17 @@ jobs:
             cp "$RUNNER_TEMP/nuget.json" "$RUNNER_TEMP/security-reports/nuget.json"
           fi
 
+      - name: Record complete scanner targets for deduplicated ledger
+        if: always()
+        env:
+          AUDIT_TARGET: ${{ matrix.label }}
+        run: python3 scripts/security-scan-metadata.py dependencies "$RUNNER_TEMP/security-reports"
+
       - name: Upload full audit reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: dependency-security-reports
+          name: dependency-security-reports-${{ matrix.label }}
           path: ${{ runner.temp }}/security-reports/*.json
           if-no-files-found: warn
           retention-days: 14
@@ -144,93 +189,207 @@ jobs:
             exit 1
           fi
 
-  release:
-    name: Resolve published release
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-    outputs:
-      tag: ${{ steps.release.outputs.tag }}
-    steps:
-      - name: Resolve latest stable release
-        id: release
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          curl --fail --silent --show-error --retry 3 \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H 'Accept: application/vnd.github+json' \
-            https://api.github.com/repos/kennfarbe/LearnPip/releases/latest \
-            > "$RUNNER_TEMP/latest-release.json"
-          tag="$(python3 - "$RUNNER_TEMP/latest-release.json" <<'PY'
-          import json
-          import re
-          import sys
-          with open(sys.argv[1], encoding="utf-8") as stream:
-              release = json.load(stream)
-          tag = release.get("tag_name", "")
-          if release.get("draft") or release.get("prerelease") or not re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", tag):
-              raise SystemExit("No validated stable release tag")
-          print(tag)
-          PY
-          )"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-
   published-images:
-    name: Published image audit (${{ matrix.component }})
-    needs: [release]
-    if: needs.release.result == 'success'
+    name: Published image audit (${{ matrix.label }})
+    needs: inventory
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    permissions:
-      contents: read
     strategy:
       fail-fast: false
-      matrix:
-        component: [api, worker, web]
+      matrix: ${{ fromJSON(needs.inventory.outputs.images) }}
     steps:
-      - name: Check out scanner parser
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-
-      - name: Resolve concrete published image digest
-        id: image
-        shell: bash
-        env:
-          COMPONENT: ${{ matrix.component }}
-          TAG: ${{ needs.release.outputs.tag }}
-        run: |
-          set -euo pipefail
-          image="kennfarbe/learnpip:$COMPONENT-$TAG"
-          if ! docker pull "$image" > "$RUNNER_TEMP/docker-pull.log" 2>&1; then
-            echo "Published image unavailable; scan incomplete." >&2
-            exit 1
-          fi
-          ref="$(docker image inspect --format '{{index .RepoDigests 0}}' "$image")"
-          if [[ ! "$ref" =~ ^kennfarbe/learnpip@sha256:[a-f0-9]{64}$ ]]; then
-            echo "Published image digest unavailable; scan incomplete." >&2
-            exit 1
-          fi
-          echo "ref=$ref" >> "$GITHUB_OUTPUT"
-
-      - name: Scan published image without public vulnerability details
+      - name: Set up pinned report runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+      - name: Scan published image by immutable platform digest
+        id: scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
-          image-ref: ${{ steps.image.outputs.ref }}
+          image-ref: ${{ matrix.ref }}
           version: v0.74.0
           format: json
           output: ${{ runner.temp }}/trivy.json
-          severity: HIGH,CRITICAL
           scanners: vuln
           vuln-type: os,library
           hide-progress: true
           cache: false
           exit-code: '0'
+      - name: Verify advisory database age
+        run: |
+          trivy --cache-dir "$GITHUB_WORKSPACE/.cache/trivy" --version --format json > "$RUNNER_TEMP/trivy-version.json"
+          python3 scripts/security-db-age.py "$RUNNER_TEMP/trivy-version.json"
+      - name: Record scan and inventory
+        if: always()
+        env:
+          AUDIT_TARGET: published-${{ matrix.label }}
+          AUDIT_REF: ${{ matrix.ref }}
+          SCAN_OUTCOME: ${{ steps.scan.outcome }}
+        run: python3 scripts/security-scan-metadata.py trivy "$RUNNER_TEMP"
+      - name: Retain image report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: image-security-reports-${{ matrix.label }}
+          path: |
+            ${{ runner.temp }}/trivy.json
+            ${{ runner.temp }}/trivy-version.json
+            ${{ runner.temp }}/scan-trivy.json
+          retention-days: 14
+      - name: Document published findings on PRs; enforce on scheduled and manual audits
+        env:
+          AUDIT_EVENT: ${{ github.event_name }}
+        run: |
+          status=0
+          node scripts/security-report.mjs trivy "$RUNNER_TEMP/trivy.json" || status=$?
+          if [ "$status" -eq 1 ] && [ "$AUDIT_EVENT" = pull_request ]; then
+            echo "Published image findings recorded in reports and ledger; corrected candidates remain strictly gated."
+            exit 0
+          fi
+          exit "$status"
 
-      - name: Enforce scanner outcome without publishing advisory details
-        run: python3 scripts/security-report.py trivy "$RUNNER_TEMP/trivy.json"
+  candidate-images:
+    name: Release image gate (${{ matrix.component }}, ${{ matrix.arch }})
+    if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+        component: [api, worker, web, db, proxy, build-sdk, build-node, build-go]
+        include:
+          - component: api
+            dockerfile: backend/Dockerfile
+          - component: worker
+            dockerfile: backend/src/LearnPip.Worker/Dockerfile
+          - component: web
+            dockerfile: frontend/web/Dockerfile
+          - component: db
+            dockerfile: deploy/postgres.Dockerfile
+          - component: proxy
+            image: caddy:2-alpine
+          - component: build-sdk
+            image: mcr.microsoft.com/dotnet/sdk:10.0
+          - component: build-node
+            dockerfile: frontend/web/Dockerfile
+            target: node-toolchain
+          - component: build-go
+            image: golang:1.26.8-alpine3.24
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Set up pinned report runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+      - name: Set up emulation
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
+      - name: Build or pull release candidate
+        env:
+          DOCKERFILE: ${{ matrix.dockerfile }}
+          IMAGE: ${{ matrix.image }}
+          ARCH: ${{ matrix.arch }}
+          BUILD_TARGET: ${{ matrix.target }}
+        run: |
+          if [ -n "$DOCKERFILE" ]; then
+            target_args=()
+            if [ -n "$BUILD_TARGET" ]; then
+              target_args+=(--target "$BUILD_TARGET")
+            fi
+            docker buildx build --platform "linux/$ARCH" --load -f "$DOCKERFILE" "${target_args[@]}" -t learnpip-security:candidate .
+          else
+            docker pull --platform "linux/$ARCH" "$IMAGE"
+            docker tag "$IMAGE" learnpip-security:candidate
+          fi
+      - name: Audit candidate before publishing
+        id: scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: learnpip-security:candidate
+          version: v0.74.0
+          format: json
+          output: ${{ runner.temp }}/trivy.json
+          scanners: vuln
+          vuln-type: os,library
+          hide-progress: true
+          cache: false
+          exit-code: '0'
+      - name: Verify advisory database age
+        run: |
+          trivy --cache-dir "$GITHUB_WORKSPACE/.cache/trivy" --version --format json > "$RUNNER_TEMP/trivy-version.json"
+          python3 scripts/security-db-age.py "$RUNNER_TEMP/trivy-version.json"
+      - name: Record candidate scan
+        if: always()
+        env:
+          AUDIT_TARGET: candidate-${{ github.sha }}-${{ matrix.component }}-${{ matrix.arch }}
+          SCAN_OUTCOME: ${{ steps.scan.outcome }}
+        run: python3 scripts/security-scan-metadata.py trivy "$RUNNER_TEMP"
+      - name: Retain candidate report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: image-security-reports-candidate-${{ matrix.component }}-${{ matrix.arch }}
+          path: |
+            ${{ runner.temp }}/trivy.json
+            ${{ runner.temp }}/trivy-version.json
+            ${{ runner.temp }}/scan-trivy.json
+          retention-days: 14
+      - name: Enforce release gate
+        run: node scripts/security-report.mjs trivy "$RUNNER_TEMP/trivy.json"
+
+  ledger:
+    name: Deduplicate and verify security findings
+    needs: [inventory, dependencies, published-images, candidate-images]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Download scan artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: '*security-reports-*'
+          path: reports
+      - name: Read last scheduled ledger without publishing tickets
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: kennfarbe/LearnPip
+        run: python3 scripts/security-previous-ledger.py previous.json
+      - name: Reconcile findings only for complete targets
+        run: python3 scripts/security-ledger.py --reports reports --previous previous.json --output security-ledger.json
+      - name: Retain ledger for next scheduled scan
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: security-ledger
+          path: security-ledger.json
+          retention-days: 14
+      - name: Require complete scans and passing release gates
+        if: always()
+        env:
+          INVENTORY: ${{ needs.inventory.result }}
+          DEPENDENCIES: ${{ needs.dependencies.result }}
+          IMAGES: ${{ needs.published-images.result }}
+          CANDIDATES: ${{ needs.candidate-images.result }}
+        run: |
+          test "$INVENTORY" = success
+          test "$DEPENDENCIES" = success
+          test "$IMAGES" = success || test "$IMAGES" = skipped
+          test "$CANDIDATES" = success || test "$CANDIDATES" = skipped
+          test "$IMAGES" = success || test "$CANDIDATES" = success

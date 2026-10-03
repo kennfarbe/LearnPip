@@ -182,6 +182,8 @@ test('mobile menu and disclosures work with a keyboard, without horizontal overf
 test('language and theme persist; core pages pass accessible-name, structure and contrast checks', async ({
   page,
 }) => {
+  // Ten full-page accessibility scans include the local password forms.
+  test.setTimeout(60000);
   await api(page);
   for (const theme of ['light', 'dark']) {
     await page.goto('/settings');

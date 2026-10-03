@@ -439,7 +439,10 @@ public sealed class IdentityService(
         var hasOtherIdentity = await dbContext.ExternalIdentities.AnyAsync(
             item => item.AccountId == accountId && item.Provider != provider,
             cancellationToken);
-        if (!hasRecoveryCredential && !hasOtherIdentity)
+        var hasPasswordCredential = await dbContext.PasswordCredentials.AnyAsync(
+            item => item.AccountId == accountId,
+            cancellationToken);
+        if (!hasRecoveryCredential && !hasOtherIdentity && !hasPasswordCredential)
         {
             throw new IdentityConflictException();
         }

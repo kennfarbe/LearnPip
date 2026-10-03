@@ -32,6 +32,6 @@ set -e
 if [ "$scan" -gt 1 ]; then
   echo "Override candidate audit incomplete."
 else
-  python3 scripts/security-report.py npm "$base/override-audit.json" || true
+  node scripts/security-report.mjs npm "$base/override-audit.json" || true
 fi
 echo "Override trial is diagnostic only. Existing package files remain untouched."

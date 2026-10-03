@@ -20,7 +20,7 @@ if [[ ! "$expected_sha" =~ ^[0-9a-f]{64}$ || "$expected_sha" != "$actual_sha" ]]
   exit 1
 fi
 image="$(sed -n 's/^postgres_image=//p' "$manifest")"
-if [[ ! "$image" =~ ^postgres:[0-9]+-alpine$ ]]; then
+if [[ ! "$image" =~ ^postgres:[0-9]+-alpine$ && ! "$image" =~ ^kennfarbe/learnpip:db-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   echo 'Unsupported PostgreSQL image in manifest.' >&2
   exit 1
 fi

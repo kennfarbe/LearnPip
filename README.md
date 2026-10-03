@@ -93,3 +93,7 @@ Du möchtest mithelfen? Sieh dir die [offenen Issues](https://github.com/kennfar
 Das Repository enthält eine startbare Anwendung. Bei einem Netzwerkbetrieb müssen die AGPL-Pflichten und der Verweis auf den Quellcode der **tatsächlich installierten Version** berücksichtigt werden. Der Link muss zur Version passen, die der Betreiber tatsächlich einsetzt.
 
 [Datenexport, Selbstlöschung und Missbrauchsschutz](docs/DATA-RIGHTS.md)
+
+## Lokaler Administrator und Sicherheitsprüfung
+
+Die Erstinstallation richtet einen Administrator mit Benutzername und Passwort ein; Updates erhalten bestehende Konten und Rollen. Anmeldung und Passwortänderung stehen unter Einstellungen bereit. Details: [Administration](docs/ADMINISTRATION.md). Unterstützte Releases, Image-Digests, wiederkehrende Audits und Freigabesperren sind unter [Sicherheit](docs/SECURITY-AUDITS.md) beschrieben.

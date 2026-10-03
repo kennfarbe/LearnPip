@@ -35,6 +35,13 @@ echo "docker $*" >> "$MOCK_LOG"
 if [[ "$*" == 'info --format '* ]]; then
   if [[ "${MOCK_ROOTFUL:-}" == 1 ]]; then echo '[]'; else echo '["name=rootless"]'; fi
 fi
+if [[ "$*" == *'initialize-admin'* ]]; then
+  read -r username
+  read -r password
+  [[ $username == admin && ${#password} -ge 12 ]] || exit 1
+  [[ ${MOCK_FAIL_BOOTSTRAP:-} != 1 ]] || exit 1
+  if [[ ${MOCK_EXISTING_ADMIN:-} == 1 ]]; then exit 10; fi
+fi
 if [[ "$*" == *'run --rm migrate'* && "${MOCK_FAIL_MIGRATE:-}" == 1 ]]; then exit 1; fi
 ''',
     }
@@ -47,7 +54,13 @@ if [[ "$*" == *'run --rm migrate'* && "${MOCK_FAIL_MIGRATE:-}" == 1 ]]; then exi
                MOCK_ARCHIVE=str(fixture), MOCK_LOG=str(log))
     target = work / 'installation'
 
+    secret_file = work / 'admin-password'
+    secret_file.write_text('synthetic-test-password-123\n')
+    secret_file.chmod(0o600)
+
     def run(*args, directory=target, extra=None, success=True):
+        if args and args[0] == 'install' and '--admin-password-file' not in args:
+            args = (*args, '--admin-password-file', str(secret_file))
         result = subprocess.run(['bash', str(repo / 'scripts/install-release.sh'), *args,
                                  '--directory', str(directory)], env=env | (extra or {}),
                                 text=True, capture_output=True)
@@ -93,6 +106,17 @@ if [[ "$*" == *'run --rm migrate'* && "${MOCK_FAIL_MIGRATE:-}" == 1 ]]; then exi
     assert 'LEARNPIP_HTTP_PORT=8080' in (target / 'shared/.env.production').read_text()
     assert 'LEARNPIP_HTTPS_PORT=8443' in (target / 'shared/.env.production').read_text()
     assert '-f deploy/compose.internal.yaml' in log.read_text()
+    assert log.read_text().count('initialize-admin') == 1
+    assert 'synthetic-test-password' not in log.read_text()
+    for label, extra, successful in [('failed-bootstrap', {'MOCK_FAIL_BOOTSTRAP': '1'}, False), ('existing-bootstrap', {'MOCK_EXISTING_ADMIN': '1'}, True)]:
+        isolated = work / label
+        result = run('install', '--domain', 'learn.test.invalid', '--internal', '--yes', directory=isolated, extra=extra, success=successful)
+        assert (isolated / 'current').exists() == successful
+        assert 'synthetic-test-password' not in result.stdout + result.stderr
+    insecure_secret = work / 'insecure-password'
+    insecure_secret.write_text('synthetic-test-password-123\n')
+    insecure_secret.chmod(0o644)
+    run('install', '--domain', 'learn.test.invalid', '--internal', '--yes', '--admin-password-file', str(insecure_secret), directory=work / 'insecure-install', success=False)
     run('install', '--yes', success=False)
     run('update', '--yes')  # same version is a no-op
     # Simulate an older installation without the newly introduced provider
@@ -102,6 +126,7 @@ if [[ "$*" == *'run --rm migrate'* && "${MOCK_FAIL_MIGRATE:-}" == 1 ]]; then exi
     apple_secret.unlink()
     microsoft_secret.write_text('preserve-existing-secret')
     run('update', '--version', 'v1.0.1', '--yes')
+    assert log.read_text().count('initialize-admin') == 3, 'updates must never bootstrap'
     assert apple_secret.is_file() and apple_secret.read_bytes() == b''
     assert microsoft_secret.read_text() == 'preserve-existing-secret'
     assert (target / 'current').resolve() == target / 'releases/v1.0.1'
@@ -145,7 +170,11 @@ if [[ "$*" == *'run --rm migrate'* && "${MOCK_FAIL_MIGRATE:-}" == 1 ]]; then exi
         user_script.chmod(0o644)
         user_env = env | {'MOCK_LOG': str(user_area / 'commands.log')}
         command = ['runuser', '-u', 'nobody', '--', 'bash', str(user_script)]
-        for args in [('install', '--version', 'v1.0.0', '--domain', 'learn.test.invalid'),
+        user_secret = user_area / 'admin-password'
+        user_secret.write_text('synthetic-test-password-123\n')
+        user_secret.chmod(0o600)
+        os.chown(user_secret, user.pw_uid, user.pw_gid)
+        for args in [('install', '--version', 'v1.0.0', '--domain', 'learn.test.invalid', '--admin-password-file', str(user_secret)),
                      ('update', '--version', 'v1.0.1')]:
             result = subprocess.run(command + list(args) + ['--directory', str(user_area / 'learnpip'), '--yes'],
                                     env=user_env, text=True, capture_output=True)
