@@ -14,8 +14,6 @@ data = json.loads(path.read_text(encoding="utf-8"))
 data["overrides"] = {
     "brace-expansion": "^5.0.12",
     "undici": "^6.28.1",
-    "ip-address": ">10.7.0",
-    "http-cache-semantics": ">4.2.0",
 }
 path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 PY
