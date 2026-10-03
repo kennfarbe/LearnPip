@@ -18,6 +18,7 @@ on:
       - 'frontend/web/Dockerfile'
       - 'deploy/compose*.yaml'
       - 'scripts/security-report.py'
+      - 'scripts/npm-security-audit.sh'
       - 'tests/ops/test_security_report.py'
 
 permissions:
@@ -53,29 +54,14 @@ jobs:
         with:
           node-version: 24
 
-      - name: Scan root npm dependency graph without public advisory output
+      - name: Audit root and Angular dependencies; test safe lockfile fixes privately
         shell: bash
         run: |
           set -euo pipefail
           status=0
-          npm audit --package-lock-only --json > "$RUNNER_TEMP/npm-root.json" 2>/dev/null || status=$?
-          if [ "$status" -gt 1 ]; then
-            echo "Root npm audit could not complete. Investigate privately." >&2
-            exit 1
-          fi
-          python3 scripts/security-report.py npm "$RUNNER_TEMP/npm-root.json"
-
-      - name: Scan Angular npm dependency graph without public advisory output
-        shell: bash
-        run: |
-          set -euo pipefail
-          status=0
-          (cd frontend/web && npm audit --package-lock-only --json) > "$RUNNER_TEMP/npm-web.json" 2>/dev/null || status=$?
-          if [ "$status" -gt 1 ]; then
-            echo "Web npm audit could not complete. Investigate privately." >&2
-            exit 1
-          fi
-          python3 scripts/security-report.py npm "$RUNNER_TEMP/npm-web.json"
+          bash scripts/npm-security-audit.sh . root || status=1
+          bash scripts/npm-security-audit.sh frontend/web web || status=1
+          exit "$status"
 
       - name: Restore NuGet graph without public package advisory output
         shell: bash
