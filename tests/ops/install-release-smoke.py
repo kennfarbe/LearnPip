@@ -54,6 +54,16 @@ if [[ "$*" == *'run --rm migrate'* && "${MOCK_FAIL_MIGRATE:-}" == 1 ]]; then exi
         assert (result.returncode == 0) == success, result.stdout + result.stderr
         return result
 
+    # A release upgrading an older installation must mount the same persistent
+    # key volume for API startup and for the preceding migration process.
+    compose_text = (repo / 'deploy/compose.prod.yaml').read_text()
+    migration = compose_text.split('  migrate:', 1)[1].split('  api:', 1)[0]
+    api = compose_text.split('  api:', 1)[1].split('  worker:', 1)[0]
+    volumes = compose_text.split('volumes:', 1)[-1]
+    mount = 'data-protection-keys:/var/lib/learnpip/data-protection'
+    assert mount in migration and mount in api
+    assert '  data-protection-keys:' in volumes
+
     run('prepare')
     assert not (target / 'current').exists()
     assert not log.exists(), 'prepare must not invoke Docker'
