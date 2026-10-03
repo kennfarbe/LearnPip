@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/kennfarbe/LearnPip/compare/v1.8.0...v1.9.0) (2026-10-03)
+
+
+### Features
+
+* **catalog:** write validated offline draft snapshot atomically ([0e74e30](https://github.com/kennfarbe/LearnPip/commit/0e74e303ff31284d6c0a0f6b50f004d196a83b1b))
+
 # [1.8.0](https://github.com/kennfarbe/LearnPip/compare/v1.7.1...v1.8.0) (2026-10-03)
 
 
