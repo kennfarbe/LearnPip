@@ -1,3 +1,27 @@
+# [1.13.0](https://github.com/kennfarbe/LearnPip/compare/v1.12.0...v1.13.0) (2026-10-03)
+
+
+### Bug Fixes
+
+* **ci:** audit PostgreSQL build definition changes ([f44bd1e](https://github.com/kennfarbe/LearnPip/commit/f44bd1e8a8823fc57d978b56917e9dcb31438307))
+* **ci:** preserve UTF-8 migrations and cancel outdated PR audits ([7d2cd85](https://github.com/kennfarbe/LearnPip/commit/7d2cd854c204688b435c72a93ee29f3ad471892d))
+* **ci:** prevent automatic npm cache poisoning in release audits ([23608f9](https://github.com/kennfarbe/LearnPip/commit/23608f94fb2f9689a323fde90444db0d10157721))
+* **data:** normalize generated migration metadata to UTF-8 ([dd768f5](https://github.com/kennfarbe/LearnPip/commit/dd768f50452b1b2875b7231f2fae5d9ad1658a42))
+* **security:** document historical image findings without blocking corrected PR candidates ([3e8b4aa](https://github.com/kennfarbe/LearnPip/commit/3e8b4aa91f3f3f3cc02f9d5227fac805e87f65d0))
+* **security:** install patched web libraries and retry inventory transport failures ([8be0fba](https://github.com/kennfarbe/LearnPip/commit/8be0fba6c7df2fd094b152606482a747462eecc4))
+* **security:** isolate release dependency execution from runner cache credentials ([f301738](https://github.com/kennfarbe/LearnPip/commit/f3017381b4c4b611877753255addf64cb5793241))
+* **security:** refresh web images and rebuild PostgreSQL privilege helper ([0047133](https://github.com/kennfarbe/LearnPip/commit/004713359c4a2e513ccf22a63de996525df70052))
+* **security:** replace vulnerable bundled npm with pinned native pnpm toolchain ([a5eef37](https://github.com/kennfarbe/LearnPip/commit/a5eef3756adb313b426fdcb24f65396ca12fc0da))
+* **security:** validate isolated NuGet reports with trusted runner parser ([8222a38](https://github.com/kennfarbe/LearnPip/commit/8222a386c10a53b6f851328b629961969788dd0f))
+
+
+### Features
+
+* **identity:** initialize local administrator and revoke password sessions ([9386226](https://github.com/kennfarbe/LearnPip/commit/9386226bee8315433649dae75b6bb20e5050d27a))
+* **security:** audit supported release digests and reconcile recurring findings ([35f5654](https://github.com/kennfarbe/LearnPip/commit/35f56549284a898b3926bd930daac7ffb7472b15))
+* **security:** include build bases and preserve image rescan identity ([303213f](https://github.com/kennfarbe/LearnPip/commit/303213f1ee97cd33118976d2e1000d134ba56482))
+* **web:** add accessible password controls and document operator flows ([40c882e](https://github.com/kennfarbe/LearnPip/commit/40c882ea692acc2b38ecb6a79ec44dafa9c732f0))
+
 # [1.12.0](https://github.com/kennfarbe/LearnPip/compare/v1.11.0...v1.12.0) (2026-10-03)
 
 
