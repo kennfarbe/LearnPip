@@ -96,4 +96,4 @@ Das Repository enthält eine startbare Anwendung. Bei einem Netzwerkbetrieb müs
 
 ## Lokaler Administrator und Sicherheitsprüfung
 
-Die Erstinstallation richtet einen Administrator mit Benutzername und Passwort ein; Updates erhalten bestehende Konten und Rollen. Anmeldung und Passwortänderung stehen unter Einstellungen bereit. Details: [Administration](docs/ADMINISTRATION.md). Unterstützte Releases, Image-Digests, wiederkehrende Audits und Freigabesperren sind unter [Schwachstellenprüfung](docs/SECURITY-AUDITS.md) beschrieben.
+Die Erstinstallation richtet einen Administrator mit Benutzername und Passwort ein; Updates erhalten bestehende Konten und Rollen. Anmeldung und Passwortänderung stehen unter Einstellungen bereit. Details: [Administration](docs/ADMINISTRATION.md). Unterstützte Releases, Image-Digests, wiederkehrende Audits und Freigabesperren sind unter [Sicherheit](docs/SECURITY-AUDITS.md) beschrieben.
