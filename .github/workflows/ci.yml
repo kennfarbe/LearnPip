@@ -529,6 +529,8 @@ jobs:
             dockerfile: backend/src/LearnPip.Worker/Dockerfile
           - component: web
             dockerfile: frontend/web/Dockerfile
+          - component: db
+            dockerfile: deploy/postgres.Dockerfile
     steps:
       - name: Check out released source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1

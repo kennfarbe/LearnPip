@@ -53,7 +53,7 @@ def image_targets(tag, platforms, inspect, runtime_images=None):
 def build_images(dockerfiles):
     images = []
     for component, text in dockerfiles:
-        match = re.search(r'^FROM ([a-zA-Z0-9./_-]+:[a-zA-Z0-9._-]+) AS build$', text, re.MULTILINE)
+        match = re.search(r'^FROM (?:--platform=\$BUILDPLATFORM )?([a-zA-Z0-9./_-]+:[a-zA-Z0-9._-]+) AS build$', text, re.MULTILINE)
         if not match:
             raise ValueError("Build image inventory incomplete")
         images.append((component, match[1]))
@@ -95,7 +95,7 @@ def main():
                 if match:
                     service = match[1]
                 if service in ("db", "proxy") and line.startswith("    image: "):
-                    image = line.split("image: ", 1)[1].strip()
+                    image = line.split("image: ", 1)[1].strip().replace("${LEARNPIP_VERSION:?Set LEARNPIP_VERSION in deploy/.env.production}", tag)
                     if not re.fullmatch(r"[a-zA-Z0-9./_-]+:[a-zA-Z0-9._-]+", image):
                         raise ValueError("Runtime image cannot be resolved safely")
                     found.append((service, image))
@@ -105,6 +105,9 @@ def main():
             for component, path in (("build-sdk", "backend/Dockerfile"), ("build-node", "frontend/web/Dockerfile")):
                 response = json.loads(subprocess.check_output(["gh", "api", "repos/kennfarbe/LearnPip/contents/" + path + "?ref=" + tag], stderr=subprocess.DEVNULL))
                 dockerfiles.append((component, base64.b64decode(response["content"]).decode()))
+            if any(component == "db" and image.startswith("kennfarbe/learnpip:db-") for component, image in found):
+                response = json.loads(subprocess.check_output(["gh", "api", "repos/kennfarbe/LearnPip/contents/deploy/postgres.Dockerfile?ref=" + tag], stderr=subprocess.DEVNULL))
+                dockerfiles.append(("build-go", base64.b64decode(response["content"]).decode()))
             return found + build_images(dockerfiles)
         targets = [target for item in resolved for target in image_targets(item["tag"], policy["platforms"], inspect, runtime_images(item["tag"]))]
     args.output.write_text(json.dumps({"checked_at": datetime.now(timezone.utc).isoformat(), "include": targets}, sort_keys=True))

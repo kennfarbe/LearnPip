@@ -275,7 +275,7 @@ jobs:
       fail-fast: false
       matrix:
         arch: [amd64, arm64]
-        component: [api, worker, web, db, proxy, build-sdk, build-node]
+        component: [api, worker, web, db, proxy, build-sdk, build-node, build-go]
         include:
           - component: api
             dockerfile: backend/Dockerfile
@@ -284,13 +284,15 @@ jobs:
           - component: web
             dockerfile: frontend/web/Dockerfile
           - component: db
-            image: postgres:18-alpine
+            dockerfile: deploy/postgres.Dockerfile
           - component: proxy
             image: caddy:2-alpine
           - component: build-sdk
             image: mcr.microsoft.com/dotnet/sdk:10.0
           - component: build-node
-            image: node:24-alpine
+            image: node:24.21.0-alpine3.24
+          - component: build-go
+            image: golang:1.26.8-alpine3.24
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -380,7 +382,7 @@ jobs:
           name: security-ledger
           path: security-ledger.json
           retention-days: 14
-      - name: Reject incomplete audit
+      - name: Require complete scans and passing release gates
         if: always()
         env:
           INVENTORY: ${{ needs.inventory.result }}

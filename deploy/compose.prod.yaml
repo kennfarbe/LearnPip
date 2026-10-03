@@ -3,7 +3,7 @@ name: learnpip
 
 services:
   db:
-    image: postgres:18-alpine
+    image: kennfarbe/learnpip:db-${LEARNPIP_VERSION:?Set LEARNPIP_VERSION in deploy/.env.production}
     restart: unless-stopped
     logging:
       driver: json-file

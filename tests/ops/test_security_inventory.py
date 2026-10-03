@@ -41,6 +41,7 @@ class InventoryTests(unittest.TestCase):
 class BuildInventoryTests(unittest.TestCase):
     def test_build_images_are_explicit_and_missing_stages_fail(self):
         self.assertEqual(module.build_images([('build-sdk', 'FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build\n')]), [('build-sdk', 'mcr.microsoft.com/dotnet/sdk:10.0')])
+        self.assertEqual(module.build_images([('build-go', 'FROM --platform=$BUILDPLATFORM golang:1.26.8-alpine3.24 AS build\n')]), [('build-go', 'golang:1.26.8-alpine3.24')])
         with self.assertRaises(ValueError):
             module.build_images([('build-sdk', 'FROM missing AS runtime')])
 

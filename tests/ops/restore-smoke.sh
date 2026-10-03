@@ -10,9 +10,11 @@ cleanup() {
 }
 trap cleanup EXIT
 password="$(openssl rand -hex 24)"
+db_image=kennfarbe/learnpip:db-v0.0.0
+docker build -f deploy/postgres.Dockerfile -t "$db_image" .
 docker run -d --name "$fixture" --network none \
   -e POSTGRES_DB=learnpip -e POSTGRES_USER=learnpip \
-  -e "POSTGRES_PASSWORD=$password" postgres:18-alpine >/dev/null
+  -e "POSTGRES_PASSWORD=$password" "$db_image" >/dev/null
 ready=0
 for ((attempt=0; attempt<60; attempt++)); do
   if docker exec "$fixture" psql -XAt -U learnpip -d learnpip -c "SELECT 1" >/dev/null 2>&1; then
@@ -32,7 +34,7 @@ backup="$work/learnpip-fixture.dump"
 docker exec "$fixture" pg_dump -Fc -U learnpip learnpip > "$backup"
 {
   printf 'sha256=%s\n' "$(sha256sum "$backup" | cut -d ' ' -f 1)"
-  printf 'postgres_image=postgres:18-alpine\nMediaBlobs=1\nStudyAttempts=1\nmedia_bytes=8\n'
+  printf 'postgres_image=%s\nMediaBlobs=1\nStudyAttempts=1\nmedia_bytes=8\n' "$db_image"
 } > "$work/learnpip-fixture.manifest"
 "$repo_root/scripts/restore-test-prod.sh" "$backup"
 printf 'corrupt' >> "$backup"
