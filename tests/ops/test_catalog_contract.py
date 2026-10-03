@@ -16,6 +16,10 @@ MODULE = runpy.run_path(str(Path(__file__).resolve().parents[2] /
                             "scripts" / "validate-catalog.py"))
 validate = MODULE["validate"]
 InvalidPackage = MODULE["InvalidPackage"]
+READER = runpy.run_path(str(Path(__file__).resolve().parents[2] /
+                            "scripts" / "read-catalog.py"))
+read_catalog = READER["read_catalog"]
+ReaderInvalidPackage = READER["_validator"].InvalidPackage
 
 
 def license_details():
@@ -94,6 +98,29 @@ class CatalogContractTests(unittest.TestCase):
     def test_synthetic_package_with_media_and_umlauts(self):
         self.assertEqual(self.check(make_zip(self.manifest, self.files)),
                          ("example.synthetic", 1))
+
+    def test_reader_preserves_questions_media_and_attribution(self):
+        original = make_zip(self.manifest, self.files)
+        Path(self.filename).write_bytes(original)
+        snapshot = read_catalog(self.filename)
+        self.assertEqual(snapshot.manifest, self.manifest)
+        self.assertEqual(snapshot.questions, self.questions)
+        self.assertEqual(snapshot.media["media/test.txt"], self.files["media/test.txt"])
+        self.assertEqual(snapshot.notices["ATTRIBUTION"], self.files["ATTRIBUTION"])
+        self.assertEqual(Path(self.filename).read_bytes(), original)
+        self.assertFalse((Path(self.tempdir.name) / "media").exists())
+
+    def test_reader_rejects_unknown_future_version(self):
+        self.manifest["schema_version"] = "2.0.0"
+        Path(self.filename).write_bytes(make_zip(self.manifest, self.files))
+        with self.assertRaisesRegex(ReaderInvalidPackage, "Unsupported schema_version"):
+            read_catalog(self.filename)
+
+    def test_reader_rejects_tampered_media(self):
+        self.files["media/test.txt"] = b"not the declared bytes"
+        Path(self.filename).write_bytes(make_zip(self.manifest, self.files))
+        with self.assertRaisesRegex(ReaderInvalidPackage, "mismatch"):
+            read_catalog(self.filename)
 
     def test_unsupported_schema_is_not_silently_downgraded(self):
         self.manifest["schema_version"] = "9.0.0"

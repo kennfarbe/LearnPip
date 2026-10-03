@@ -36,4 +36,4 @@ Ein LearnPip-Release enthält keine realen Fragenkataloge. Die zwei vorgeschlage
 4. Integration auf zwei voneinander unabhängigen Installationen sowie ein Upgrade von alter zu neuer App-Version testen; neue Versionen nur mit expliziter verlustfrei geprüfter Zielversion abwärts exportieren.
 5. Jede stabile Schema-Version und ihren Reader dauerhaft in CI testen. Für neue Major-Versionen Migration und unverändertes Originalarchiv nachweisen.
 
-Die Einführung dieses **Entwurfs** schließt die genannten Issues ausdrücklich noch nicht.
+Der Reader extrahiert keine Archive auf das Dateisystem und führt keine Paketinhalte aus. Er akzeptiert nur Entwurfsversion 0.1.0; ein unbekanntes Schema führt zu einer Ablehnung vor Ausgabe von Paketdaten. Die Einführung dieses **Entwurfs** schließt die genannten Issues ausdrücklich noch nicht.
