@@ -3,7 +3,6 @@
 // </copyright>
 
 using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.DataProtection;
 using LearnPip.Api;
 using LearnPip.Api.Administration;
 using LearnPip.Api.Ai;
@@ -15,6 +14,7 @@ using LearnPip.Api.Media;
 using LearnPip.Api.Questions;
 using LearnPip.Api.Security;
 using LearnPip.Data;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
