@@ -11,6 +11,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Exams;
 
-public sealed record ForecastEvidence(int AnsweredCatalogQuestions, int CatalogQuestions,
-    int SpacedMasteredContents, int OwnContents, int CompletedSimulations,
-    int RecentSimulations, int RecentPassedSimulations);
+/// <summary>
+/// Lern- und Simulationsdaten als Grundlage der Prüfungsprognose.
+/// </summary>
+/// <param name="AnsweredCatalogQuestions">Die Anzahl bereits beantworteter Katalogfragen.</param>
+/// <param name="CatalogQuestions">Die Gesamtanzahl der Katalogfragen.</param>
+/// <param name="SpacedMasteredContents">Die Anzahl durch zeitlich getrennte Antworten beherrschter Inhalte.</param>
+/// <param name="OwnContents">Die Anzahl selbst erstellter Inhalte.</param>
+/// <param name="CompletedSimulations">Die Anzahl abgeschlossener Prüfungssimulationen.</param>
+/// <param name="RecentSimulations">Die Anzahl aktueller Prüfungssimulationen.</param>
+/// <param name="RecentPassedSimulations">Die Anzahl zuletzt bestandener Prüfungssimulationen.</param>
+public sealed record ForecastEvidence(
+        int AnsweredCatalogQuestions,
+        int CatalogQuestions,
+        int SpacedMasteredContents,
+        int OwnContents,
+        int CompletedSimulations,
+        int RecentSimulations,
+        int RecentPassedSimulations);

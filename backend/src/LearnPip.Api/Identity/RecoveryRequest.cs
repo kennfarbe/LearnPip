@@ -13,4 +13,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Identity;
 
+/// <summary>
+/// Anfrage zur Kontowiederherstellung mit einem Wiederherstellungsgeheimnis.
+/// </summary>
+/// <param name="Secret">Das Wiederherstellungsgeheimnis.</param>
 public sealed record RecoveryRequest(string? Secret);

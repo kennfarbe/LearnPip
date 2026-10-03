@@ -10,4 +10,10 @@ using LearnPip.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Exams;
+
+/// <summary>
+/// Bestehenssignal einer abgeschlossenen Prüfungssimulation.
+/// </summary>
+/// <param name="CompletedAtUtc">Der Abschlusszeitpunkt in UTC, sofern vorhanden.</param>
+/// <param name="Passed">Gibt an, ob die Bestehensgrenze erreicht wurde.</param>
 public sealed record SimulationSignal(DateTimeOffset CompletedAtUtc, bool Passed);

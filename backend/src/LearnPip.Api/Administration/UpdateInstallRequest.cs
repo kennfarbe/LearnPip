@@ -8,4 +8,9 @@ using LearnPip.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Administration;
+
+/// <summary>
+/// Anfrage zur Installation einer konkret bestätigten Version.
+/// </summary>
+/// <param name="Version">Die Versionsnummer.</param>
 public sealed record UpdateInstallRequest(string Version);

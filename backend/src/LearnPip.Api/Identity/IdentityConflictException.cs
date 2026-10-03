@@ -14,4 +14,7 @@ using Npgsql;
 
 namespace LearnPip.Api.Identity;
 
+/// <summary>
+/// Meldet eine bereits anderweitig verknüpfte Anmeldeidentität.
+/// </summary>
 public sealed class IdentityConflictException : Exception;

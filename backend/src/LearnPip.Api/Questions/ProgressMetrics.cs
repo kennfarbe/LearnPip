@@ -4,10 +4,19 @@
 
 namespace LearnPip.Api.Questions;
 
+/// <summary>
+/// Berechnet Teilnahme und langfristigen Lernfortschritt aus Antwortversuchen.
+/// </summary>
 public static class ProgressMetrics
 {
     // A day/content pair earns at most four points. Repeating clicks on the same
     // question or variant does not accumulate points; time spent is irrelevant.
+
+    /// <summary>
+    /// Die erreichten Teilnahmepunkte.
+    /// </summary>
+    /// <param name="attempts">Die für den Lernfortschritt berücksichtigten Antwortversuche.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     public static int ParticipationPoints(IEnumerable<ProgressAttempt> attempts) => attempts
         .SelectMany(item => new[]
         {
@@ -16,12 +25,16 @@ public static class ProgressMetrics
             item.ExplanationViewedAtUtc.HasValue ?
                 (item.ContentId, Day: DateOnly.FromDateTime(item.ExplanationViewedAtUtc.Value.UtcDateTime),
                     Points: 0, Explanation: true) :
-                ((Guid ContentId, DateOnly Day, int Points, bool Explanation)?)null
+                ((Guid ContentId, DateOnly Day, int Points, bool Explanation)?)null,
         }.OfType<(Guid ContentId, DateOnly Day, int Points, bool Explanation)>())
         .GroupBy(item => (item.ContentId, item.Day))
-        .Sum(group => Math.Min(4, group.Max(item => item.Points) +
-            (group.Any(item => item.Explanation) ? 1 : 0)));
+        .Sum(group => Math.Min(4, group.Max(item => item.Points) + (group.Any(item => item.Explanation) ? 1 : 0)));
 
+    /// <summary>
+    /// Prüft, ob sich der Lernstand zwischen frühen und späteren Antwortversuchen verbessert hat.
+    /// </summary>
+    /// <param name="attempts">Die für den Lernfortschritt berücksichtigten Antwortversuche.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     public static bool HasImproved(IEnumerable<ProgressAttempt> attempts)
     {
         var uncertain = false;
@@ -31,14 +44,22 @@ public static class ProgressMetrics
                 IsSafe: item.IsCorrect && !item.WasGuessed),
             item.ExplanationViewedAtUtc.HasValue ?
                 (AtUtc: item.ExplanationViewedAtUtc.Value, IsAnswer: false, IsSafe: false) :
-                ((DateTimeOffset AtUtc, bool IsAnswer, bool IsSafe)?)null
+                ((DateTimeOffset AtUtc, bool IsAnswer, bool IsSafe)?)null,
         }.OfType<(DateTimeOffset AtUtc, bool IsAnswer, bool IsSafe)>())
             .OrderBy(item => item.AtUtc).ThenBy(item => item.IsAnswer ? 0 : 1);
         foreach (var item in events)
         {
-            if (uncertain && item.IsAnswer && item.IsSafe) return true;
-            if (!item.IsSafe) uncertain = true;
+            if (uncertain && item.IsAnswer && item.IsSafe)
+            {
+                return true;
+            }
+
+            if (!item.IsSafe)
+            {
+                uncertain = true;
+            }
         }
+
         return false;
     }
 }

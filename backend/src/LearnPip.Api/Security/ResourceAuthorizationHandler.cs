@@ -11,9 +11,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Security;
 
+/// <summary>
+/// Prüft Konto-, Rollen- und Ressourcenberechtigungen für die API.
+/// </summary>
+/// <param name="dbContext">Der Datenbankkontext.</param>
 public sealed class ResourceAuthorizationHandler(LearnPipDbContext dbContext) :
     IAuthorizationHandler
 {
+    /// <summary>
+    /// Prüft alle unterstützten Ressourcenanforderungen der Autorisierung.
+    /// </summary>
+    /// <param name="context">Der Kontext der HTTP-Anfrage oder Autorisierungsprüfung.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     public async Task HandleAsync(AuthorizationHandlerContext context)
     {
         if (context.User.Identity?.IsAuthenticated != true ||
@@ -35,18 +44,22 @@ public sealed class ResourceAuthorizationHandler(LearnPipDbContext dbContext) :
                 case QuestionReadRequirement when context.Resource is Question question &&
                     question.DeletedAtUtc == null &&
                     (question.OwnerAccountId == accountId ||
-                     await QuestionAccess.ReadableVersions(dbContext, accountId)
+                     await QuestionAccess.ReadableVersions(
+                dbContext,
+                accountId)
                          .AnyAsync(version => version.QuestionId == question.Id)):
                     context.Succeed(requirement);
                     break;
                 case MediaReadRequirement when context.Resource is MediaAsset media &&
                     media.DeletedAtUtc == null && (media.OwnerAccountId == accountId ||
-                     await QuestionAccess.ReadableVersions(dbContext, accountId)
+                     await QuestionAccess.ReadableVersions(
+                dbContext,
+                accountId)
                          .AnyAsync(version => version.Question.OwnerAccountId == media.OwnerAccountId &&
                              dbContext.QuestionContentBlocks.Any(block => block.MediaAssetId == media.Id &&
                                  (block.QuestionVersionId == version.Id ||
-                                  block.AnswerOption != null &&
-                                  block.AnswerOption.QuestionVersionId == version.Id)))) &&
+                                  (block.AnswerOption != null &&
+                                  block.AnswerOption.QuestionVersionId == version.Id))))) &&
                     (media.QuestionVersionId == null ||
                      await dbContext.QuestionVersions.AsNoTracking().AnyAsync(version =>
                          version.Id == media.QuestionVersionId &&

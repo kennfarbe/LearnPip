@@ -8,4 +8,6 @@ namespace LearnPip.Api;
 /// Kurzfassung einer Frage.
 /// </summary>
 /// <param name="Prompt">Den Fragetext.</param>
+/// <param name="Id">Die eindeutige Kennung.</param>
+/// <param name="Version">Die Versionsnummer.</param>
 public sealed record QuestionSummary(Guid Id, int? Version, string? Prompt);

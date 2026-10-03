@@ -9,4 +9,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Administration;
 
+/// <summary>
+/// Anfrage zum Ändern einer Gruppenrolle.
+/// </summary>
+/// <param name="Code">Der fachliche Bezeichner oder Bestätigungscode.</param>
 public sealed record GroupRoleRequest(string Code);

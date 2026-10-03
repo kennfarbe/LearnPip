@@ -10,4 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Security;
+/// <summary>
+/// Autorisierungsanforderung zum Lesen einer Lerngruppe.
+/// </summary>
 public sealed record GroupReadRequirement : IAuthorizationRequirement;

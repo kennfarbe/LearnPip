@@ -10,4 +10,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
 
+/// <summary>
+/// Meldung eines möglichen Problems mit einer öffentlichen Frage.
+/// </summary>
+/// <param name="Reason">Die Begründung des Prüfergebnisses oder der Meldung.</param>
+/// <param name="Details">Die ergänzende Beschreibung der Meldung.</param>
 public sealed record ReportInput(string Reason, string Details);

@@ -14,4 +14,9 @@ using Microsoft.Extensions.Options;
 
 namespace LearnPip.Api.Identity;
 
+/// <summary>
+/// Ausgestelltes Sitzungsgeheimnis mit Ablaufzeitpunkt.
+/// </summary>
+/// <param name="Token">Das Sitzungs- oder Einladungstoken.</param>
+/// <param name="ExpiresAtUtc">Der Ablaufzeitpunkt in UTC.</param>
 public sealed record SessionGrant(string Token, DateTimeOffset ExpiresAtUtc);

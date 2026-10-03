@@ -14,5 +14,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
-public sealed record TranslationSuggestionInput(string Language, string Mode,
-    string DisclosureVersion, bool Confirmed);
+/// <summary>
+/// Anfrage zu einem KI-Übersetzungsvorschlag.
+/// </summary>
+/// <param name="Language">Der Sprachcode.</param>
+/// <param name="Mode">Der ausgewählte KI-Betriebsmodus.</param>
+/// <param name="DisclosureVersion">Die Version des zu bestätigenden Datenschutzhinweises.</param>
+/// <param name="Confirmed">Gibt an, ob der Datenschutzhinweis bestätigt wurde.</param>
+public sealed record TranslationSuggestionInput(
+        string Language,
+        string Mode,
+        string DisclosureVersion,
+        bool Confirmed);

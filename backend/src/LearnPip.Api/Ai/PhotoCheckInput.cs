@@ -13,6 +13,20 @@ using LearnPip.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Ai;
-public sealed record PhotoCheckInput(string? Formula, string? ComputedSolution,
-    string? ReferenceSolution, string? ChosenAnswer, IReadOnlyList<string>? Steps,
-    string? QuestionText);
+
+/// <summary>
+/// Anfrage zur Prüfung eines aus einem Foto erkannten Lösungswegs.
+/// </summary>
+/// <param name="Formula">Die zu prüfende Formel, sofern vorhanden.</param>
+/// <param name="ComputedSolution">Die berechnete Lösung, sofern vorhanden.</param>
+/// <param name="ReferenceSolution">Die Referenzlösung, sofern vorhanden.</param>
+/// <param name="ChosenAnswer">Die vom Benutzer bestätigte Antwort.</param>
+/// <param name="Steps">Die erkannten oder vorgeschlagenen Lösungsschritte.</param>
+/// <param name="QuestionText">Die erkannte Fragenformulierung.</param>
+public sealed record PhotoCheckInput(
+        string? Formula,
+        string? ComputedSolution,
+        string? ReferenceSolution,
+        string? ChosenAnswer,
+        IReadOnlyList<string>? Steps,
+        string? QuestionText);

@@ -11,5 +11,17 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
-public sealed record GradeResult(Guid AttemptId, Guid VersionId, bool IsCorrect,
-    IReadOnlyList<Guid> SelectedOptionIds, IReadOnlyList<Guid> CorrectOptionIds);
+/// <summary>
+/// Ergebnis eines Antwortversuchs mit Korrektheitsmarkierung.
+/// </summary>
+/// <param name="AttemptId">Die Kennung des Antwortversuchs.</param>
+/// <param name="VersionId">Die Kennung der Fragenfassung.</param>
+/// <param name="IsCorrect">Gibt an, ob die Antwort richtig ist.</param>
+/// <param name="SelectedOptionIds">Die vom Benutzer ausgewählten Antwortkennungen.</param>
+/// <param name="CorrectOptionIds">Die Kennungen der richtigen Antwortoptionen.</param>
+public sealed record GradeResult(
+        Guid AttemptId,
+        Guid VersionId,
+        bool IsCorrect,
+        IReadOnlyList<Guid> SelectedOptionIds,
+        IReadOnlyList<Guid> CorrectOptionIds);

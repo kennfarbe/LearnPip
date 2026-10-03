@@ -15,6 +15,12 @@ namespace LearnPip.Api.Administration;
 /// <param name="Release">Release-Metadaten.</param>
 /// <param name="Job">Update-Auftrag.</param>
 public sealed record UpdateStatus(
-    string InstalledVersion, string? LatestVersion, string State, string Interval,
-    DateTimeOffset? LastCheckedAtUtc, DateTimeOffset? NextCheckAtUtc, string? Error,
-    ReleaseInfo? Release, UpdateJob? Job);
+        string InstalledVersion,
+        string? LatestVersion,
+        string State,
+        string Interval,
+        DateTimeOffset? LastCheckedAtUtc,
+        DateTimeOffset? NextCheckAtUtc,
+        string? Error,
+        ReleaseInfo? Release,
+        UpdateJob? Job);

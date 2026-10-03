@@ -14,5 +14,18 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
-public sealed record TranslationDraftInput(string Language, TranslationPayload Payload,
-    string Source, string License, string Provenance);
+
+/// <summary>
+/// Anfrage zum Speichern eines Übersetzungsentwurfs.
+/// </summary>
+/// <param name="Language">Der Sprachcode.</param>
+/// <param name="Payload">Die übersetzten Inhaltsblöcke.</param>
+/// <param name="Source">Die Herkunft der Übersetzung.</param>
+/// <param name="License">Die Inhaltslizenz.</param>
+/// <param name="Provenance">Die Herkunft der Inhalte.</param>
+public sealed record TranslationDraftInput(
+        string Language,
+        TranslationPayload Payload,
+        string Source,
+        string License,
+        string Provenance);

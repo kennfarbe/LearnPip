@@ -10,6 +10,26 @@ using LearnPip.Data.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Exams;
-public sealed record CatalogImportInput(string Code, string Title, string Revision,
-    string SourceUrl, string License, string Attribution, DateOnly ChangedOn,
-    bool RightsConfirmed, IReadOnlyList<CatalogQuestion> Questions);
+
+/// <summary>
+/// Importdaten eines versionierten Prüfungskatalogs.
+/// </summary>
+/// <param name="Code">Der fachliche Bezeichner oder Bestätigungscode.</param>
+/// <param name="Title">Der Titel.</param>
+/// <param name="Revision">Die Revision der Daten.</param>
+/// <param name="SourceUrl">Die Adresse der Inhaltsquelle.</param>
+/// <param name="License">Die Inhaltslizenz.</param>
+/// <param name="Attribution">Die Quellen- oder Urheberangabe.</param>
+/// <param name="ChangedOn">Das Datum der letzten Änderung.</param>
+/// <param name="RightsConfirmed">Gibt an, ob die Inhaltsrechte bestätigt wurden.</param>
+/// <param name="Questions">Die ausgewählten Prüfungsfragen.</param>
+public sealed record CatalogImportInput(
+        string Code,
+        string Title,
+        string Revision,
+        string SourceUrl,
+        string License,
+        string Attribution,
+        DateOnly ChangedOn,
+        bool RightsConfirmed,
+        IReadOnlyList<CatalogQuestion> Questions);

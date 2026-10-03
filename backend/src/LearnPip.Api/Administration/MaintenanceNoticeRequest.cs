@@ -8,4 +8,9 @@ using LearnPip.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Administration;
+
+/// <summary>
+/// Anfrage zum Ändern des Wartungshinweises.
+/// </summary>
+/// <param name="Value">Der neue Wert der Einstellung.</param>
 public sealed record MaintenanceNoticeRequest(string? Value);

@@ -10,4 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Security;
+/// <summary>
+/// Autorisierungsanforderung zum Lesen einer Fragenfassung.
+/// </summary>
 public sealed record QuestionReadRequirement : IAuthorizationRequirement;

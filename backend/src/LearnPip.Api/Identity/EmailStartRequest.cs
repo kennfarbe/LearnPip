@@ -12,4 +12,9 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Identity;
+
+/// <summary>
+/// Anfrage zum Versand eines E-Mail-Anmeldecodes.
+/// </summary>
+/// <param name="Email">Die E-Mail-Adresse.</param>
 public sealed record EmailStartRequest(string? Email);

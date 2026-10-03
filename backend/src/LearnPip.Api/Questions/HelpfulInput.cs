@@ -9,4 +9,8 @@ using LearnPip.Data.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
+/// <summary>
+/// Bewertung, ob eine Frage hilfreich ist.
+/// </summary>
+/// <param name="Helpful">Gibt an, ob der Inhalt als hilfreich bewertet wird.</param>
 public sealed record HelpfulInput(bool Helpful);

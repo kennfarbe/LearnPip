@@ -13,5 +13,20 @@ using LearnPip.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Ai;
-public sealed record PhotoReview(PhotoRecognition Recognition, string Comparison,
-    string ComparisonExplanation, Guid MediaId, string Mode, SolutionCheck Verification);
+
+/// <summary>
+/// Erkanntes Fotoergebnis mit geprüftem Lösungsvergleich.
+/// </summary>
+/// <param name="Recognition">Das strukturierte Bilderkennungsergebnis.</param>
+/// <param name="Comparison">Das Ergebnis des Lösungsvergleichs.</param>
+/// <param name="ComparisonExplanation">Die Begründung des Lösungsvergleichs.</param>
+/// <param name="MediaId">Die Kennung des zugehörigen Mediums, sofern vorhanden.</param>
+/// <param name="Mode">Der ausgewählte KI-Betriebsmodus.</param>
+/// <param name="Verification">Der Verifikationsstatus der Verknüpfung.</param>
+public sealed record PhotoReview(
+        PhotoRecognition Recognition,
+        string Comparison,
+        string ComparisonExplanation,
+        Guid MediaId,
+        string Mode,
+        SolutionCheck Verification);

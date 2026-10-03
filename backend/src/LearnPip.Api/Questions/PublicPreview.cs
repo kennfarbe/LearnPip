@@ -10,5 +10,14 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
-public sealed record PublicPreview(PublishedQuestionVersion Version, string PreviewToken,
-    bool HasImages);
+
+/// <summary>
+/// Vorschau einer zur Veröffentlichung vorgesehenen Fragenfassung.
+/// </summary>
+/// <param name="Version">Die Versionsnummer.</param>
+/// <param name="PreviewToken">Das Bestätigungstoken der Veröffentlichungsvorschau.</param>
+/// <param name="HasImages">Gibt an, ob die Frage Bilder enthält.</param>
+public sealed record PublicPreview(
+        PublishedQuestionVersion Version,
+        string PreviewToken,
+        bool HasImages);

@@ -11,8 +11,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Groups;
 
+/// <summary>
+/// Registriert HTTP-Endpunkte für die Lerngruppen und Einladungen.
+/// </summary>
 public static class GroupEndpoints
 {
+    /// <summary>
+    /// Registriert HTTP-Endpunkte für die Lerngruppen und Einladungen.
+    /// </summary>
+    /// <param name="app">Der Routen-Builder der API.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     public static IEndpointRouteBuilder MapGroupEndpoints(this IEndpointRouteBuilder app)
     {
         var groups = app.MapGroup("/api/v1/groups").WithTags("Groups")
@@ -30,10 +38,16 @@ public static class GroupEndpoints
         return app;
     }
 
-    private static async Task<IResult> List(LearnPipDbContext db, ClaimsPrincipal user,
+    private static async Task<IResult> List(
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
         CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         var items = await db.StudyGroups.AsNoTracking().Where(group => group.DeletedAtUtc == null &&
                 (group.OwnerAccountId == accountId ||
                  group.Memberships.Any(member => member.AccountId == accountId)))
@@ -43,60 +57,127 @@ public static class GroupEndpoints
         return Results.Ok(new ApiResponse<IReadOnlyList<GroupView>>(items));
     }
 
-    private static async Task<IResult> Create(GroupInput input, LearnPipDbContext db,
-        ClaimsPrincipal user, CancellationToken cancellationToken)
+    private static async Task<IResult> Create(
+        GroupInput input,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         var name = input.Name?.Trim();
-        if (string.IsNullOrWhiteSpace(name) || name.Length > 160) return Results.BadRequest();
+        if (string.IsNullOrWhiteSpace(name) || name.Length > 160)
+        {
+            return Results.BadRequest();
+        }
+
         var group = new StudyGroup { Name = name, OwnerAccountId = accountId };
         db.StudyGroups.Add(group);
         await db.SaveChangesAsync(cancellationToken);
-        return Results.Created($"/api/v1/groups/{group.Id}",
+        return Results.Created(
+            $"/api/v1/groups/{group.Id}",
             new ApiResponse<GroupView>(new GroupView(group.Id, group.Name, accountId)));
     }
 
-    private static async Task<IResult> Invite(Guid id, InvitationInput input, GroupService service,
-        ClaimsPrincipal user, CancellationToken cancellationToken)
+    private static async Task<IResult> Invite(
+        Guid id,
+        InvitationInput input,
+        GroupService service,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         var now = DateTimeOffset.UtcNow;
         if (input.MaxUses is < 1 or > 1000 || input.ExpiresAtUtc <= now ||
-            input.ExpiresAtUtc > now.AddDays(30)) return Results.BadRequest();
-        var (invitation, code) = await service.CreateInvitationAsync(id, accountId,
-            input.ExpiresAtUtc, input.MaxUses, cancellationToken);
-        if (invitation == null || code == null) return Results.NotFound();
+            input.ExpiresAtUtc > now.AddDays(30))
+        {
+            return Results.BadRequest();
+        }
+
+        var (invitation, code) = await service.CreateInvitationAsync(
+            id,
+            accountId,
+            input.ExpiresAtUtc,
+            input.MaxUses,
+            cancellationToken);
+        if (invitation == null || code == null)
+        {
+            return Results.NotFound();
+        }
+
         // The plaintext code is shown once and is never stored by the server.
-        return Results.Created($"/api/v1/groups/{id}/invitations/{invitation.Id}",
-            new ApiResponse<InvitationView>(new InvitationView(invitation.Id, code,
-                invitation.ExpiresAtUtc, invitation.MaxUses)));
+        return Results.Created(
+            $"/api/v1/groups/{id}/invitations/{invitation.Id}",
+            new ApiResponse<InvitationView>(new InvitationView(
+                    invitation.Id,
+                    code,
+                    invitation.ExpiresAtUtc,
+                    invitation.MaxUses)));
     }
 
-    private static async Task<IResult> Join(JoinInput input, GroupService service,
-        ClaimsPrincipal user, CancellationToken cancellationToken)
+    private static async Task<IResult> Join(
+        JoinInput input,
+        GroupService service,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         return await service.JoinAsync(accountId, input.Code, cancellationToken) switch
         {
             "joined" => Results.NoContent(),
             "already_member" => Results.Conflict(),
-            _ => Results.NotFound()
+            _ => Results.NotFound(),
         };
     }
 
-    private static async Task<IResult> Revoke(Guid id, Guid invitationId, GroupService service,
-        ClaimsPrincipal user, CancellationToken cancellationToken)
+    private static async Task<IResult> Revoke(
+        Guid id,
+        Guid invitationId,
+        GroupService service,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
-        return await service.RevokeInvitationAsync(id, invitationId, accountId, cancellationToken)
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
+        return await service.RevokeInvitationAsync(
+            id,
+            invitationId,
+            accountId,
+            cancellationToken)
             ? Results.NoContent() : Results.NotFound();
     }
 
-    private static async Task<IResult> Members(Guid id, LearnPipDbContext db, GroupService service,
-        ClaimsPrincipal user, CancellationToken cancellationToken)
+    private static async Task<IResult> Members(
+        Guid id,
+        LearnPipDbContext db,
+        GroupService service,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
-        if (!await service.CanReadAsync(id, accountId, cancellationToken)) return Results.NotFound();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!await service.CanReadAsync(id, accountId, cancellationToken))
+        {
+            return Results.NotFound();
+        }
+
         var members = await db.GroupMemberships.AsNoTracking()
             .Where(member => member.StudyGroupId == id)
             .OrderBy(member => member.JoinedAtUtc)
@@ -104,25 +185,49 @@ public static class GroupEndpoints
             {
                 member.AccountId,
                 Role = member.RoleDefinition.Code,
-                member.JoinedAtUtc
+                member.JoinedAtUtc,
             })
             .ToListAsync(cancellationToken);
         return Results.Ok(new ApiResponse<object>(members));
     }
 
-    private static async Task<IResult> RemoveMember(Guid id, Guid accountId,
-        GroupService service, ClaimsPrincipal user, CancellationToken cancellationToken)
+    private static async Task<IResult> RemoveMember(
+        Guid id,
+        Guid accountId,
+        GroupService service,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var actorId)) return Results.Unauthorized();
-        return await service.RemoveMemberAsync(id, accountId, actorId, cancellationToken)
+        if (!AccountIdentity.TryGetAccountId(user, out var actorId))
+        {
+            return Results.Unauthorized();
+        }
+
+        return await service.RemoveMemberAsync(
+            id,
+            accountId,
+            actorId,
+            cancellationToken)
             ? Results.NoContent() : Results.NotFound();
     }
 
-    private static async Task<IResult> Catalogs(Guid id, LearnPipDbContext db,
-        GroupService service, ClaimsPrincipal user, CancellationToken cancellationToken)
+    private static async Task<IResult> Catalogs(
+        Guid id,
+        LearnPipDbContext db,
+        GroupService service,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
-        if (!await service.CanReadAsync(id, accountId, cancellationToken)) return Results.NotFound();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!await service.CanReadAsync(id, accountId, cancellationToken))
+        {
+            return Results.NotFound();
+        }
+
         var catalogs = await db.GroupCatalogShares.AsNoTracking()
             .Where(share => share.StudyGroupId == id)
             .OrderBy(share => share.PrivateCatalog.Name)
@@ -131,24 +236,42 @@ public static class GroupEndpoints
         return Results.Ok(new ApiResponse<object>(catalogs));
     }
 
-    private static async Task<IResult> ShareCatalog(Guid id, Guid catalogId, LearnPipDbContext db,
-        GroupService service, ClaimsPrincipal user, CancellationToken cancellationToken)
+    private static async Task<IResult> ShareCatalog(
+        Guid id,
+        Guid catalogId,
+        LearnPipDbContext db,
+        GroupService service,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         if (!await service.CanManageAsync(id, accountId, cancellationToken) ||
-            !await db.PrivateCatalogs.AnyAsync(catalog => catalog.Id == catalogId &&
-                catalog.OwnerAccountId == accountId, cancellationToken)) return Results.NotFound();
+            !await db.PrivateCatalogs.AnyAsync(
+            catalog => catalog.Id == catalogId &&
+                catalog.OwnerAccountId == accountId,
+            cancellationToken))
+        {
+            return Results.NotFound();
+        }
+
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-        if (!await db.GroupCatalogShares.AnyAsync(share => share.StudyGroupId == id &&
-                share.PrivateCatalogId == catalogId, cancellationToken))
+        if (!await db.GroupCatalogShares.AnyAsync(
+            share => share.StudyGroupId == id &&
+                share.PrivateCatalogId == catalogId,
+            cancellationToken))
         {
             db.GroupCatalogShares.Add(new GroupCatalogShare
             {
                 StudyGroupId = id,
                 PrivateCatalogId = catalogId,
-                SharedByAccountId = accountId
+                SharedByAccountId = accountId,
             });
         }
+
         var latest = await db.Questions.AsNoTracking()
             .Where(question => question.PrivateCatalogId == catalogId &&
                 question.OwnerAccountId == accountId && question.DeletedAtUtc == null)
@@ -159,29 +282,49 @@ public static class GroupEndpoints
         var existing = await db.GroupVersionShares.AsNoTracking()
             .Where(share => share.StudyGroupId == id && latest.Contains(share.QuestionVersionId))
             .Select(share => share.QuestionVersionId).ToListAsync(cancellationToken);
-        foreach (var versionId in latest.Except(existing)) db.GroupVersionShares.Add(new GroupVersionShare
+        foreach (var versionId in latest.Except(existing))
         {
-            StudyGroupId = id,
-            PrivateCatalogId = catalogId,
-            QuestionVersionId = versionId
-        });
+            db.GroupVersionShares.Add(new GroupVersionShare
+            {
+                StudyGroupId = id,
+                PrivateCatalogId = catalogId,
+                QuestionVersionId = versionId,
+            });
+        }
+
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return Results.NoContent();
     }
 
-    private static async Task<IResult> UnshareCatalog(Guid id, Guid catalogId,
-        LearnPipDbContext db, GroupService service, ClaimsPrincipal user,
+    private static async Task<IResult> UnshareCatalog(
+        Guid id,
+        Guid catalogId,
+        LearnPipDbContext db,
+        GroupService service,
+        ClaimsPrincipal user,
         CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
-        if (!await service.CanManageAsync(id, accountId, cancellationToken)) return Results.NotFound();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!await service.CanManageAsync(id, accountId, cancellationToken))
+        {
+            return Results.NotFound();
+        }
+
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         var removed = await db.GroupCatalogShares.Where(share => share.StudyGroupId == id &&
                 share.PrivateCatalogId == catalogId && share.SharedByAccountId == accountId)
             .ExecuteDeleteAsync(cancellationToken);
-        if (removed == 1) await db.GroupVersionShares.Where(share => share.StudyGroupId == id &&
+        if (removed == 1)
+        {
+            await db.GroupVersionShares.Where(share => share.StudyGroupId == id &&
             share.PrivateCatalogId == catalogId).ExecuteDeleteAsync(cancellationToken);
+        }
+
         await transaction.CommitAsync(cancellationToken);
         return removed == 1 ? Results.NoContent() : Results.NotFound();
     }

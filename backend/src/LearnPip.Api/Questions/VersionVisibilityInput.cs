@@ -11,4 +11,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
+/// <summary>
+/// Anfrage zum Ändern der Sichtbarkeit einer Fragenfassung.
+/// </summary>
+/// <param name="Visibility">Die Sichtbarkeit der Fragenfassung.</param>
 public sealed record VersionVisibilityInput(string Visibility);

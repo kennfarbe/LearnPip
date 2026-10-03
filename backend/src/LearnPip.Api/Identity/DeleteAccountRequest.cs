@@ -10,4 +10,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Identity;
 
+/// <summary>
+/// Anfrage zur bestätigten Löschung eines Kontos.
+/// </summary>
+/// <param name="Confirmation">Die ausdrückliche Bestätigung der Kontolöschung.</param>
+/// <param name="RecoverySecret">Das Wiederherstellungsgeheimnis des Kontos.</param>
 public sealed record DeleteAccountRequest(string? Confirmation, string? RecoverySecret);

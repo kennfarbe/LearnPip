@@ -13,4 +13,9 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Family;
+
+/// <summary>
+/// Nachweis zur Bestätigung einer Familienverknüpfung.
+/// </summary>
+/// <param name="Reference">Die Referenz des Verknüpfungsnachweises.</param>
 public sealed record FamilyVerificationInput(string Reference);

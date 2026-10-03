@@ -14,4 +14,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Family;
 
+/// <summary>
+/// Anfrage zum Festlegen der Altersgruppe.
+/// </summary>
+/// <param name="AgeBand">Die Altersgruppe des Kontos.</param>
 public sealed record AgeBandInput(string AgeBand);

@@ -10,4 +10,10 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Groups;
+
+/// <summary>
+/// Gültigkeitsdauer und Nutzungsgrenze einer Gruppeneinladung.
+/// </summary>
+/// <param name="ExpiresAtUtc">Der Ablaufzeitpunkt in UTC.</param>
+/// <param name="MaxUses">Die höchstens erlaubte Anzahl von Einlösungen.</param>
 public sealed record InvitationInput(DateTimeOffset ExpiresAtUtc, int MaxUses);

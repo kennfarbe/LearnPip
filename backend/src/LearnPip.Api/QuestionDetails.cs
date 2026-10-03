@@ -8,4 +8,5 @@ namespace LearnPip.Api;
 /// Details einer Frage einschließlich der neuesten Fassung.
 /// </summary>
 /// <param name="LatestVersion">Die neueste Fragenfassung, sofern vorhanden.</param>
+/// <param name="Id">Die eindeutige Kennung.</param>
 public sealed record QuestionDetails(Guid Id, QuestionVersionDetails? LatestVersion);

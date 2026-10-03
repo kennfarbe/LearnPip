@@ -12,4 +12,11 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Identity;
+
+/// <summary>
+/// Neu angelegtes Konto mit Wiederherstellungsgeheimnis und Sitzung.
+/// </summary>
+/// <param name="AccountId">Die Kontokennung.</param>
+/// <param name="RecoverySecret">Das Wiederherstellungsgeheimnis des Kontos.</param>
+/// <param name="Session">Die ausgestellte Kontositzung.</param>
 public sealed record NewAccount(Guid AccountId, string RecoverySecret, SessionGrant Session);

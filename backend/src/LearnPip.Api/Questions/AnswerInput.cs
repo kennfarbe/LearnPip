@@ -11,4 +11,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
+/// <summary>
+/// Antwortoption mit Korrektheitsmarkierung und Inhaltsblöcken.
+/// </summary>
+/// <param name="IsCorrect">Gibt an, ob die Antwort richtig ist.</param>
+/// <param name="Blocks">Die Inhaltsblöcke der Antwort.</param>
 public sealed record AnswerInput(bool IsCorrect, IReadOnlyList<ContentBlockInput> Blocks);

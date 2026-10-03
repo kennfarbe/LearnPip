@@ -10,4 +10,9 @@ using LearnPip.Data.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Exams;
+
+/// <summary>
+/// Anfrage zur Anrechnung eines Prüfungsteils.
+/// </summary>
+/// <param name="Code">Der fachliche Bezeichner oder Bestätigungscode.</param>
 public sealed record CreditInput(string Code);

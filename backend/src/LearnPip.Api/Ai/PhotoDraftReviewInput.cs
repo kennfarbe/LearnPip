@@ -13,5 +13,16 @@ using LearnPip.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Ai;
-public sealed record PhotoDraftReviewInput(Guid MediaId, PhotoRecognition Recognition,
-    int CorrectIndex, bool Confirmed);
+
+/// <summary>
+/// Bestätigter Fotoentwurf mit Inhalts- und Rechteprüfung.
+/// </summary>
+/// <param name="MediaId">Die Kennung des zugehörigen Mediums, sofern vorhanden.</param>
+/// <param name="Recognition">Das strukturierte Bilderkennungsergebnis.</param>
+/// <param name="CorrectIndex">Der Index der richtigen Antwort.</param>
+/// <param name="Confirmed">Gibt an, ob der Datenschutzhinweis bestätigt wurde.</param>
+public sealed record PhotoDraftReviewInput(
+        Guid MediaId,
+        PhotoRecognition Recognition,
+        int CorrectIndex,
+        bool Confirmed);

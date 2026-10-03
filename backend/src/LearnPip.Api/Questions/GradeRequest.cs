@@ -11,4 +11,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
+/// <summary>
+/// Antwortkennungen zur Bewertung einer veröffentlichten Fragenfassung.
+/// </summary>
+/// <param name="VersionId">Die Kennung der Fragenfassung.</param>
+/// <param name="SelectedOptionIds">Die vom Benutzer ausgewählten Antwortkennungen.</param>
 public sealed record GradeRequest(Guid VersionId, IReadOnlyList<Guid> SelectedOptionIds);

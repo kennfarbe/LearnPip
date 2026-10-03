@@ -11,4 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Security;
 
+/// <summary>
+/// Autorisierungsanforderung für ein aktives Konto.
+/// </summary>
 public sealed record ActiveAccountRequirement : IAuthorizationRequirement;

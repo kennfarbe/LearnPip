@@ -10,5 +10,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
 
-internal sealed record ReviewCandidate(Guid QuestionId, Guid VersionId, Guid ContentId,
-    string Title, string Subject, Guid? CatalogId);
+/// <summary>
+/// Zur Wiederholung vorgesehene Frage mit persönlichem Lernstand.
+/// </summary>
+/// <param name="QuestionId">Die Kennung der Frage.</param>
+/// <param name="VersionId">Die Kennung der Fragenfassung.</param>
+/// <param name="ContentId">Die Kennung des Lerninhalts.</param>
+/// <param name="Title">Der Titel.</param>
+/// <param name="Subject">Das Fach oder Themengebiet.</param>
+/// <param name="CatalogId">Die Kennung des Katalogs, sofern zugeordnet.</param>
+internal sealed record ReviewCandidate(
+        Guid QuestionId,
+        Guid VersionId,
+        Guid ContentId,
+        string Title,
+        string Subject,
+        Guid? CatalogId);

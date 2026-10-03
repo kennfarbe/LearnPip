@@ -13,4 +13,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Ai;
 
+/// <summary>
+/// Anfrage zum Hinterlegen eines persönlichen KI-Schlüssels.
+/// </summary>
+/// <param name="Key">Der persönliche API-Schlüssel.</param>
 public sealed record AiKeyInput(string Key);

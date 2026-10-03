@@ -13,4 +13,10 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Family;
+
+/// <summary>
+/// Anfrage zum Anlegen eines gemeinsamen Lernziels.
+/// </summary>
+/// <param name="Title">Der Titel.</param>
+/// <param name="TargetAtUtc">Der Zielzeitpunkt in UTC, sofern vorhanden.</param>
 public sealed record FamilyGoalInput(string Title, DateTimeOffset? TargetAtUtc);

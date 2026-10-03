@@ -12,4 +12,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
 
+/// <summary>
+/// Anfrage zum Anlegen oder Umbenennen eines privaten Fragenkatalogs.
+/// </summary>
+/// <param name="Name">Der Anzeigename.</param>
 public sealed record CatalogInput(string Name);

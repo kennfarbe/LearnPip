@@ -12,5 +12,19 @@ using LearnPip.Data.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
-public sealed record LearningSessionView(Guid Id, int Total, int Answered, int Skipped,
-    bool Completed, LearningQuestion? Current);
+/// <summary>
+/// Fortschritt und Fragen einer Lernsitzung.
+/// </summary>
+/// <param name="Id">Die eindeutige Kennung.</param>
+/// <param name="Total">Die Gesamtanzahl der Einträge oder Fragen.</param>
+/// <param name="Answered">Die Anzahl beantworteter Fragen.</param>
+/// <param name="Skipped">Die Anzahl übersprungener Fragen.</param>
+/// <param name="Completed">Gibt an, ob die Sitzung abgeschlossen ist.</param>
+/// <param name="Current">Die aktuelle Lernfrage, sofern vorhanden.</param>
+public sealed record LearningSessionView(
+        Guid Id,
+        int Total,
+        int Answered,
+        int Skipped,
+        bool Completed,
+        LearningQuestion? Current);

@@ -11,12 +11,20 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Exams;
 
+/// <summary>
+/// Registriert HTTP-Endpunkte für die Prüfungskataloge, Profile und Simulationen.
+/// </summary>
 public static class ExamEndpoints
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private static readonly HashSet<string> Licenses = ["DL-DE-BY-2.0", "CC-BY-4.0", "CC0-1.0"];
     private static readonly HashSet<string> Credits = ["B", "V", "T-N", "T-E", "T-A"];
 
+    /// <summary>
+    /// Registriert HTTP-Endpunkte für die Prüfungskataloge, Profile und Simulationen.
+    /// </summary>
+    /// <param name="app">Der Routen-Builder der API.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     public static IEndpointRouteBuilder MapExamEndpoints(this IEndpointRouteBuilder app)
     {
         var exams = app.MapGroup("/api/v1/exams").RequireAuthorization(ApiPolicies.ActiveAccount)
@@ -46,7 +54,9 @@ public static class ExamEndpoints
         return app;
     }
 
-    private static async Task<IResult> Catalogs(LearnPipDbContext db, CancellationToken ct)
+    private static async Task<IResult> Catalogs(
+        LearnPipDbContext db,
+        CancellationToken ct)
     {
         var items = await db.OfficialCatalogEditions.AsNoTracking()
             .OrderBy(item => item.Code).ThenByDescending(item => item.ChangedOn)
@@ -60,13 +70,15 @@ public static class ExamEndpoints
                 item.License,
                 item.Attribution,
                 item.ChangedOn,
-                item.ImportedAtUtc
+                item.ImportedAtUtc,
             })
             .ToListAsync(ct);
         return Results.Ok(new ApiResponse<object>(items));
     }
 
-    private static async Task<IResult> Profiles(LearnPipDbContext db, CancellationToken ct)
+    private static async Task<IResult> Profiles(
+        LearnPipDbContext db,
+        CancellationToken ct)
     {
         var rows = await db.ExamProfileVersions.AsNoTracking()
             .Include(item => item.CatalogEdition)
@@ -85,11 +97,13 @@ public static class ExamEndpoints
             Sessions = Parse<ExamSession>(item.ScheduleJson),
             item.RulesSourceUrl,
             item.RulesCheckedOn,
-            item.CreatedAtUtc
+            item.CreatedAtUtc,
         }).ToArray()));
     }
 
-    private static async Task<IResult> Import(CatalogImportInput input, LearnPipDbContext db,
+    private static async Task<IResult> Import(
+        CatalogImportInput input,
+        LearnPipDbContext db,
         CancellationToken ct)
     {
         if (!Valid(input.Code, 80) || !Valid(input.Title, 200) ||
@@ -106,13 +120,22 @@ public static class ExamEndpoints
                 item.Answers.Any(answer => !Valid(answer, 4000)) ||
                 item.CorrectIndex < 0 || item.CorrectIndex >= item.Answers.Count ||
                 item.Kind is not ("original" or "variant") ||
-                item.Kind == "original" && item.BaseCode != null ||
-                item.Kind == "variant" && (!Valid(item.BaseCode, 80) ||
+                (item.Kind == "original" && item.BaseCode != null) ||
+                (item.Kind == "variant" && (!Valid(item.BaseCode, 80) ||
                     !input.Questions.Any(original => original.Code == item.BaseCode &&
-                        original.Kind == "original" && original.PartCode == item.PartCode))))
+                        original.Kind == "original" && original.PartCode == item.PartCode)))))
+        {
             return Invalid("catalog", "Provide a source, compatible reuse license and valid unique questions.");
-        if (await db.OfficialCatalogEditions.AnyAsync(item => item.Code == input.Code &&
-            item.Revision == input.Revision, ct)) return Results.Conflict();
+        }
+
+        if (await db.OfficialCatalogEditions.AnyAsync(
+            item => item.Code == input.Code &&
+            item.Revision == input.Revision,
+            ct))
+        {
+            return Results.Conflict();
+        }
+
         var edition = new OfficialCatalogEdition
         {
             Code = input.Code.Trim(),
@@ -122,24 +145,28 @@ public static class ExamEndpoints
             License = input.License,
             Attribution = input.Attribution.Trim(),
             ChangedOn = input.ChangedOn,
-            QuestionsJson = JsonSerializer.Serialize(input.Questions, Json)
+            QuestionsJson = JsonSerializer.Serialize(input.Questions, Json),
         };
         db.OfficialCatalogEditions.Add(edition);
         await db.SaveChangesAsync(ct);
-        return Results.Created($"/api/v1/exams/catalogs", new ApiResponse<object>(new
-        {
-            edition.Id,
-            edition.Code,
-            edition.Revision,
-            Count = input.Questions.Count
-        }));
+        return Results.Created(
+            $"/api/v1/exams/catalogs",
+            new ApiResponse<object>(new
+            {
+                edition.Id,
+                edition.Code,
+                edition.Revision,
+                Count = input.Questions.Count,
+            }));
     }
 
-    private static async Task<IResult> PublishProfile(ProfileInput input, LearnPipDbContext db,
+    private static async Task<IResult> PublishProfile(
+        ProfileInput input,
+        LearnPipDbContext db,
         CancellationToken ct)
     {
         if (!Valid(input.Code, 80) || !Valid(input.Title, 200) ||
-            input.AmateurClass is not ({ Length: 0 } or "N" or "E" or "A") ||
+            input.AmateurClass is not ("" or "N" or "E" or "A") ||
             input.Parts is not { Count: > 0 and <= 20 } ||
             input.Parts.Select(part => part.Code).Distinct(StringComparer.Ordinal).Count() !=
             input.Parts.Count || input.Parts.Any(part =>
@@ -147,13 +174,19 @@ public static class ExamEndpoints
                 !Valid(part.CatalogPartCode, 32) || part.QuestionCount is < 1 or > 100 ||
                 part.TimeLimitMinutes is < 1 or > 240 ||
                 part.RequiredCorrect < 1 || part.RequiredCorrect > part.QuestionCount ||
-                part.CreditCode != null && !Credits.Contains(part.CreditCode) ||
-                input.AmateurClass != string.Empty && !part.ShuffleAnswers))
+                (part.CreditCode != null && !Credits.Contains(part.CreditCode)) ||
+                (input.AmateurClass != string.Empty && !part.ShuffleAnswers)))
+        {
             return Invalid("profile", "Provide unique sections with valid counts, limits and pass rules.");
+        }
+
         if (input.AmateurClass != string.Empty && (input.Parts.Count != 3 ||
             input.Parts.Select(part => part.CreditCode).ToHashSet().SetEquals(
                 ["B", "V", "T-" + input.AmateurClass]) == false))
+        {
             return Invalid("parts", "Amateur radio profiles require B, V and the matching technical part.");
+        }
+
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var sessions = input.Sessions ?? [];
         if (sessions.Count > 100 || sessions.Any(session =>
@@ -161,21 +194,31 @@ public static class ExamEndpoints
                 session.CheckedOn > today || session.Date < session.CheckedOn ||
                 session.RegistrationDeadline > session.Date) ||
             sessions.Select(session => (session.Date, session.Place)).Distinct().Count() !=
-                sessions.Count || sessions.Count > 0 &&
+                sessions.Count || (sessions.Count > 0 &&
             (!Https(input.RulesSourceUrl) || input.RulesCheckedOn is null ||
-                input.RulesCheckedOn > today) ||
-            (input.RulesSourceUrl != null || input.RulesCheckedOn != null) &&
+                input.RulesCheckedOn > today)) ||
+            ((input.RulesSourceUrl != null || input.RulesCheckedOn != null) &&
             (!Https(input.RulesSourceUrl) || input.RulesCheckedOn is null ||
-                input.RulesCheckedOn > today))
+                input.RulesCheckedOn > today)))
+        {
             return Invalid("sessions", "Verify dates, source URLs, checked dates and rules before publishing.");
+        }
+
         var edition = await db.OfficialCatalogEditions.AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == input.CatalogEditionId, ct);
-        if (edition == null) return Results.NotFound();
+        if (edition == null)
+        {
+            return Results.NotFound();
+        }
+
         var questions = Parse<CatalogQuestion>(edition.QuestionsJson);
         if (input.Parts.Any(part => questions.Count(question =>
                 question.PartCode == part.CatalogPartCode && question.Kind == "original") <
                 part.QuestionCount))
+        {
             return Invalid("parts", "The catalog edition has too few questions for a section.");
+        }
+
         var version = (await db.ExamProfileVersions.Where(item => item.Code == input.Code)
             .Select(item => (int?)item.Version).MaxAsync(ct) ?? 0) + 1;
         var profile = new ExamProfileVersion
@@ -188,72 +231,116 @@ public static class ExamEndpoints
             PartsJson = JsonSerializer.Serialize(input.Parts, Json),
             ScheduleJson = JsonSerializer.Serialize(sessions, Json),
             RulesSourceUrl = input.RulesSourceUrl,
-            RulesCheckedOn = input.RulesCheckedOn
+            RulesCheckedOn = input.RulesCheckedOn,
         };
         db.ExamProfileVersions.Add(profile);
         await db.SaveChangesAsync(ct);
-        return Results.Created("/api/v1/exams/profiles", new ApiResponse<object>(new
-        {
-            profile.Id,
-            profile.Code,
-            profile.Version
-        }));
+        return Results.Created(
+            "/api/v1/exams/profiles",
+            new ApiResponse<object>(new
+            {
+                profile.Id,
+                profile.Code,
+                profile.Version,
+            }));
     }
 
-    private static async Task<IResult> ReadCredits(LearnPipDbContext db, ClaimsPrincipal user,
+    private static async Task<IResult> ReadCredits(
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
         CancellationToken ct)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         var items = await db.AccountExamCredits.AsNoTracking()
             .Where(item => item.AccountId == accountId).OrderBy(item => item.Code)
             .Select(item => new { item.Code, item.ReportedAtUtc }).ToListAsync(ct);
         return Results.Ok(new ApiResponse<object>(items));
     }
 
-    private static async Task<IResult> AddCredit(CreditInput input, LearnPipDbContext db,
-        ClaimsPrincipal user, CancellationToken ct)
+    private static async Task<IResult> AddCredit(
+        CreditInput input,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken ct)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
-        if (!Credits.Contains(input.Code)) return Invalid("code", "Choose B, V, T-N, T-E or T-A.");
-        if (!await db.AccountExamCredits.AnyAsync(item => item.AccountId == accountId &&
-                item.Code == input.Code, ct))
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!Credits.Contains(input.Code))
+        {
+            return Invalid("code", "Choose B, V, T-N, T-E or T-A.");
+        }
+
+        if (!await db.AccountExamCredits.AnyAsync(
+            item => item.AccountId == accountId &&
+                item.Code == input.Code,
+            ct))
         {
             db.AccountExamCredits.Add(new AccountExamCredit { AccountId = accountId, Code = input.Code });
             await db.SaveChangesAsync(ct);
         }
+
         return Results.NoContent();
     }
 
-    private static async Task<IResult> RemoveCredit(string code, LearnPipDbContext db,
-        ClaimsPrincipal user, CancellationToken ct)
+    private static async Task<IResult> RemoveCredit(
+        string code,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken ct)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         await db.AccountExamCredits.Where(item => item.AccountId == accountId &&
             item.Code == code).ExecuteDeleteAsync(ct);
         return Results.NoContent();
     }
 
-    private static async Task<IResult> Start(StartSimulationInput input, LearnPipDbContext db,
-        ClaimsPrincipal user, CancellationToken ct)
+    private static async Task<IResult> Start(
+        StartSimulationInput input,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken ct)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         var profile = await db.ExamProfileVersions.AsNoTracking().Include(item => item.CatalogEdition)
             .SingleOrDefaultAsync(item => item.Id == input.ProfileVersionId, ct);
-        if (profile == null) return Results.NotFound();
+        if (profile == null)
+        {
+            return Results.NotFound();
+        }
+
         if (!ValidMode(input.QuestionMode, Parse<ProfilePart>(profile.PartsJson)))
+        {
             return Invalid("questionMode", "This profile does not support the selected question mode.");
+        }
+
         var credits = (await db.AccountExamCredits.AsNoTracking()
             .Where(item => item.AccountId == accountId).Select(item => item.Code)
             .ToListAsync(ct)).ToHashSet();
         var catalog = Parse<CatalogQuestion>(profile.CatalogEdition.QuestionsJson);
         if (!HasEnough(catalog, Parse<ProfilePart>(profile.PartsJson), input.QuestionMode, false))
+        {
             return Invalid("questionMode", "The catalog has too few eligible questions.");
+        }
+
         var parts = Parse<ProfilePart>(profile.PartsJson).Select(rule =>
         {
             var credited = rule.CreditCode != null && credits.Contains(rule.CreditCode);
-            return new SnapshotPart(rule, credited, credited ? [] :
-                ExamQuestionSelection.Select(catalog, rule, input.QuestionMode,
-                    rule.QuestionCount, Random.Shared));
+            return new SnapshotPart(rule, credited, credited ? [] : ExamQuestionSelection.Select(catalog, rule, input.QuestionMode, rule.QuestionCount, Random.Shared));
         }).ToArray();
         var now = DateTimeOffset.UtcNow;
         var initialResults = parts.Where(part => part.Credited).Select(part =>
@@ -268,18 +355,25 @@ public static class ExamEndpoints
             CurrentPartIndex = current < 0 ? parts.Length : current,
             StartedAtUtc = now,
             PartStartedAtUtc = now,
-            CompletedAtUtc = current < 0 ? now : null
+            CompletedAtUtc = current < 0 ? now : null,
         };
         db.ExamSimulations.Add(simulation);
         await db.SaveChangesAsync(ct);
-        return Results.Created($"/api/v1/exams/simulations/{simulation.Id}",
+        return Results.Created(
+            $"/api/v1/exams/simulations/{simulation.Id}",
             new ApiResponse<SimulationView>(View(simulation, profile, parts)));
     }
 
-    private static async Task<IResult> History(LearnPipDbContext db, ClaimsPrincipal user,
+    private static async Task<IResult> History(
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
         CancellationToken ct)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         var rows = await db.ExamSimulations.AsNoTracking()
             .Where(item => item.AccountId == accountId && item.SnapshotJson.StartsWith("["))
             .OrderByDescending(item => item.StartedAtUtc)
@@ -288,42 +382,89 @@ public static class ExamEndpoints
                 item.Id,
                 item.ProfileVersionId,
                 item.StartedAtUtc,
-                item.CompletedAtUtc
+                item.CompletedAtUtc,
             }).ToListAsync(ct);
         return Results.Ok(new ApiResponse<object>(rows));
     }
 
-    private static async Task<IResult> ReadSimulation(Guid id, LearnPipDbContext db,
-        ClaimsPrincipal user, CancellationToken ct)
+    private static async Task<IResult> ReadSimulation(
+        Guid id,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken ct)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         var simulation = await db.ExamSimulations.AsNoTracking()
             .Include(item => item.ProfileVersion).ThenInclude(item => item.CatalogEdition)
             .SingleOrDefaultAsync(item => item.Id == id && item.AccountId == accountId, ct);
-        if (simulation == null) return Results.NotFound();
-        if (!simulation.SnapshotJson.StartsWith('[')) return Results.NotFound();
-        return Results.Ok(new ApiResponse<SimulationView>(View(simulation, simulation.ProfileVersion,
-            Parse<SnapshotPart>(simulation.SnapshotJson))));
+        if (simulation == null)
+        {
+            return Results.NotFound();
+        }
+
+        if (!simulation.SnapshotJson.StartsWith('['))
+        {
+            return Results.NotFound();
+        }
+
+        return Results.Ok(new ApiResponse<SimulationView>(View(
+                    simulation,
+                    simulation.ProfileVersion,
+                    Parse<SnapshotPart>(simulation.SnapshotJson))));
     }
 
-    private static async Task<IResult> Answer(Guid id, string questionCode, AnswerSimulationInput input,
-        LearnPipDbContext db, ClaimsPrincipal user, CancellationToken ct)
+    private static async Task<IResult> Answer(
+        Guid id,
+        string questionCode,
+        AnswerSimulationInput input,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken ct)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var simulation = await Locked(db, id, accountId, ct);
-        if (simulation == null) return Results.NotFound();
-        if (!simulation.SnapshotJson.StartsWith('[')) return Results.NotFound();
+        if (simulation == null)
+        {
+            return Results.NotFound();
+        }
+
+        if (!simulation.SnapshotJson.StartsWith('['))
+        {
+            return Results.NotFound();
+        }
+
         var parts = Parse<SnapshotPart>(simulation.SnapshotJson);
         if (simulation.CompletedAtUtc != null || simulation.CurrentPartIndex >= parts.Count)
+        {
             return Results.Conflict();
+        }
+
         var part = parts[simulation.CurrentPartIndex];
         var question = part.Questions.SingleOrDefault(item => item.Code == questionCode);
-        if (question == null) return Results.NotFound();
+        if (question == null)
+        {
+            return Results.NotFound();
+        }
+
         if (DateTimeOffset.UtcNow > simulation.PartStartedAtUtc.AddMinutes(part.Rule.TimeLimitMinutes))
+        {
             return Results.Conflict(new { error = "Time limit reached; finish this section." });
+        }
+
         if (input.SelectedIndex < 0 || input.SelectedIndex >= question.Answers.Count)
+        {
             return Invalid("selectedIndex", "Choose one of this question's answer indices.");
+        }
+
         var answers = JsonSerializer.Deserialize<Dictionary<string, int>>(simulation.AnswersJson, Json)!;
         answers[questionCode] = input.SelectedIndex;
         simulation.AnswersJson = JsonSerializer.Serialize(answers, Json);
@@ -332,19 +473,42 @@ public static class ExamEndpoints
         return Results.NoContent();
     }
 
-    private static async Task<IResult> FinishPart(Guid id, string partCode, LearnPipDbContext db,
-        ClaimsPrincipal user, CancellationToken ct)
+    private static async Task<IResult> FinishPart(
+        Guid id,
+        string partCode,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken ct)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var simulation = await Locked(db, id, accountId, ct);
-        if (simulation == null) return Results.NotFound();
-        if (!simulation.SnapshotJson.StartsWith('[')) return Results.NotFound();
+        if (simulation == null)
+        {
+            return Results.NotFound();
+        }
+
+        if (!simulation.SnapshotJson.StartsWith('['))
+        {
+            return Results.NotFound();
+        }
+
         var parts = Parse<SnapshotPart>(simulation.SnapshotJson);
         if (simulation.CompletedAtUtc != null || simulation.CurrentPartIndex >= parts.Count)
+        {
             return Results.Conflict();
+        }
+
         var part = parts[simulation.CurrentPartIndex];
-        if (part.Rule.Code != partCode) return Results.NotFound();
+        if (part.Rule.Code != partCode)
+        {
+            return Results.NotFound();
+        }
+
         var answers = JsonSerializer.Deserialize<Dictionary<string, int>>(simulation.AnswersJson, Json)!;
         var now = DateTimeOffset.UtcNow;
         var timedOut = now > simulation.PartStartedAtUtc.AddMinutes(part.Rule.TimeLimitMinutes);
@@ -354,7 +518,11 @@ public static class ExamEndpoints
         var next = parts.FindIndex(simulation.CurrentPartIndex + 1, item => !item.Credited);
         simulation.CurrentPartIndex = next < 0 ? parts.Count : next;
         simulation.PartStartedAtUtc = now;
-        if (next < 0) simulation.CompletedAtUtc = now;
+        if (next < 0)
+        {
+            simulation.CompletedAtUtc = now;
+        }
+
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
         var profile = await db.ExamProfileVersions.AsNoTracking().Include(item => item.CatalogEdition)
@@ -363,11 +531,14 @@ public static class ExamEndpoints
     }
 
     private static bool ValidMode(string mode, IReadOnlyList<ProfilePart> parts) =>
-        mode == "original" || mode is "variant" or "mixed" &&
-        parts.All(part => part.AllowVariants);
+        mode == "original" || (mode is "variant" or "mixed" &&
+        parts.All(part => part.AllowVariants));
 
-    private static bool HasEnough(IReadOnlyList<CatalogQuestion> catalog,
-        IReadOnlyList<ProfilePart> parts, string mode, bool all) => parts.All(part =>
+    private static bool HasEnough(
+        IReadOnlyList<CatalogQuestion> catalog,
+        IReadOnlyList<ProfilePart> parts,
+        string mode,
+        bool all) => parts.All(part =>
         catalog.Where(question => question.PartCode == part.CatalogPartCode &&
             (mode == "variant" ? question.Kind == "variant" : question.Kind == "original"))
             .Select(question => question.BaseCode ?? question.Code).Distinct().Count() >=
@@ -379,38 +550,69 @@ public static class ExamEndpoints
     private static IReadOnlyList<CatalogQuestion> PowerQuestions(PowerSnapshot snapshot) =>
         snapshot.Parts.SelectMany(part => part.Questions).ToArray();
 
-    private static async Task<IResult> StartPower(StartPowerTestInput input, LearnPipDbContext db,
-        ClaimsPrincipal user, CancellationToken ct)
+    private static async Task<IResult> StartPower(
+        StartPowerTestInput input,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken ct)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         var profile = await db.ExamProfileVersions.AsNoTracking().Include(item => item.CatalogEdition)
             .SingleOrDefaultAsync(item => item.Id == input.ProfileVersionId, ct);
-        if (profile == null) return Results.NotFound();
+        if (profile == null)
+        {
+            return Results.NotFound();
+        }
+
         var rules = Parse<ProfilePart>(profile.PartsJson);
         var catalog = Parse<CatalogQuestion>(profile.CatalogEdition.QuestionsJson);
         if (input.StageSize is < 1 or > 100 || !ValidMode(input.QuestionMode, rules) ||
             !HasEnough(catalog, rules, input.QuestionMode, true))
+        {
             return Invalid("powerTest", "Choose an available question mode and stage size (1–100).");
-        var snapshot = new PowerSnapshot(input.QuestionMode, input.StageSize, rules.Select(rule =>
-            new SnapshotPart(rule, false, ExamQuestionSelection.Select(catalog, rule,
-                input.QuestionMode, null, Random.Shared))).ToArray());
+        }
+
+        var snapshot = new PowerSnapshot(
+            input.QuestionMode,
+            input.StageSize,
+            rules.Select(rule =>
+            new SnapshotPart(
+                    rule,
+                    false,
+                    ExamQuestionSelection.Select(
+                        catalog,
+                        rule,
+                        input.QuestionMode,
+                        null,
+                        Random.Shared))).ToArray());
         var run = new ExamSimulation
         {
             AccountId = accountId,
             ProfileVersionId = profile.Id,
             SnapshotJson = JsonSerializer.Serialize(snapshot, Json),
-            CurrentPartIndex = 0
+            CurrentPartIndex = 0,
         };
         db.ExamSimulations.Add(run);
         await db.SaveChangesAsync(ct);
-        return Results.Created($"/api/v1/exams/power-tests/{run.Id}",
+        return Results.Created(
+            $"/api/v1/exams/power-tests/{run.Id}",
             new ApiResponse<PowerView>(PowerViewFor(run, profile, snapshot)));
     }
 
-    private static async Task<IResult> PowerHistory(LearnPipDbContext db, ClaimsPrincipal user,
+    private static async Task<IResult> PowerHistory(
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
         CancellationToken ct)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         var rows = await db.ExamSimulations.AsNoTracking()
             .Where(item => item.AccountId == accountId && item.SnapshotJson.StartsWith("{"))
             .OrderByDescending(item => item.StartedAtUtc).Take(50)
@@ -419,38 +621,74 @@ public static class ExamEndpoints
                 item.Id,
                 item.ProfileVersionId,
                 item.StartedAtUtc,
-                item.CompletedAtUtc
+                item.CompletedAtUtc,
             }).ToListAsync(ct);
         return Results.Ok(new ApiResponse<object>(rows));
     }
 
-    private static async Task<IResult> ReadPower(Guid id, LearnPipDbContext db,
-        ClaimsPrincipal user, CancellationToken ct)
+    private static async Task<IResult> ReadPower(
+        Guid id,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken ct)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         var run = await db.ExamSimulations.AsNoTracking().Include(item => item.ProfileVersion)
             .ThenInclude(item => item.CatalogEdition)
             .SingleOrDefaultAsync(item => item.Id == id && item.AccountId == accountId, ct);
-        if (run == null || !run.SnapshotJson.StartsWith('{')) return Results.NotFound();
-        return Results.Ok(new ApiResponse<PowerView>(PowerViewFor(run, run.ProfileVersion,
-            JsonSerializer.Deserialize<PowerSnapshot>(run.SnapshotJson, Json)!)));
+        if (run == null || !run.SnapshotJson.StartsWith('{'))
+        {
+            return Results.NotFound();
+        }
+
+        return Results.Ok(new ApiResponse<PowerView>(PowerViewFor(
+                    run,
+                    run.ProfileVersion,
+                    JsonSerializer.Deserialize<PowerSnapshot>(run.SnapshotJson, Json)!)));
     }
 
-    private static async Task<IResult> AnswerPower(Guid id, string questionCode,
-        AnswerSimulationInput input, LearnPipDbContext db, ClaimsPrincipal user,
+    private static async Task<IResult> AnswerPower(
+        Guid id,
+        string questionCode,
+        AnswerSimulationInput input,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
         CancellationToken ct)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var run = await Locked(db, id, accountId, ct);
-        if (run == null || !run.SnapshotJson.StartsWith('{')) return Results.NotFound();
-        if (run.CompletedAtUtc != null) return Results.Conflict();
+        if (run == null || !run.SnapshotJson.StartsWith('{'))
+        {
+            return Results.NotFound();
+        }
+
+        if (run.CompletedAtUtc != null)
+        {
+            return Results.Conflict();
+        }
+
         var snapshot = JsonSerializer.Deserialize<PowerSnapshot>(run.SnapshotJson, Json)!;
         var question = PowerQuestions(snapshot).Skip(run.CurrentPartIndex * snapshot.StageSize)
             .Take(snapshot.StageSize).SingleOrDefault(item => item.Code == questionCode);
-        if (question == null) return Results.NotFound();
+        if (question == null)
+        {
+            return Results.NotFound();
+        }
+
         if (input.SelectedIndex < 0 || input.SelectedIndex >= question.Answers.Count)
+        {
             return Invalid("selectedIndex", "Choose one of this question's answer indices.");
+        }
+
         var answers = Answers(run);
         answers[questionCode] = input.SelectedIndex;
         run.AnswersJson = JsonSerializer.Serialize(answers, Json);
@@ -459,18 +697,36 @@ public static class ExamEndpoints
         return Results.NoContent();
     }
 
-    private static async Task<IResult> FinishPowerStage(Guid id, LearnPipDbContext db,
-        ClaimsPrincipal user, CancellationToken ct)
+    private static async Task<IResult> FinishPowerStage(
+        Guid id,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken ct)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var run = await Locked(db, id, accountId, ct);
-        if (run == null || !run.SnapshotJson.StartsWith('{')) return Results.NotFound();
-        if (run.CompletedAtUtc != null) return Results.Conflict();
+        if (run == null || !run.SnapshotJson.StartsWith('{'))
+        {
+            return Results.NotFound();
+        }
+
+        if (run.CompletedAtUtc != null)
+        {
+            return Results.Conflict();
+        }
+
         var snapshot = JsonSerializer.Deserialize<PowerSnapshot>(run.SnapshotJson, Json)!;
         run.CurrentPartIndex++;
         if (run.CurrentPartIndex * snapshot.StageSize >= PowerQuestions(snapshot).Count)
+        {
             run.CompletedAtUtc = DateTimeOffset.UtcNow;
+        }
+
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
         var profile = await db.ExamProfileVersions.AsNoTracking().Include(item => item.CatalogEdition)
@@ -478,7 +734,9 @@ public static class ExamEndpoints
         return Results.Ok(new ApiResponse<PowerView>(PowerViewFor(run, profile, snapshot)));
     }
 
-    private static PowerView PowerViewFor(ExamSimulation run, ExamProfileVersion profile,
+    private static PowerView PowerViewFor(
+        ExamSimulation run,
+        ExamProfileVersion profile,
         PowerSnapshot snapshot)
     {
         var all = PowerQuestions(snapshot);
@@ -487,35 +745,53 @@ public static class ExamEndpoints
             .Take(snapshot.StageSize).ToArray() : [];
         PowerMistake[] mistakes = run.CompletedAtUtc == null ? [] : snapshot.Parts.SelectMany(part =>
             part.Questions.Where(question => !answers.TryGetValue(question.Code, out var index) ||
-                index != question.CorrectIndex).Select(question => new PowerMistake(question.Code,
-                    part.Rule.Code, question.Prompt,
-                    answers.TryGetValue(question.Code, out var selected) ?
-                        question.Answers[selected] : null,
+                index != question.CorrectIndex).Select(question => new PowerMistake(
+                    question.Code,
+                    part.Rule.Code,
+                    question.Prompt,
+                    answers.TryGetValue(question.Code, out var selected) ? question.Answers[selected] : null,
                     question.Answers[question.CorrectIndex]))).ToArray();
         PowerPartResult[] results = run.CompletedAtUtc == null ? [] : snapshot.Parts.Select(part =>
-            new PowerPartResult(part.Rule.Code, part.Questions.Count(question =>
+            new PowerPartResult(
+                part.Rule.Code,
+                part.Questions.Count(question =>
                 answers.TryGetValue(question.Code, out var selected) &&
-                selected == question.CorrectIndex), part.Questions.Count)).ToArray();
-        return new PowerView(run.Id, profile.Id, profile.Code, profile.CatalogEdition.Revision,
-            snapshot.QuestionMode, Math.Min(run.CurrentPartIndex + 1,
+                selected == question.CorrectIndex),
+                part.Questions.Count)).ToArray();
+        return new PowerView(
+            run.Id,
+            profile.Id,
+            profile.Code,
+            profile.CatalogEdition.Revision,
+            snapshot.QuestionMode,
+            Math.Min(
+                run.CurrentPartIndex + 1,
                 (all.Count + snapshot.StageSize - 1) / snapshot.StageSize),
-            (all.Count + snapshot.StageSize - 1) / snapshot.StageSize, run.CompletedAtUtc,
+            (all.Count + snapshot.StageSize - 1) / snapshot.StageSize,
+            run.CompletedAtUtc,
             current.Select(question => (object)new
             {
                 question.Code,
                 question.Prompt,
-                question.Answers
-            }).ToArray(), current.Where(question => answers.ContainsKey(question.Code))
+                question.Answers,
+            }).ToArray(),
+            current.Where(question => answers.ContainsKey(question.Code))
                 .ToDictionary(question => question.Code, question => answers[question.Code]),
-            results, mistakes);
+            results,
+            mistakes);
     }
 
-    private static Task<ExamSimulation?> Locked(LearnPipDbContext db, Guid id, Guid accountId,
+    private static Task<ExamSimulation?> Locked(
+        LearnPipDbContext db,
+        Guid id,
+        Guid accountId,
         CancellationToken ct) => db.ExamSimulations.FromSqlInterpolated(
             $"SELECT * FROM \"ExamSimulations\" WHERE \"Id\" = {id} AND \"AccountId\" = {accountId} FOR UPDATE")
             .SingleOrDefaultAsync(ct);
 
-    private static SimulationView View(ExamSimulation simulation, ExamProfileVersion profile,
+    private static SimulationView View(
+        ExamSimulation simulation,
+        ExamProfileVersion profile,
         IReadOnlyList<SnapshotPart> parts)
     {
         var active = simulation.CompletedAtUtc == null ? parts[simulation.CurrentPartIndex] : null;
@@ -524,24 +800,32 @@ public static class ExamEndpoints
         {
             question.Code,
             question.Prompt,
-            question.Answers
+            question.Answers,
         }).ToArray() ?? [];
-        return new SimulationView(simulation.Id, profile.Id, profile.Version, profile.Code,
-            profile.CatalogEdition.Revision, simulation.StartedAtUtc, simulation.CompletedAtUtc,
-            active?.Rule.Code, active == null ? null :
-                simulation.PartStartedAtUtc.AddMinutes(active.Rule.TimeLimitMinutes),
-            visible, results, simulation.CompletedAtUtc == null ? null :
-                ExamScoring.Passed(parts, results), active == null ?
-                new Dictionary<string, int>() : Answers(simulation).Where(pair =>
-                    active.Questions.Any(question => question.Code == pair.Key))
-                    .ToDictionary(pair => pair.Key, pair => pair.Value));
+        return new SimulationView(
+            simulation.Id,
+            profile.Id,
+            profile.Version,
+            profile.Code,
+            profile.CatalogEdition.Revision,
+            simulation.StartedAtUtc,
+            simulation.CompletedAtUtc,
+            active?.Rule.Code,
+            active == null ? null : simulation.PartStartedAtUtc.AddMinutes(active.Rule.TimeLimitMinutes),
+            visible,
+            results,
+            simulation.CompletedAtUtc == null ? null : ExamScoring.Passed(parts, results),
+            active == null ? new Dictionary<string, int>() : Answers(simulation).Where(pair => active.Questions.Any(question => question.Code == pair.Key)).ToDictionary(pair => pair.Key, pair => pair.Value));
     }
 
     private static List<T> Parse<T>(string json) => JsonSerializer.Deserialize<List<T>>(json, Json)!;
+
     private static bool Valid(string? value, int max) =>
         !string.IsNullOrWhiteSpace(value) && value.Length <= max;
+
     private static bool Https(string? value) => value is { Length: <= 1000 } &&
         Uri.TryCreate(value, UriKind.Absolute, out var url) && url.Scheme == Uri.UriSchemeHttps;
+
     private static IResult Invalid(string key, string error) => Results.ValidationProblem(
         new Dictionary<string, string[]> { [key] = [error] });
 }

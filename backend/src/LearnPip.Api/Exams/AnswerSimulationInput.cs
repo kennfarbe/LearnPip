@@ -10,4 +10,9 @@ using LearnPip.Data.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Exams;
+
+/// <summary>
+/// Antwort auf eine Frage der Prüfungssimulation.
+/// </summary>
+/// <param name="SelectedIndex">Der Index der gewählten Antwortoption.</param>
 public sealed record AnswerSimulationInput(int SelectedIndex);

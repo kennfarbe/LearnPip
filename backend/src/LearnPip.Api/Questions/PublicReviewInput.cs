@@ -10,5 +10,20 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
-public sealed record PublicReviewInput(string Decision, bool CorrectnessChecked,
-    bool ImageRightsChecked, bool PersonalDataChecked, bool DuplicateChecked, string Note);
+
+/// <summary>
+/// Moderationsprüfung einer eingereichten Fragenfassung.
+/// </summary>
+/// <param name="Decision">Die Moderationsentscheidung.</param>
+/// <param name="CorrectnessChecked">Gibt an, ob die fachliche Richtigkeit geprüft wurde.</param>
+/// <param name="ImageRightsChecked">Gibt an, ob die Bildrechte geprüft wurden.</param>
+/// <param name="PersonalDataChecked">Gibt an, ob personenbezogene Daten geprüft wurden.</param>
+/// <param name="DuplicateChecked">Gibt an, ob doppelte Inhalte geprüft wurden.</param>
+/// <param name="Note">Die Begründung der Moderationsentscheidung.</param>
+public sealed record PublicReviewInput(
+        string Decision,
+        bool CorrectnessChecked,
+        bool ImageRightsChecked,
+        bool PersonalDataChecked,
+        bool DuplicateChecked,
+        string Note);

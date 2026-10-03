@@ -10,4 +10,11 @@ using LearnPip.Data.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Exams;
+
+/// <summary>
+/// Richtige und gesamte Antworten eines Prüfungsteils im intensiven Test.
+/// </summary>
+/// <param name="Code">Der fachliche Bezeichner oder Bestätigungscode.</param>
+/// <param name="Correct">Die Anzahl richtiger Antworten.</param>
+/// <param name="Total">Die Gesamtanzahl der Einträge oder Fragen.</param>
 public sealed record PowerPartResult(string Code, int Correct, int Total);

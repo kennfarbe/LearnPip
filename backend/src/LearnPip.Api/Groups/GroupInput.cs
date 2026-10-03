@@ -11,4 +11,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Groups;
 
+/// <summary>
+/// Anfrage zum Anlegen oder Umbenennen einer Lerngruppe.
+/// </summary>
+/// <param name="Name">Der Anzeigename.</param>
 public sealed record GroupInput(string Name);

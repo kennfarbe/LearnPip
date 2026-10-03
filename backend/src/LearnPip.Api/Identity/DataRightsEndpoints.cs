@@ -10,8 +10,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Identity;
 
+/// <summary>
+/// Registriert HTTP-Endpunkte für den Datenexport und die Kontolöschung.
+/// </summary>
 public static class DataRightsEndpoints
 {
+    /// <summary>
+    /// Registriert die HTTP-Endpunkte für den Datenexport und die Kontolöschung.
+    /// </summary>
+    /// <param name="app">Der Routen-Builder der API.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     public static IEndpointRouteBuilder MapDataRightsEndpoints(this IEndpointRouteBuilder app)
     {
         var data = app.MapGroup("/api/v1/account").WithTags("Account data")
@@ -21,14 +29,25 @@ public static class DataRightsEndpoints
         return app;
     }
 
-    private static async Task<IResult> Export(ClaimsPrincipal user, LearnPipDbContext db,
-        HttpContext context, CancellationToken ct)
+    private static async Task<IResult> Export(
+        ClaimsPrincipal user,
+        LearnPipDbContext db,
+        HttpContext context,
+        CancellationToken ct)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var id)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var id))
+        {
+            return Results.Unauthorized();
+        }
+
         var account = await db.Accounts.AsNoTracking().Where(item => item.Id == id)
             .Select(item => new { item.Id, item.DisplayName, item.AgeBand, item.CreatedAtUtc })
             .SingleOrDefaultAsync(ct);
-        if (account == null) return Results.NotFound();
+        if (account == null)
+        {
+            return Results.NotFound();
+        }
+
         var identities = await db.ExternalIdentities.AsNoTracking()
             .Where(item => item.AccountId == id)
             .Select(item => new { item.Provider, item.Subject }).ToListAsync(ct);
@@ -77,18 +96,38 @@ public static class DataRightsEndpoints
         return Results.Json(new { generatedAtUtc = DateTimeOffset.UtcNow, account, identities, catalogs, questions, drafts, versions, answers, sessions, attempts, selections, media, groups, notice });
     }
 
-    private static async Task<IResult> Delete(DeleteAccountRequest input,
-        ClaimsPrincipal user, LearnPipDbContext db, AccountLifecycleService lifecycle,
-        HttpContext context, CancellationToken ct)
+    private static async Task<IResult> Delete(
+        DeleteAccountRequest input,
+        ClaimsPrincipal user,
+        LearnPipDbContext db,
+        AccountLifecycleService lifecycle,
+        HttpContext context,
+        CancellationToken ct)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var id)) return Results.Unauthorized();
-        if (input.Confirmation != "DELETE" || input.RecoverySecret is not { Length: 43 })
-            return Results.BadRequest();
-        var hash = SessionAuthentication.Hash(input.RecoverySecret);
-        if (!await db.RecoveryCredentials.AsNoTracking().AnyAsync(item =>
-                item.AccountId == id && item.SecretHash == hash, ct))
+        if (!AccountIdentity.TryGetAccountId(user, out var id))
+        {
             return Results.Unauthorized();
-        if (!await lifecycle.DeleteOwnAsync(id, ct)) return Results.NotFound();
+        }
+
+        if (input.Confirmation != "DELETE" || input.RecoverySecret is not { Length: 43 })
+        {
+            return Results.BadRequest();
+        }
+
+        var hash = SessionAuthentication.Hash(input.RecoverySecret);
+        if (!await db.RecoveryCredentials.AsNoTracking().AnyAsync(
+            item =>
+                item.AccountId == id && item.SecretHash == hash,
+            ct))
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!await lifecycle.DeleteOwnAsync(id, ct))
+        {
+            return Results.NotFound();
+        }
+
         SessionAuthentication.ClearCookie(context);
         return Results.NoContent();
     }

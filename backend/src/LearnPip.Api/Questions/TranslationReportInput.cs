@@ -14,4 +14,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
+/// <summary>
+/// Meldung eines Problems mit einer Übersetzung.
+/// </summary>
+/// <param name="Details">Die ergänzende Beschreibung der Meldung.</param>
 public sealed record TranslationReportInput(string Details);

@@ -10,4 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Security;
+/// <summary>
+/// Autorisierungsanforderung zum Lesen eines privaten Mediums.
+/// </summary>
 public sealed record MediaReadRequirement : IAuthorizationRequirement;

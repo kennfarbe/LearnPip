@@ -14,15 +14,32 @@ using Npgsql;
 
 namespace LearnPip.Api.Identity;
 
+/// <summary>
+/// Sendet Anmeldecodes über den konfigurierten SMTP-Server.
+/// </summary>
+/// <param name="configuration">Die Anwendungskonfiguration.</param>
 public sealed class SmtpEmailCodeSender(IConfiguration configuration) : IEmailCodeSender
 {
+    /// <summary>
+    /// Holt einen Wert, der angibt, ob der E-Mail-Versand konfiguriert ist.
+    /// </summary>
     public bool IsAvailable =>
         !string.IsNullOrWhiteSpace(configuration["Mail:Host"]) &&
         !string.IsNullOrWhiteSpace(configuration["Mail:From"]) &&
         !string.IsNullOrWhiteSpace(configuration["Mail:Username"]) &&
         !string.IsNullOrWhiteSpace(configuration["Mail:Password"]);
 
-    public async Task SendAsync(string email, string code, CancellationToken cancellationToken)
+    /// <summary>
+    /// Sendet einen Anmeldecode an die angegebene E-Mail-Adresse.
+    /// </summary>
+    /// <param name="email">Die E-Mail-Adresse des Kontos.</param>
+    /// <param name="code">Der Rollen-, Einladungs- oder Bestätigungscode.</param>
+    /// <param name="cancellationToken">Das Token zum Abbrechen der Operation.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
+    public async Task SendAsync(
+        string email,
+        string code,
+        CancellationToken cancellationToken)
     {
         if (!this.IsAvailable)
         {
@@ -30,18 +47,25 @@ public sealed class SmtpEmailCodeSender(IConfiguration configuration) : IEmailCo
         }
 
         var host = configuration["Mail:Host"]!;
-        var port = int.TryParse(configuration["Mail:Port"], out var configuredPort)
+        var port = int.TryParse(
+            configuration["Mail:Port"],
+            out var configuredPort)
             ? configuredPort : 587;
-        using var client = new SmtpClient(host, port)
+        using var client = new SmtpClient(
+            host,
+            port)
         {
             EnableSsl = true,
             Credentials = new NetworkCredential(
-                configuration["Mail:Username"], configuration["Mail:Password"])
+            configuration["Mail:Username"],
+            configuration["Mail:Password"]),
         };
-        using var message = new MailMessage(configuration["Mail:From"]!, email)
+        using var message = new MailMessage(
+            configuration["Mail:From"]!,
+            email)
         {
             Subject = "LearnPip Anmeldecode",
-            Body = $"Dein einmaliger LearnPip-Code lautet: {code}\nEr ist 10 Minuten gültig."
+            Body = $"Dein einmaliger LearnPip-Code lautet: {code}\nEr ist 10 Minuten gültig.",
         };
         await client.SendMailAsync(message, cancellationToken);
     }

@@ -13,4 +13,9 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Family;
+
+/// <summary>
+/// Anfrage zum Einlösen einer Familienverknüpfung.
+/// </summary>
+/// <param name="Token">Das Sitzungs- oder Einladungstoken.</param>
 public sealed record FamilyInviteInput(string Token);

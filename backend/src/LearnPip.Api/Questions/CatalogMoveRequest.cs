@@ -11,4 +11,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
+
+/// <summary>
+/// Anfrage zum Verschieben einer Frage in einen Katalog.
+/// </summary>
+/// <param name="CatalogId">Die Kennung des Katalogs, sofern zugeordnet.</param>
 public sealed record CatalogMoveRequest(Guid? CatalogId);

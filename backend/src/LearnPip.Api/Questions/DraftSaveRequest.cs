@@ -11,4 +11,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
+
+/// <summary>
+/// Anfrage zum Speichern eines Fragenentwurfs.
+/// </summary>
+/// <param name="Content">Der Inhalt der Fragenfassung.</param>
+/// <param name="CatalogId">Die Kennung des Katalogs, sofern zugeordnet.</param>
 public sealed record DraftSaveRequest(QuestionPublishRequest Content, Guid? CatalogId);

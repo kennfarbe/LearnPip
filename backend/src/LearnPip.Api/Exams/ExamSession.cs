@@ -10,5 +10,18 @@ using LearnPip.Data.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Exams;
-public sealed record ExamSession(DateOnly Date, string Place, DateOnly? RegistrationDeadline,
-    string SourceUrl, DateOnly CheckedOn);
+
+/// <summary>
+/// Prüfungstermin einschließlich Anmeldung und Quellenangabe.
+/// </summary>
+/// <param name="Date">Das Datum des Prüfungstermins.</param>
+/// <param name="Place">Der Prüfungsort.</param>
+/// <param name="RegistrationDeadline">Die Anmeldefrist, sofern bekannt.</param>
+/// <param name="SourceUrl">Die Adresse der Inhaltsquelle.</param>
+/// <param name="CheckedOn">Das Datum der letzten Prüfung.</param>
+public sealed record ExamSession(
+        DateOnly Date,
+        string Place,
+        DateOnly? RegistrationDeadline,
+        string SourceUrl,
+        DateOnly CheckedOn);

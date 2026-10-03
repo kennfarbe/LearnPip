@@ -12,4 +12,10 @@ using LearnPip.Data.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
+
+/// <summary>
+/// Antwortoption innerhalb einer Lernsitzung.
+/// </summary>
+/// <param name="Id">Die eindeutige Kennung.</param>
+/// <param name="Blocks">Die Inhaltsblöcke der Antwort.</param>
 public sealed record LearningOption(Guid Id, IReadOnlyList<ContentBlockOutput> Blocks);

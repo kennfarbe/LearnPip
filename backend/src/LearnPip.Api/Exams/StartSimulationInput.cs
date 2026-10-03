@@ -10,4 +10,10 @@ using LearnPip.Data.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Exams;
+
+/// <summary>
+/// Anfrage zum Start einer Prüfungssimulation.
+/// </summary>
+/// <param name="ProfileVersionId">Die Kennung der Prüfungsprofilversion.</param>
+/// <param name="QuestionMode">Der Modus für Originalfragen oder Varianten.</param>
 public sealed record StartSimulationInput(Guid ProfileVersionId, string QuestionMode = "original");

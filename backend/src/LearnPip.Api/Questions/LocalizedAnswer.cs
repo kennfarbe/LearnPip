@@ -14,4 +14,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
+/// <summary>
+/// Übersetzte Inhaltsblöcke einer Antwortoption.
+/// </summary>
+/// <param name="OptionId">Die Kennung der ursprünglichen Antwortoption.</param>
+/// <param name="Blocks">Die Inhaltsblöcke der Antwort.</param>
 public sealed record LocalizedAnswer(Guid OptionId, IReadOnlyList<LocalizedBlock> Blocks);

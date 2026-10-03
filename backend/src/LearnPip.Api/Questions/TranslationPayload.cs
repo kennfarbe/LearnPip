@@ -14,5 +14,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
-public sealed record TranslationPayload(IReadOnlyList<LocalizedBlock> Prompt,
-    IReadOnlyList<LocalizedBlock> Explanation, IReadOnlyList<LocalizedAnswer> Answers);
+
+/// <summary>
+/// Übersetzte Frage mit Antwort- und Erklärungsblöcken.
+/// </summary>
+/// <param name="Prompt">Die Text- oder Inhaltsblöcke der Frage.</param>
+/// <param name="Explanation">Die Erklärung zur Lösung.</param>
+/// <param name="Answers">Die Anzahl oder Zuordnung der Antworten.</param>
+public sealed record TranslationPayload(
+        IReadOnlyList<LocalizedBlock> Prompt,
+        IReadOnlyList<LocalizedBlock> Explanation,
+        IReadOnlyList<LocalizedAnswer> Answers);

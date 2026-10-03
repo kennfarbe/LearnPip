@@ -10,5 +10,14 @@ using LearnPip.Data.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Exams;
-public sealed record StartPowerTestInput(Guid ProfileVersionId, string QuestionMode = "original",
-    int StageSize = 25);
+
+/// <summary>
+/// Anfrage zum Start eines intensiven Prüfungstests.
+/// </summary>
+/// <param name="ProfileVersionId">Die Kennung der Prüfungsprofilversion.</param>
+/// <param name="QuestionMode">Der Modus für Originalfragen oder Varianten.</param>
+/// <param name="StageSize">Die Fragenanzahl pro Stufe.</param>
+public sealed record StartPowerTestInput(
+        Guid ProfileVersionId,
+        string QuestionMode = "original",
+        int StageSize = 25);

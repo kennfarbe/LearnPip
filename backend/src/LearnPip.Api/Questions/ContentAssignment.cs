@@ -9,4 +9,9 @@ using LearnPip.Data.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
+
+/// <summary>
+/// Zuordnung eines Lerninhalts zu seinem Lernstand und Fälligkeitstermin.
+/// </summary>
+/// <param name="ContentId">Die Kennung des Lerninhalts.</param>
 public sealed record ContentAssignment(Guid ContentId);

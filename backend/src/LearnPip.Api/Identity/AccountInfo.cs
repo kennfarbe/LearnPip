@@ -12,5 +12,16 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Identity;
-public sealed record AccountInfo(Guid Id, string? DisplayName,
-    DateTimeOffset LastActivityAtUtc, DateTimeOffset? DisabledAtUtc);
+
+/// <summary>
+/// Kontodaten einschließlich Altersgruppe und Anmeldeinformationen.
+/// </summary>
+/// <param name="Id">Die eindeutige Kennung.</param>
+/// <param name="DisplayName">Der Anzeigename des Kontos, sofern vorhanden.</param>
+/// <param name="LastActivityAtUtc">Der Zeitpunkt der letzten Aktivität in UTC.</param>
+/// <param name="DisabledAtUtc">Der Deaktivierungszeitpunkt in UTC, sofern vorhanden.</param>
+public sealed record AccountInfo(
+        Guid Id,
+        string? DisplayName,
+        DateTimeOffset LastActivityAtUtc,
+        DateTimeOffset? DisabledAtUtc);

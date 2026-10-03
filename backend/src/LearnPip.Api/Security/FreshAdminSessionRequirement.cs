@@ -10,4 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Security;
+/// <summary>
+/// Autorisierungsanforderung für eine kürzlich bestätigte Administratorsitzung.
+/// </summary>
 public sealed record FreshAdminSessionRequirement : IAuthorizationRequirement;

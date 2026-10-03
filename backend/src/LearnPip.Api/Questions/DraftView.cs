@@ -11,5 +11,17 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
-public sealed record DraftView(Guid QuestionId, Guid? CatalogId, int LatestVersion,
-    DateTimeOffset UpdatedAtUtc, QuestionPublishRequest Content);
+/// <summary>
+/// Übersicht eines Fragenentwurfs mit Katalogzuordnung.
+/// </summary>
+/// <param name="QuestionId">Die Kennung der Frage.</param>
+/// <param name="CatalogId">Die Kennung des Katalogs, sofern zugeordnet.</param>
+/// <param name="LatestVersion">Die neueste Fragenfassung, sofern vorhanden.</param>
+/// <param name="UpdatedAtUtc">Den letzten Änderungszeitpunkt in UTC.</param>
+/// <param name="Content">Der Inhalt der Fragenfassung.</param>
+public sealed record DraftView(
+        Guid QuestionId,
+        Guid? CatalogId,
+        int LatestVersion,
+        DateTimeOffset UpdatedAtUtc,
+        QuestionPublishRequest Content);

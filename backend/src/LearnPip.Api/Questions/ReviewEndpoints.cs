@@ -10,8 +10,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
 
+/// <summary>
+/// Registriert HTTP-Endpunkte für die fälligen Wiederholungen und deren Verlauf.
+/// </summary>
 public static class ReviewEndpoints
 {
+    /// <summary>
+    /// Registriert HTTP-Endpunkte für die fälligen Wiederholungen und deren Verlauf.
+    /// </summary>
+    /// <param name="app">Der Routen-Builder der API.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     public static IEndpointRouteBuilder MapReviewEndpoints(this IEndpointRouteBuilder app)
     {
         var learning = app.MapGroup("/api/v1/learning").WithTags("Adaptive review")
@@ -23,61 +31,17 @@ public static class ReviewEndpoints
         return app;
     }
 
-    private static async Task<IResult> Read(LearnPipDbContext db, ClaimsPrincipal user,
-        CancellationToken cancellationToken)
-    {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
-        var overview = await Load(db, accountId, cancellationToken);
-        return Results.Ok(new ApiResponse<ReviewOverview>(overview));
-    }
-
-    private static async Task<IResult> AddFrequent(Guid id, LearnPipDbContext db,
-        ClaimsPrincipal user, CancellationToken cancellationToken)
-    {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
-        if (!await db.LearningContents.AnyAsync(item => item.Id == id &&
-                item.OwnerAccountId == accountId, cancellationToken)) return Results.NotFound();
-        if (!await db.FrequentLearningContents.AnyAsync(item => item.AccountId == accountId &&
-                item.LearningContentId == id, cancellationToken))
-        {
-            db.FrequentLearningContents.Add(new FrequentLearningContent
-            {
-                AccountId = accountId,
-                LearningContentId = id
-            });
-            await db.SaveChangesAsync(cancellationToken);
-        }
-        return Results.NoContent();
-    }
-
-    private static async Task<IResult> RemoveFrequent(Guid id, LearnPipDbContext db,
-        ClaimsPrincipal user, CancellationToken cancellationToken)
-    {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
-        var item = await db.FrequentLearningContents.SingleOrDefaultAsync(row =>
-            row.LearningContentId == id && row.AccountId == accountId, cancellationToken);
-        if (item == null) return Results.NotFound();
-        db.FrequentLearningContents.Remove(item);
-        await db.SaveChangesAsync(cancellationToken);
-        return Results.NoContent();
-    }
-
-    private static async Task<IResult> AssignContent(Guid id, ContentAssignment request,
-        LearnPipDbContext db, ClaimsPrincipal user, CancellationToken cancellationToken)
-    {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
-        var question = await db.Questions.SingleOrDefaultAsync(item => item.Id == id &&
-            item.OwnerAccountId == accountId && item.DeletedAtUtc == null, cancellationToken);
-        if (question == null || !await db.LearningContents.AnyAsync(item =>
-                item.Id == request.ContentId && item.OwnerAccountId == accountId,
-                cancellationToken)) return Results.NotFound();
-        question.LearningContentId = request.ContentId;
-        await db.SaveChangesAsync(cancellationToken);
-        return Results.NoContent();
-    }
-
+    /// <summary>
+    /// Lädt den Wiederholungsstand mit den zugänglichen Fragenkandidaten.
+    /// </summary>
+    /// <param name="db">Der Datenbankkontext.</param>
+    /// <param name="accountId">Die Kennung des betroffenen Kontos.</param>
+    /// <param name="cancellationToken">Das Token zum Abbrechen der Operation.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     internal static async Task<(ReviewOverview Overview, List<ReviewCandidate> Candidates)> LoadWithCandidates(
-        LearnPipDbContext db, Guid accountId, CancellationToken cancellationToken)
+        LearnPipDbContext db,
+        Guid accountId,
+        CancellationToken cancellationToken)
     {
         var candidates = await db.Questions.AsNoTracking()
             .Where(question => question.OwnerAccountId == accountId && question.DeletedAtUtc == null)
@@ -92,12 +56,17 @@ public static class ReviewEndpoints
                 Subject = question.Versions.OrderByDescending(v => v.VersionNumber)
                     .Select(v => v.Subject).FirstOrDefault() ?? "Allgemein",
                 VersionId = question.Versions.OrderByDescending(v => v.VersionNumber)
-                    .Select(v => (Guid?)v.Id).FirstOrDefault()
+                    .Select(v => (Guid?)v.Id).FirstOrDefault(),
             })
             .Where(item => item.VersionId != null)
             .ToListAsync(cancellationToken);
-        var items = candidates.Select(item => new ReviewCandidate(item.Id, item.VersionId!.Value,
-            item.ContentId, item.Title, item.Subject, item.PrivateCatalogId)).ToList();
+        var items = candidates.Select(item => new ReviewCandidate(
+                item.Id,
+                item.VersionId!.Value,
+                item.ContentId,
+                item.Title,
+                item.Subject,
+                item.PrivateCatalogId)).ToList();
         var attempts = await db.StudyAttempts.AsNoTracking()
             .Where(item => item.StudySession.AccountId == accountId &&
                 item.QuestionVersion.Question.OwnerAccountId == accountId)
@@ -109,15 +78,16 @@ public static class ReviewEndpoints
                 item.WasGuessed,
                 item.ExplanationViewedAtUtc,
                 ContentId = item.QuestionVersion.Question.LearningContentId ??
-                    item.QuestionVersion.QuestionId
+                    item.QuestionVersion.QuestionId,
             }).ToListAsync(cancellationToken);
-        var events = attempts.GroupBy(item => item.ContentId).ToDictionary(group => group.Key,
+        var events = attempts.GroupBy(item => item.ContentId).ToDictionary(
+            group => group.Key,
             group => group.SelectMany(item => new[]
             {
                 new ReviewEvent(item.Id, item.AnsweredAtUtc, "answer", item.IsCorrect),
                 item.WasGuessed ? new ReviewEvent(item.Id, item.AnsweredAtUtc, "guess", false) : null,
                 item.ExplanationViewedAtUtc.HasValue ?
-                    new ReviewEvent(item.Id, item.ExplanationViewedAtUtc.Value, "explanation", false) : null
+                    new ReviewEvent(item.Id, item.ExplanationViewedAtUtc.Value, "explanation", false) : null,
             }.OfType<ReviewEvent>()).ToList());
         var frequent = (await db.FrequentLearningContents.AsNoTracking()
             .Where(item => item.AccountId == accountId).Select(item => item.LearningContentId)
@@ -125,16 +95,131 @@ public static class ReviewEndpoints
         var contents = items.GroupBy(item => item.ContentId).Select(group =>
         {
             var state = ReviewSchedule.Replay(events.GetValueOrDefault(group.Key) ?? []);
-            return new LearningContentView(group.Key, group.First().Title,
-                group.Select(item => item.QuestionId).ToArray(), frequent.Contains(group.Key),
-                state.ConfidentStreak, state.DueAtUtc, state.Mastered, state.Answers,
-                state.Guesses, state.ExplanationsViewed);
+            return new LearningContentView(
+                    group.Key,
+                    group.First().Title,
+                    group.Select(item => item.QuestionId).ToArray(),
+                    frequent.Contains(group.Key),
+                    state.ConfidentStreak,
+                    state.DueAtUtc,
+                    state.Mastered,
+                    state.Answers,
+                    state.Guesses,
+                    state.ExplanationsViewed);
         }).OrderBy(item => item.Title).ToArray();
-        return (new ReviewOverview(contents.Length, contents.Count(item => item.Mastered),
-            contents.Count(item => item.OftenForMe), contents), items);
+        return (new ReviewOverview(
+            contents.Length,
+            contents.Count(item => item.Mastered),
+            contents.Count(item => item.OftenForMe),
+            contents), items);
     }
 
-    private static async Task<ReviewOverview> Load(LearnPipDbContext db, Guid accountId,
+    private static async Task<IResult> Read(
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
+    {
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var overview = await Load(db, accountId, cancellationToken);
+        return Results.Ok(new ApiResponse<ReviewOverview>(overview));
+    }
+
+    private static async Task<IResult> AddFrequent(
+        Guid id,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
+    {
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!await db.LearningContents.AnyAsync(
+            item => item.Id == id &&
+                item.OwnerAccountId == accountId,
+            cancellationToken))
+        {
+            return Results.NotFound();
+        }
+
+        if (!await db.FrequentLearningContents.AnyAsync(
+            item => item.AccountId == accountId &&
+                item.LearningContentId == id,
+            cancellationToken))
+        {
+            db.FrequentLearningContents.Add(new FrequentLearningContent
+            {
+                AccountId = accountId,
+                LearningContentId = id,
+            });
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> RemoveFrequent(
+        Guid id,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
+    {
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var item = await db.FrequentLearningContents.SingleOrDefaultAsync(
+            row =>
+            row.LearningContentId == id && row.AccountId == accountId,
+            cancellationToken);
+        if (item == null)
+        {
+            return Results.NotFound();
+        }
+
+        db.FrequentLearningContents.Remove(item);
+        await db.SaveChangesAsync(cancellationToken);
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> AssignContent(
+        Guid id,
+        ContentAssignment request,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
+    {
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var question = await db.Questions.SingleOrDefaultAsync(
+            item => item.Id == id &&
+            item.OwnerAccountId == accountId && item.DeletedAtUtc == null,
+            cancellationToken);
+        if (question == null || !await db.LearningContents.AnyAsync(
+            item =>
+                item.Id == request.ContentId && item.OwnerAccountId == accountId,
+            cancellationToken))
+        {
+            return Results.NotFound();
+        }
+
+        question.LearningContentId = request.ContentId;
+        await db.SaveChangesAsync(cancellationToken);
+        return Results.NoContent();
+    }
+
+    private static async Task<ReviewOverview> Load(
+        LearnPipDbContext db,
+        Guid accountId,
         CancellationToken cancellationToken) =>
         (await LoadWithCandidates(db, accountId, cancellationToken)).Overview;
 }

@@ -12,4 +12,10 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Identity;
+
+/// <summary>
+/// Anfrage zur Bestätigung eines per E-Mail erhaltenen Anmeldecodes.
+/// </summary>
+/// <param name="Email">Die E-Mail-Adresse.</param>
+/// <param name="Code">Der fachliche Bezeichner oder Bestätigungscode.</param>
 public sealed record EmailCompleteRequest(string? Email, string? Code);

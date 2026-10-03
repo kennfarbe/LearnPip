@@ -17,7 +17,10 @@ namespace LearnPip.Api.Administration;
 /// <param name="configuration">Anwendungskonfiguration.</param>
 /// <param name="logger">Protokollierung.</param>
 public sealed class UpdateService(
-    LearnPipDbContext db, IHttpClientFactory clients, IConfiguration configuration, ILogger<UpdateService> logger)
+        LearnPipDbContext db,
+        IHttpClientFactory clients,
+        IConfiguration configuration,
+        ILogger<UpdateService> logger)
 {
     private const string Repo = "kennfarbe/LearnPip";
     private const string IntervalKey = "update_check_interval";
@@ -35,11 +38,30 @@ public sealed class UpdateService(
         get
         {
             var configured = configuration["LearnPip:Version"];
-            if (configured is not null && Stable.IsMatch(configured)) return configured;
+            if (configured is not null && Stable.IsMatch(configured))
+            {
+                return configured;
+            }
 
             var environment = Environment.GetEnvironmentVariable("LEARNPIP_VERSION");
             return environment is not null && Stable.IsMatch(environment) ? environment : "unknown";
         }
+    }
+
+    /// <summary>Vergleicht zwei stabile SemVer-Kennungen.</summary>
+    /// <param name="left">Erste Version.</param>
+    /// <param name="right">Zweite Version.</param>
+    /// <returns>Versionsvergleich als Ganzzahl.</returns>
+    public static int Compare(
+        string left,
+        string right)
+    {
+        if (!Stable.IsMatch(left) || !Stable.IsMatch(right))
+        {
+            return 0;
+        }
+
+        return SemVersion(left).CompareTo(SemVersion(right));
     }
 
     /// <summary>Prüft bei Fälligkeit auf ein neues stabiles Release.</summary>
@@ -48,10 +70,16 @@ public sealed class UpdateService(
     public async Task CheckScheduledAsync(CancellationToken ct)
     {
         var status = await this.StatusAsync(ct);
-        if (status.Interval == "never") return;
+        if (status.Interval == "never")
+        {
+            return;
+        }
+
         if (status.LastCheckedAtUtc is null || status.NextCheckAtUtc is null ||
             DateTimeOffset.UtcNow >= status.NextCheckAtUtc)
+        {
             await this.CheckAsync(true, ct);
+        }
     }
 
     /// <summary>Lädt den aktuellen Versions- und Auftragsstatus.</summary>
@@ -73,7 +101,12 @@ public sealed class UpdateService(
         {
             state = Compare(latest, this.InstalledVersion) > 0 ? "update_available" : "current";
         }
-        if (job is { State: "queued" or "running" }) state = "updating";
+
+        if (job is { State: "queued" or "running" })
+        {
+            state = "updating";
+        }
+
         return new(this.InstalledVersion, latest, state, interval, last, Next(last, interval), null, release, job);
     }
 
@@ -81,19 +114,29 @@ public sealed class UpdateService(
     /// <param name="force">Gibt an, ob das Prüfintervall ignoriert wird.</param>
     /// <param name="ct">Token zum Abbrechen.</param>
     /// <returns>Aktueller Versionsstatus.</returns>
-    public async Task<UpdateStatus> CheckAsync(bool force, CancellationToken ct)
+    public async Task<UpdateStatus> CheckAsync(
+        bool force,
+        CancellationToken ct)
     {
         var current = await this.StatusAsync(ct);
         if (!force && current.LastCheckedAtUtc is not null && current.NextCheckAtUtc is { } next &&
-            DateTimeOffset.UtcNow < next) return current;
+            DateTimeOffset.UtcNow < next)
+        {
+            return current;
+        }
+
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get,
+            using var request = new HttpRequestMessage(
+                HttpMethod.Get,
                 $"https://api.github.com/repos/{Repo}/releases?per_page=20");
             request.Headers.UserAgent.ParseAdd("LearnPip-update-checker/1");
             using var response = await clients.CreateClient("github-releases").SendAsync(request, ct);
             if (!response.IsSuccessStatusCode)
+            {
                 throw new HttpRequestException($"GitHub release metadata returned HTTP {(int)response.StatusCode}.");
+            }
+
             using var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
             var release = json.RootElement.EnumerateArray()
                 .Where(x => !x.GetProperty("draft").GetBoolean() && !x.GetProperty("prerelease").GetBoolean())
@@ -102,8 +145,7 @@ public sealed class UpdateService(
                     x.GetProperty("name").GetString() ?? x.GetProperty("tag_name").GetString() ?? string.Empty,
                     x.GetProperty("body").GetString() ?? string.Empty,
                     x.GetProperty("html_url").GetString() ?? string.Empty,
-                    x.TryGetProperty("published_at", out var p) && p.ValueKind == JsonValueKind.String
-                        ? p.GetDateTimeOffset() : null))
+                    x.TryGetProperty("published_at", out var p) && p.ValueKind == JsonValueKind.String ? p.GetDateTimeOffset() : null))
                 .Where(x => Stable.IsMatch(x.Version) &&
                     x.Url.StartsWith($"https://github.com/{Repo}/releases/", StringComparison.Ordinal))
                 .OrderByDescending(x => SemVersion(x.Version)).FirstOrDefault()
@@ -126,9 +168,15 @@ public sealed class UpdateService(
     /// <param name="interval">Gewähltes Intervall.</param>
     /// <param name="ct">Token zum Abbrechen.</param>
     /// <returns>Gibt an, ob das Intervall gültig ist.</returns>
-    public async Task<bool> SetIntervalAsync(string interval, CancellationToken ct)
+    public async Task<bool> SetIntervalAsync(
+        string interval,
+        CancellationToken ct)
     {
-        if (!Intervals.Contains(interval)) return false;
+        if (!Intervals.Contains(interval))
+        {
+            return false;
+        }
+
         await this.PutAsync(IntervalKey, interval, ct);
         return true;
     }
@@ -138,23 +186,39 @@ public sealed class UpdateService(
     /// <param name="target">Bestätigte Zielversion.</param>
     /// <param name="ct">Token zum Abbrechen.</param>
     /// <returns>Der angelegte Auftrag oder ein Fehlercode.</returns>
-    public async Task<(UpdateJob? Job, string? Error)> QueueAsync(Guid actor, string target, CancellationToken ct)
+    public async Task<(UpdateJob? Job, string? Error)> QueueAsync(
+        Guid actor,
+        string target,
+        CancellationToken ct)
     {
-        if (!Stable.IsMatch(target)) return (null, "invalid_version");
+        if (!Stable.IsMatch(target))
+        {
+            return (null, "invalid_version");
+        }
+
         var status = await this.CheckAsync(true, ct);
         if (status.Release?.Version != target || Compare(target, this.InstalledVersion) <= 0)
+        {
             return (null, "unverified_release");
+        }
+
         var queue = configuration["LearnPip:UpdateQueuePath"];
         var operatorStatus = configuration["LearnPip:UpdateStatusPath"];
         if (string.IsNullOrWhiteSpace(queue) || !Directory.Exists(queue) ||
             string.IsNullOrWhiteSpace(operatorStatus) || !Directory.Exists(operatorStatus))
+        {
             return (null, "operator_unavailable");
+        }
 
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         await db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(1049071811)", ct);
         var existing = Deserialize<UpdateJob>((await db.SystemSettings.AsNoTracking()
             .SingleOrDefaultAsync(x => x.Key == JobKey, ct))?.Value);
-        if (existing is { State: "queued" or "running" }) return (null, "update_in_progress");
+        if (existing is { State: "queued" or "running" })
+        {
+            return (null, "update_in_progress");
+        }
+
         var job = new UpdateJob { ActorAccountId = actor, FromVersion = this.InstalledVersion, TargetVersion = target };
         await this.PutAsync(JobKey, JsonSerializer.Serialize(job, JsonOptions), ct);
         db.AdministrationAuditEvents.Add(new AdministrationAuditEvent
@@ -163,7 +227,7 @@ public sealed class UpdateService(
             Action = "update.queued",
             Target = $"release:{target}",
             PreviousValue = this.InstalledVersion,
-            NewValue = target
+            NewValue = target,
         });
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
@@ -184,32 +248,30 @@ public sealed class UpdateService(
             await this.PutAsync(JobKey, JsonSerializer.Serialize(job, JsonOptions), ct);
             return (null, "operator_unavailable");
         }
+
         return (job, null);
     }
 
-    /// <summary>Vergleicht zwei stabile SemVer-Kennungen.</summary>
-    /// <param name="left">Erste Version.</param>
-    /// <param name="right">Zweite Version.</param>
-    /// <returns>Versionsvergleich als Ganzzahl.</returns>
-    public static int Compare(string left, string right)
-    {
-        if (!Stable.IsMatch(left) || !Stable.IsMatch(right)) return 0;
-        return SemVersion(left).CompareTo(SemVersion(right));
-    }
-
     private static Version SemVersion(string value) => Version.Parse(value[1..]);
+
     private static DateTimeOffset? ParseDate(string? value) =>
         DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var result) ? result : null;
+
     private static DateTimeOffset? Next(DateTimeOffset? last, string interval) => interval switch
     {
         "daily" => (last ?? DateTimeOffset.UtcNow).AddDays(1),
         "weekly" => (last ?? DateTimeOffset.UtcNow).AddDays(7),
         "monthly" => (last ?? DateTimeOffset.UtcNow).AddMonths(1),
-        _ => null
+        _ => null,
     };
+
     private static T? Deserialize<T>(string? value)
     {
-        if (string.IsNullOrWhiteSpace(value)) return default;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return default;
+        }
+
         try
         {
             return JsonSerializer.Deserialize<T>(value, JsonOptions);
@@ -220,7 +282,10 @@ public sealed class UpdateService(
         }
     }
 
-    private async Task PutAsync(string key, string value, CancellationToken ct)
+    private async Task PutAsync(
+        string key,
+        string value,
+        CancellationToken ct)
     {
         var setting = await db.SystemSettings.SingleOrDefaultAsync(x => x.Key == key, ct);
         if (setting == null)
@@ -232,28 +297,47 @@ public sealed class UpdateService(
             setting.Value = value;
             setting.UpdatedAtUtc = DateTimeOffset.UtcNow;
         }
+
         await db.SaveChangesAsync(ct);
     }
 
     private async Task ImportOperatorStatusAsync(CancellationToken ct)
     {
         var dir = configuration["LearnPip:UpdateStatusPath"];
-        if (string.IsNullOrWhiteSpace(dir)) return;
+        if (string.IsNullOrWhiteSpace(dir))
+        {
+            return;
+        }
+
         var current = await db.SystemSettings.AsNoTracking().SingleOrDefaultAsync(x => x.Key == JobKey, ct);
         var job = Deserialize<UpdateJob>(current?.Value);
-        if (job is null) return;
+        if (job is null)
+        {
+            return;
+        }
+
         var path = Path.Combine(dir, $"{job.Id:N}.json");
-        if (!File.Exists(path)) return;
+        if (!File.Exists(path))
+        {
+            return;
+        }
+
         try
         {
             var updated = JsonSerializer.Deserialize<UpdateJob>(await File.ReadAllTextAsync(path, ct), JsonOptions);
-            if (updated is null || updated.Id != job.Id || updated.TargetVersion != job.TargetVersion) return;
+            if (updated is null || updated.Id != job.Id || updated.TargetVersion != job.TargetVersion)
+            {
+                return;
+            }
+
             await this.PutAsync(JobKey, JsonSerializer.Serialize(updated, JsonOptions), ct);
             if (updated.State is "succeeded" or "failed")
             {
                 var action = updated.State == "succeeded" ? "update.succeeded" : "update.failed";
-                if (!await db.AdministrationAuditEvents.AnyAsync(x => x.Action == action &&
-                    x.Target == $"update-job:{updated.Id}", ct))
+                if (!await db.AdministrationAuditEvents.AnyAsync(
+                    x => x.Action == action &&
+                    x.Target == $"update-job:{updated.Id}",
+                    ct))
                 {
                     db.AdministrationAuditEvents.Add(new AdministrationAuditEvent
                     {
@@ -261,7 +345,7 @@ public sealed class UpdateService(
                         Action = action,
                         Target = $"update-job:{updated.Id}",
                         PreviousValue = updated.FromVersion,
-                        NewValue = updated.TargetVersion
+                        NewValue = updated.TargetVersion,
                     });
                     await db.SaveChangesAsync(ct);
                 }

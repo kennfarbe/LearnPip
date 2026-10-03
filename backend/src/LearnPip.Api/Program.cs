@@ -1,3 +1,7 @@
+// <copyright file="Program.cs" company="LearnPip contributors">
+// Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
+// </copyright>
+
 using System.Threading.RateLimiting;
 using LearnPip.Api;
 using LearnPip.Api.Administration;
@@ -29,6 +33,7 @@ if (args is ["--healthcheck"])
     {
         Environment.ExitCode = 1;
     }
+
     return;
 }
 
@@ -57,70 +62,92 @@ builder.Services.AddScoped<IPrivateMediaStore, PostgresPrivateMediaStore>();
 builder.Services.AddSingleton<IEmailCodeSender, SmtpEmailCodeSender>();
 builder.Services.AddAuthentication(SessionAuthentication.Scheme)
     .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions,
-        SessionAuthenticationHandler>(SessionAuthentication.Scheme, _ => { })
+        SessionAuthenticationHandler>(
+    SessionAuthentication.Scheme,
+    _ => { })
     .AddLearnPipOidc(builder.Configuration);
 builder.Services.AddApiAuthorization();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.AddPolicy("auth", context => RateLimitPartition.GetFixedWindowLimiter(
-        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 20,
-            Window = TimeSpan.FromMinutes(1),
-            QueueLimit = 0,
-            AutoReplenishment = true
-        }));
-    options.AddPolicy("account-delete", context => RateLimitPartition.GetFixedWindowLimiter(
-        AccountIdentity.TryGetAccountId(context.User, out var accountId)
+    options.AddPolicy(
+            "auth",
+            context => RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 20,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                    AutoReplenishment = true,
+                }));
+    options.AddPolicy(
+            "account-delete",
+            context => RateLimitPartition.GetFixedWindowLimiter(
+                AccountIdentity.TryGetAccountId(
+                    context.User,
+                    out var accountId)
             ? accountId.ToString() : context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 3,
-            Window = TimeSpan.FromHours(1),
-            QueueLimit = 0,
-            AutoReplenishment = true
-        }));
-    options.AddPolicy("data-export", context => RateLimitPartition.GetFixedWindowLimiter(
-        AccountIdentity.TryGetAccountId(context.User, out var accountId)
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 3,
+                    Window = TimeSpan.FromHours(1),
+                    QueueLimit = 0,
+                    AutoReplenishment = true,
+                }));
+    options.AddPolicy(
+            "data-export",
+            context => RateLimitPartition.GetFixedWindowLimiter(
+                AccountIdentity.TryGetAccountId(
+                    context.User,
+                    out var accountId)
             ? accountId.ToString() : context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 5,
-            Window = TimeSpan.FromHours(1),
-            QueueLimit = 0,
-            AutoReplenishment = true
-        }));
-    options.AddPolicy("content-write", context => RateLimitPartition.GetFixedWindowLimiter(
-        AccountIdentity.TryGetAccountId(context.User, out var accountId)
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromHours(1),
+                    QueueLimit = 0,
+                    AutoReplenishment = true,
+                }));
+    options.AddPolicy(
+            "content-write",
+            context => RateLimitPartition.GetFixedWindowLimiter(
+                AccountIdentity.TryGetAccountId(
+                    context.User,
+                    out var accountId)
             ? accountId.ToString() : context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 30,
-            Window = TimeSpan.FromMinutes(10),
-            QueueLimit = 0,
-            AutoReplenishment = true
-        }));
-    options.AddPolicy("update-admin", context => RateLimitPartition.GetFixedWindowLimiter(
-        AccountIdentity.TryGetAccountId(context.User, out var accountId)
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 30,
+                    Window = TimeSpan.FromMinutes(10),
+                    QueueLimit = 0,
+                    AutoReplenishment = true,
+                }));
+    options.AddPolicy(
+            "update-admin",
+            context => RateLimitPartition.GetFixedWindowLimiter(
+                AccountIdentity.TryGetAccountId(
+                    context.User,
+                    out var accountId)
             ? accountId.ToString() : context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 6,
-            Window = TimeSpan.FromMinutes(10),
-            QueueLimit = 0,
-            AutoReplenishment = true
-        }));
-    options.AddPolicy("group-join", context => RateLimitPartition.GetFixedWindowLimiter(
-        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 10,
-            Window = TimeSpan.FromMinutes(1),
-            QueueLimit = 0,
-            AutoReplenishment = true
-        }));
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 6,
+                    Window = TimeSpan.FromMinutes(10),
+                    QueueLimit = 0,
+                    AutoReplenishment = true,
+                }));
+    options.AddPolicy(
+            "group-join",
+            context => RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 10,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                    AutoReplenishment = true,
+                }));
 });
 
 var app = builder.Build();
@@ -133,8 +160,12 @@ app.Use(async (context, next) =>
         context.Request.Method is "PUT" or "POST")
     {
         var limit = context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpMaxRequestBodySizeFeature>();
-        if (limit is { IsReadOnly: false }) limit.MaxRequestBodySize = 65536;
+        if (limit is { IsReadOnly: false })
+        {
+            limit.MaxRequestBodySize = 65536;
+        }
     }
+
     await next();
 });
 app.UseAuthentication();
@@ -151,11 +182,14 @@ app.Use(async (context, next) =>
         var expectedOrigin = string.IsNullOrWhiteSpace(configuredOrigin)
             ? $"{context.Request.Scheme}://{context.Request.Host}"
             : configuredOrigin;
-        if (!string.Equals(context.Request.Headers.Origin.ToString(), expectedOrigin,
+        if (!string.Equals(
+                context.Request.Headers.Origin.ToString(),
+                expectedOrigin,
                 StringComparison.OrdinalIgnoreCase))
         {
-            await Results.Problem("Invalid request origin.",
-                statusCode: StatusCodes.Status403Forbidden).ExecuteAsync(context);
+            await Results.Problem(
+                    "Invalid request origin.",
+                    statusCode: StatusCodes.Status403Forbidden).ExecuteAsync(context);
             return;
         }
     }
@@ -169,21 +203,32 @@ app.Use(async (context, next) =>
     if (context.Response.StatusCode is < 200 or >= 300 ||
         !context.Request.Path.StartsWithSegments("/api/v1") ||
         context.User.Identity?.IsAuthenticated != true ||
-        !AccountIdentity.TryGetAccountId(context.User, out var accountId)) return;
+        !AccountIdentity.TryGetAccountId(context.User, out var accountId))
+    {
+        return;
+    }
 
     var db = context.RequestServices.GetRequiredService<LearnPipDbContext>();
     var now = DateTimeOffset.UtcNow;
     await db.Accounts.Where(account => account.Id == accountId && account.DeletedAtUtc == null &&
             account.DisabledAtUtc == null)
-        .ExecuteUpdateAsync(setters => setters
-            .SetProperty(account => account.LastActivityAtUtc, now)
-            .SetProperty(account => account.UpdatedAtUtc, now), context.RequestAborted);
+        .ExecuteUpdateAsync(
+            setters => setters
+            .SetProperty(
+                account => account.LastActivityAtUtc,
+                now)
+            .SetProperty(account => account.UpdatedAtUtc, now),
+            context.RequestAborted);
 });
 app.MapOpenApi();
 
-app.MapGet("/health/live", () => Results.Ok(new { status = "live" }))
+app.MapGet(
+    "/health/live",
+    () => Results.Ok(new { status = "live" }))
     .WithName("Liveness");
-app.MapGet("/health/ready", async (LearnPipDbContext dbContext, CancellationToken cancellationToken) =>
+app.MapGet(
+    "/health/ready",
+    async (LearnPipDbContext dbContext, CancellationToken cancellationToken) =>
     await dbContext.Database.CanConnectAsync(cancellationToken)
         ? Results.Ok(new { status = "ready" })
         : Results.StatusCode(StatusCodes.Status503ServiceUnavailable))
@@ -219,7 +264,10 @@ if (args.Contains("--bootstrap-admin", StringComparer.OrdinalIgnoreCase))
 {
     if (args.Length != 1 ||
         !Guid.TryParse(builder.Configuration["Authentication:BootstrapAdminAccountId"], out var accountId))
+    {
         throw new InvalidOperationException("Set Authentication__BootstrapAdminAccountId to an existing account UUID and pass only --bootstrap-admin.");
+    }
+
     await using var scope = app.Services.CreateAsyncScope();
     await scope.ServiceProvider.GetRequiredService<AdministrationService>().BootstrapAsync(accountId);
     return;
@@ -227,4 +275,7 @@ if (args.Contains("--bootstrap-admin", StringComparer.OrdinalIgnoreCase))
 
 app.Run();
 
+/// <summary>
+/// Einstiegspunkt und Konfiguration des API-Hosts.
+/// </summary>
 public partial class Program;

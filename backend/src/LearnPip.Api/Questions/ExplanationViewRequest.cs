@@ -12,4 +12,8 @@ using LearnPip.Data.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
+/// <summary>
+/// Anfrage zum Erfassen einer angesehenen Lösungserklärung.
+/// </summary>
+/// <param name="AttemptId">Die Kennung des Antwortversuchs.</param>
 public sealed record ExplanationViewRequest(Guid AttemptId);

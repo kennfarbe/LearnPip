@@ -11,4 +11,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
+
+/// <summary>
+/// Übersicht eines privaten Fragenkatalogs.
+/// </summary>
+/// <param name="Id">Die eindeutige Kennung.</param>
+/// <param name="Name">Der Anzeigename.</param>
+/// <param name="QuestionCount">Die Anzahl der Fragen.</param>
 public sealed record CatalogView(Guid Id, string Name, int QuestionCount);

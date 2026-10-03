@@ -14,19 +14,35 @@ using Microsoft.Extensions.Options;
 
 namespace LearnPip.Api.Identity;
 
+/// <summary>
+/// Authentifiziert aktive Datenbanksitzungen anhand des Sitzungscookies.
+/// </summary>
+/// <param name="options">Die konfigurierten Dienstoptionen.</param>
+/// <param name="logger">Der Logger für den Dienst.</param>
+/// <param name="encoder">Der Encoder für Authentifizierungsdaten.</param>
+/// <param name="dbContext">Der Datenbankkontext.</param>
 public sealed class SessionAuthenticationHandler(
-    IOptionsMonitor<AuthenticationSchemeOptions> options,
-    ILoggerFactory logger,
-    System.Text.Encodings.Web.UrlEncoder encoder,
-    LearnPipDbContext dbContext) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
+        IOptionsMonitor<AuthenticationSchemeOptions> options,
+        ILoggerFactory logger,
+        System.Text.Encodings.Web.UrlEncoder encoder,
+        LearnPipDbContext dbContext) : AuthenticationHandler<AuthenticationSchemeOptions>(
+        options,
+        logger,
+        encoder)
 {
+    /// <summary>
+    /// Prüft das Sitzungscookie und erstellt bei gültiger Sitzung die Benutzeridentität.
+    /// </summary>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         string? token;
         if (this.Request.Headers.TryGetValue("Authorization", out var authorization))
         {
             var header = authorization.ToString();
-            token = header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+            token = header.StartsWith(
+                "Bearer ",
+                StringComparison.OrdinalIgnoreCase)
                 ? header["Bearer ".Length..]
                 : null;
         }
@@ -58,7 +74,7 @@ public sealed class SessionAuthenticationHandler(
         var claims = new[]
         {
             new Claim(AccountIdentity.AccountIdClaim, session.AccountId.ToString()),
-            new Claim(SessionAuthentication.SessionIdClaim, session.Id.ToString())
+            new Claim(SessionAuthentication.SessionIdClaim, session.Id.ToString()),
         };
         var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, SessionAuthentication.Scheme));
         return AuthenticateResult.Success(new AuthenticationTicket(principal, SessionAuthentication.Scheme));

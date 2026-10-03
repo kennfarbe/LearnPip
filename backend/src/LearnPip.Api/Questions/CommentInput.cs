@@ -9,4 +9,8 @@ using LearnPip.Data.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
+/// <summary>
+/// Anfrage zum Verfassen eines Kommentars.
+/// </summary>
+/// <param name="Text">Der Textinhalt, sofern vorhanden.</param>
 public sealed record CommentInput(string Text);

@@ -14,5 +14,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Ai;
 
-public sealed record PhotoExtractInput(Guid MediaId, string Mode, string DisclosureVersion,
-    bool Confirmed, string? ReferenceSolutionHint);
+/// <summary>
+/// Anfrage zur Bildanalyse nach bestätigtem Datenschutzhinweis.
+/// </summary>
+/// <param name="MediaId">Die Kennung des zugehörigen Mediums, sofern vorhanden.</param>
+/// <param name="Mode">Der ausgewählte KI-Betriebsmodus.</param>
+/// <param name="DisclosureVersion">Die Version des zu bestätigenden Datenschutzhinweises.</param>
+/// <param name="Confirmed">Gibt an, ob der Datenschutzhinweis bestätigt wurde.</param>
+/// <param name="ReferenceSolutionHint">Der Hinweis zur Referenzlösung, sofern vorhanden.</param>
+public sealed record PhotoExtractInput(
+        Guid MediaId,
+        string Mode,
+        string DisclosureVersion,
+        bool Confirmed,
+        string? ReferenceSolutionHint);

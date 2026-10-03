@@ -12,52 +12,75 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api;
 
+/// <summary>
+/// Registriert HTTP-Endpunkte für die Versionsinformationen der API.
+/// </summary>
 public static class V1Endpoints
 {
+    /// <summary>
+    /// Registriert die HTTP-Endpunkte für die Versionsinformationen der API.
+    /// </summary>
+    /// <param name="app">Der Routen-Builder der API.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     public static IEndpointRouteBuilder MapV1Endpoints(this IEndpointRouteBuilder app)
     {
         var api = app.MapGroup("/api/v1")
             .WithTags("API v1")
             .RequireAuthorization(ApiPolicies.ActiveAccount);
 
-        api.MapGet("/questions", ListQuestions)
+        api.MapGet(
+            "/questions",
+            ListQuestions)
             .WithName("ListOwnQuestions")
             .WithSummary("List private questions owned by the current account")
             .Produces<ApiResponse<PageResponse<QuestionSummary>>>()
             .ProducesValidationProblem();
 
-        api.MapGet("/questions/{id}", GetQuestion)
+        api.MapGet(
+            "/questions/{id}",
+            GetQuestion)
             .WithName("GetQuestion")
             .WithSummary("Read an owned question or one explicitly shared with a group")
             .Produces<ApiResponse<QuestionDetails>>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesValidationProblem();
 
-        api.MapGet("/media/{id}", GetMedia)
+        api.MapGet(
+            "/media/{id}",
+            GetMedia)
             .WithName("GetPrivateMedia")
             .WithSummary("Read metadata for an owned private media asset")
             .Produces<ApiResponse<MediaDetails>>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesValidationProblem();
 
-        api.MapGet("/groups/{id}/questions", ListGroupQuestions)
+        api.MapGet(
+            "/groups/{id}/questions",
+            ListGroupQuestions)
             .WithName("ListGroupQuestions")
             .WithSummary("List active questions explicitly shared with a group member")
             .Produces<ApiResponse<PageResponse<QuestionSummary>>>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesValidationProblem();
 
-        app.MapGet("/api/v1/public/questions", ListPublicQuestions)
+        app.MapGet(
+            "/api/v1/public/questions",
+            ListPublicQuestions)
             .WithTags("Public questions");
-        app.MapGet("/api/v1/public/questions/{id:guid}/versions/{number:int}", ReadPublicVersion)
+        app.MapGet(
+            "/api/v1/public/questions/{id:guid}/versions/{number:int}",
+            ReadPublicVersion)
             .WithTags("Public questions");
 
         return app;
     }
 
     private static async Task<IResult> ListQuestions(
-        LearnPipDbContext dbContext, ClaimsPrincipal user, CancellationToken cancellationToken,
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        LearnPipDbContext dbContext,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
         var invalid = ValidatePage(page, pageSize);
         if (invalid != null)
@@ -78,8 +101,11 @@ public static class V1Endpoints
     }
 
     private static async Task<IResult> GetQuestion(
-        string id, LearnPipDbContext dbContext, IAuthorizationService authorization,
-        ClaimsPrincipal user, CancellationToken cancellationToken)
+        string id,
+        LearnPipDbContext dbContext,
+        IAuthorizationService authorization,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(id, out var questionId))
         {
@@ -93,7 +119,11 @@ public static class V1Endpoints
             return Results.NotFound();
         }
 
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         var version = await QuestionAccess.ReadableVersions(dbContext, accountId).AsNoTracking()
             .Where(item => item.QuestionId == question.Id)
             .OrderByDescending(item => item.VersionNumber)
@@ -104,8 +134,11 @@ public static class V1Endpoints
     }
 
     private static async Task<IResult> GetMedia(
-        string id, LearnPipDbContext dbContext, IAuthorizationService authorization,
-        ClaimsPrincipal user, CancellationToken cancellationToken)
+        string id,
+        LearnPipDbContext dbContext,
+        IAuthorizationService authorization,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(id, out var mediaId))
         {
@@ -124,9 +157,13 @@ public static class V1Endpoints
     }
 
     private static async Task<IResult> ListGroupQuestions(
-        string id, LearnPipDbContext dbContext, IAuthorizationService authorization,
-        ClaimsPrincipal user, CancellationToken cancellationToken,
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        string id,
+        LearnPipDbContext dbContext,
+        IAuthorizationService authorization,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
         if (!Guid.TryParse(id, out var groupId))
         {
@@ -154,11 +191,18 @@ public static class V1Endpoints
             await ReadPage(questions, page, pageSize, cancellationToken, visible)));
     }
 
-    private static async Task<IResult> ListPublicQuestions(LearnPipDbContext db,
-        CancellationToken cancellationToken, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    private static async Task<IResult> ListPublicQuestions(
+        LearnPipDbContext db,
+        CancellationToken cancellationToken,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
         var invalid = ValidatePage(page, pageSize);
-        if (invalid != null) return invalid;
+        if (invalid != null)
+        {
+            return invalid;
+        }
+
         var visible = QuestionAccess.PublicVersions(db);
         var questions = db.Questions.AsNoTracking()
             .Where(question => visible.Any(version => version.QuestionId == question.Id));
@@ -166,19 +210,29 @@ public static class V1Endpoints
             await ReadPage(questions, page, pageSize, cancellationToken, visible)));
     }
 
-    private static async Task<IResult> ReadPublicVersion(Guid id, int number,
-        LearnPipDbContext db, CancellationToken cancellationToken)
+    private static async Task<IResult> ReadPublicVersion(
+        Guid id,
+        int number,
+        LearnPipDbContext db,
+        CancellationToken cancellationToken)
     {
         var versionId = await QuestionAccess.PublicVersions(db).AsNoTracking()
             .Where(version => version.QuestionId == id && version.VersionNumber == number)
             .Select(version => (Guid?)version.Id).SingleOrDefaultAsync(cancellationToken);
-        if (!versionId.HasValue) return Results.NotFound();
+        if (!versionId.HasValue)
+        {
+            return Results.NotFound();
+        }
+
         return Results.Ok(new ApiResponse<Questions.PublishedQuestionVersion>(
             (await Questions.QuestionEndpoints.LoadVersion(db, versionId.Value, cancellationToken))!));
     }
 
     private static async Task<PageResponse<QuestionSummary>> ReadPage(
-        IQueryable<Question> questions, int page, int pageSize, CancellationToken cancellationToken,
+        IQueryable<Question> questions,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken,
         IQueryable<QuestionVersion>? visibleVersions = null)
     {
         var total = await questions.CountAsync(cancellationToken);
@@ -200,7 +254,9 @@ public static class V1Endpoints
         return new PageResponse<QuestionSummary>(items, page, pageSize, total);
     }
 
-    private static IResult? ValidatePage(int page, int pageSize)
+    private static IResult? ValidatePage(
+        int page,
+        int pageSize)
     {
         var errors = new Dictionary<string, string[]>();
         if (page is < 1 or > 100000)

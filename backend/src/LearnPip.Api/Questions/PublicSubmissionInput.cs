@@ -11,6 +11,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
 
-public sealed record PublicSubmissionInput(string PreviewToken, string LicenseChoice,
-    string AuthorAttribution, bool RightsConfirmed, bool ImageRightsConfirmed,
-    string AgeDeclaration);
+/// <summary>
+/// Bestätigte Einreichung einer Fragenfassung mit Lizenz- und Rechteangaben.
+/// </summary>
+/// <param name="PreviewToken">Das Bestätigungstoken der Veröffentlichungsvorschau.</param>
+/// <param name="LicenseChoice">Die ausgewählte Inhaltslizenz.</param>
+/// <param name="AuthorAttribution">Die gewünschte Urheberangabe.</param>
+/// <param name="RightsConfirmed">Gibt an, ob die Inhaltsrechte bestätigt wurden.</param>
+/// <param name="ImageRightsConfirmed">Gibt an, ob die Bildrechte bestätigt wurden.</param>
+/// <param name="AgeDeclaration">Die Altersangabe des Kontos.</param>
+public sealed record PublicSubmissionInput(
+        string PreviewToken,
+        string LicenseChoice,
+        string AuthorAttribution,
+        bool RightsConfirmed,
+        bool ImageRightsConfirmed,
+        string AgeDeclaration);

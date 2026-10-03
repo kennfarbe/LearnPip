@@ -9,4 +9,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Administration;
 
+/// <summary>
+/// Anfrage zum Ändern des Update-Prüfintervalls.
+/// </summary>
+/// <param name="Interval">Das gewünschte Prüfintervall.</param>
 public sealed record UpdateIntervalRequest(string Interval);

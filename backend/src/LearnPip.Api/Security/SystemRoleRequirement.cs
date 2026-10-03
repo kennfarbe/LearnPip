@@ -10,4 +10,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Security;
+/// <summary>
+/// Autorisierungsanforderung für eine bestimmte Systemrolle.
+/// </summary>
+/// <param name="Code">Der fachliche Bezeichner oder Bestätigungscode.</param>
 public sealed record SystemRoleRequirement(string Code) : IAuthorizationRequirement;

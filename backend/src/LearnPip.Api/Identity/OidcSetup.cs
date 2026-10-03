@@ -10,18 +10,40 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Identity;
 
+/// <summary>
+/// Konfiguriert die optionale Anmeldung über OpenID Connect.
+/// </summary>
 public static class OidcSetup
 {
+    /// <summary>
+    /// Den Namen des Authentifizierungsschemas.
+    /// </summary>
     public const string Scheme = "LearnPipOidc";
+
+    /// <summary>
+    /// Den Schlüssel der Sitzung zur Identitätsverknüpfung.
+    /// </summary>
     public const string LinkSessionKey = "link_session_id";
 
+    /// <summary>
+    /// Prüft, ob die OIDC-Anmeldung vollständig konfiguriert ist.
+    /// </summary>
+    /// <param name="configuration">Die Anwendungskonfiguration.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     public static bool IsEnabled(IConfiguration configuration) =>
         !string.IsNullOrWhiteSpace(configuration["Oidc:Authority"]) &&
         !string.IsNullOrWhiteSpace(configuration["Oidc:ClientId"]) &&
         !string.IsNullOrWhiteSpace(configuration["Oidc:ClientSecret"]);
 
+    /// <summary>
+    /// Registriert die optional konfigurierte OIDC-Authentifizierung.
+    /// </summary>
+    /// <param name="authentication">Die Authentifizierungsregistrierung des Hosts.</param>
+    /// <param name="configuration">Die Anwendungskonfiguration.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     public static AuthenticationBuilder AddLearnPipOidc(
-        this AuthenticationBuilder authentication, IConfiguration configuration)
+        this AuthenticationBuilder authentication,
+        IConfiguration configuration)
     {
         if (!IsEnabled(configuration))
         {
@@ -35,13 +57,17 @@ public static class OidcSetup
         }
 
         return authentication
-            .AddCookie("oidc-temporary", options =>
+            .AddCookie(
+            "oidc-temporary",
+            options =>
             {
                 options.Cookie.HttpOnly = true;
                 options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                 options.Cookie.SameSite = SameSiteMode.Lax;
             })
-            .AddOpenIdConnect(Scheme, options =>
+            .AddOpenIdConnect(
+            Scheme,
+            options =>
             {
                 options.Authority = authority;
                 options.ClientId = configuration["Oidc:ClientId"]!;
@@ -95,7 +121,10 @@ public static class OidcSetup
                     try
                     {
                         var accountId = await identity.ResolveOidcAsync(
-                            authority, subject, linkingAccountId, context.HttpContext.RequestAborted);
+                            authority,
+                            subject,
+                            linkingAccountId,
+                            context.HttpContext.RequestAborted);
                         var sessions = context.HttpContext.RequestServices.GetRequiredService<SessionService>();
                         var grant = await sessions.CreateAsync(accountId, context.HttpContext.RequestAborted);
                         SessionAuthentication.SetCookie(context.HttpContext, grant.Token, grant.ExpiresAtUtc);

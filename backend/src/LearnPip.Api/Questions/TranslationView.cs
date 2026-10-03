@@ -14,5 +14,24 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
-public sealed record TranslationView(Guid? Id, int Revision, string Language, string Source,
-    string License, string Provenance, bool Missing, TranslationPayload Payload);
+
+/// <summary>
+/// Status und Inhalt einer Übersetzung.
+/// </summary>
+/// <param name="Id">Die eindeutige Kennung.</param>
+/// <param name="Revision">Die Revision der Daten.</param>
+/// <param name="Language">Der Sprachcode.</param>
+/// <param name="Source">Die Herkunft der Übersetzung.</param>
+/// <param name="License">Die Inhaltslizenz.</param>
+/// <param name="Provenance">Die Herkunft der Inhalte.</param>
+/// <param name="Missing">Die Anzahl fehlender oder fälliger Inhalte.</param>
+/// <param name="Payload">Die übersetzten Inhaltsblöcke.</param>
+public sealed record TranslationView(
+        Guid? Id,
+        int Revision,
+        string Language,
+        string Source,
+        string License,
+        string Provenance,
+        bool Missing,
+        TranslationPayload Payload);

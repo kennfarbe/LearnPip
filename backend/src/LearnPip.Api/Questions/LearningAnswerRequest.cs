@@ -12,4 +12,9 @@ using LearnPip.Data.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
+/// <summary>
+/// Antwort auf eine Lernfrage einschließlich der Angabe eines geratenen Ergebnisses.
+/// </summary>
+/// <param name="SelectedOptionIds">Die vom Benutzer ausgewählten Antwortkennungen.</param>
+/// <param name="WasGuessed">Gibt an, ob die Antwort geraten wurde.</param>
 public sealed record LearningAnswerRequest(IReadOnlyList<Guid> SelectedOptionIds, bool WasGuessed = false);

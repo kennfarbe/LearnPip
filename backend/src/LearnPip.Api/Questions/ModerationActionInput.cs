@@ -9,4 +9,10 @@ using LearnPip.Data.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
+/// <summary>
+/// Moderationsentscheidung mit Begründung und optional korrigierter Frage.
+/// </summary>
+/// <param name="Action">Die gewünschte Moderationsaktion.</param>
+/// <param name="Note">Die Begründung der Moderationsentscheidung.</param>
+/// <param name="CorrectedPrompt">Die korrigierte Fragenformulierung, sofern vorhanden.</param>
 public sealed record ModerationActionInput(string Action, string Note, string? CorrectedPrompt);
