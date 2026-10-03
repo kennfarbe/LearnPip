@@ -41,3 +41,7 @@ Der Reader extrahiert keine Archive auf das Dateisystem und führt keine Paketin
 ## Lokale Weitergabe eines vollständigen Entwurfspakets
 
 `scripts/read-catalog.py` liest nur zuvor vollständig geprüfte ZIP-Pakete. `scripts/write-catalog.py` schreibt einen solchen vollständigen Snapshot in eine neue ZIP-Datei, berechnet die Dateiprüfsummen erneut und validiert das Ergebnis vor dem atomaren Austausch der Zieldatei. Die Ursprungsdatei bleibt unverändert. Tests prüfen Fragen, Lösungen, Medien und Attributionsdateien nach einem erneuten Einlesen. Der Writer ist kein Export privater Daten aus LearnPip: Filter, Rollenrechte, Lizenzentscheidungen, Freigabe sowie Import in die Datenbank bleiben in eigenen Aufgaben offen. Die Version 0.1.0 bleibt ein Entwurf.
+
+## Dauerhafte Vertragsbeispiele
+
+Unter `tests/fixtures/catalog/0.1.0/frozen.json` liegt ein eigenständiges synthetisches Beispiel des Entwurfsstands 0.1.0. Der Vertragstest erzeugt daraus lokal ein ZIP, prüft den alten Stand mit dem aktuellen Reader und führt einen erneuten Schreib-/Lesevorgang einschließlich der Lösungen und Nachweistexte durch. Die Datei darf bei Formatänderungen nicht stillschweigend angepasst werden; zukünftige Formatstände erhalten eigene Beispiele. Dieser Test ist ein erster Kompatibilitätsschutz, aber noch kein vollständiger stabiler Golden-Archivbestand mit Medien und Migrationen nach #118.
