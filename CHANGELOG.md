@@ -1,3 +1,13 @@
+## [1.5.1](https://github.com/kennfarbe/LearnPip/compare/v1.5.0...v1.5.1) (2026-10-03)
+
+
+### Bug Fixes
+
+* **ci:** classify Markdown in code directories as documentation only ([ac23a51](https://github.com/kennfarbe/LearnPip/commit/ac23a51dc6507eeae4f792d3a982a6688039518a))
+* **ci:** run classifier tests directly and validate step action pins ([8144936](https://github.com/kennfarbe/LearnPip/commit/8144936d670ca64658795838447e1593801c5431))
+* **ci:** show failed stack diagnostics and set test password once ([2f883e3](https://github.com/kennfarbe/LearnPip/commit/2f883e35a99ca5ead7503c54a9ac31284ac844c6))
+* **dev:** use supported PostgreSQL 18 volume mount ([5eda940](https://github.com/kennfarbe/LearnPip/commit/5eda9409ecdef3ac5d3c94cd7248deb10e2928d3))
+
 # [1.5.0](https://github.com/kennfarbe/LearnPip/compare/v1.4.0...v1.5.0) (2026-10-03)
 
 
