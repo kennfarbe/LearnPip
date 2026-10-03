@@ -24,6 +24,9 @@ WRITER = runpy.run_path(str(Path(__file__).resolve().parents[2] /
                             "scripts" / "write-catalog.py"))
 write_catalog = WRITER["write_catalog"]
 WriterInvalidPackage = WRITER["_validator"].InvalidPackage
+SELECTOR = runpy.run_path(str(Path(__file__).resolve().parents[2] /
+                              "scripts" / "select-catalog.py"))
+select_from_file = SELECTOR["select_from_file"]
 
 
 def license_details():
@@ -170,6 +173,48 @@ class CatalogContractTests(unittest.TestCase):
         self.assertEqual(exported.media["media/diagram.txt"], files["media/diagram.txt"])
         self.assertEqual(exported.notices, snapshot.notices)
         self.assertEqual(Path(self.filename).read_bytes(), original)
+
+    def test_selective_export_keeps_only_selected_question_and_its_media(self):
+        import copy
+        second = copy.deepcopy(self.questions["questions"][0])
+        second["id"] = "example:synthetic-02"
+        second["prompt"] = "Weitere synthetische Frage"
+        second["media"] = []
+        self.questions["questions"].append(second)
+        self.files["questions.json"] = json.dumps(self.questions, ensure_ascii=False).encode("utf-8")
+        self.update_question_record()
+        original = make_zip(self.manifest, self.files)
+        Path(self.filename).write_bytes(original)
+        target = Path(self.tempdir.name) / "selected.zip"
+        snapshot = select_from_file(self.filename, {"example:synthetic-02"})
+        write_catalog(snapshot, target)
+        exported = read_catalog(target)
+        self.assertEqual(exported.questions["questions"], [second])
+        self.assertEqual(exported.media, {})
+        self.assertEqual(exported.notices, snapshot.notices)
+        self.assertEqual(exported.manifest["package_id"], "example.synthetic")
+        self.assertEqual(Path(self.filename).read_bytes(), original)
+
+    def test_selective_export_retains_question_license_and_media(self):
+        Path(self.filename).write_bytes(make_zip(self.manifest, self.files))
+        snapshot = select_from_file(self.filename, {"example:synthetic-01"})
+        target = Path(self.tempdir.name) / "selected-with-media.zip"
+        write_catalog(snapshot, target)
+        exported = read_catalog(target)
+        self.assertEqual(exported.questions, self.questions)
+        self.assertEqual(exported.media["media/test.txt"], self.files["media/test.txt"])
+        self.assertEqual(exported.questions["questions"][0]["license"], license_details())
+
+    def test_selective_export_rejects_empty_unknown_or_invalid_input(self):
+        Path(self.filename).write_bytes(make_zip(self.manifest, self.files))
+        with self.assertRaisesRegex(ValueError, "at least one"):
+            select_from_file(self.filename, set())
+        with self.assertRaisesRegex(ValueError, "Unknown question IDs"):
+            select_from_file(self.filename, {"example:missing"})
+        self.files["NOTICE"] = b"tampered"
+        Path(self.filename).write_bytes(make_zip(self.manifest, self.files))
+        with self.assertRaisesRegex(Exception, "mismatch"):
+            select_from_file(self.filename, {"example:synthetic-01"})
 
     def test_reader_preserves_questions_media_and_attribution(self):
         original = make_zip(self.manifest, self.files)

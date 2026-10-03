@@ -53,3 +53,9 @@ Unter `tests/fixtures/catalog/0.1.0/provenance.json` liegt ein zweites eigenstä
 Der Offline-Validator weist zusätzliche, nicht im Schema 0.1.0 definierte Felder in Manifest, Fragen, Antworten, Lizenz- und Herkunftsangaben sowie Medien zurück. Damit werden Daten nicht stillschweigend ignoriert. Zukünftige Erweiterungen benötigen einen ausdrücklich versionierten Vertrag; der derzeitige Reader und Writer dürfen unbekannte Versionen weiterhin nicht als alte Fassung behandeln. Eine vollständige automatische JSON-Schema-Prüfung ist damit noch nicht ersetzt.
 
 Auch das Wurzelobjekt von `questions.json` darf im Entwurf 0.1.0 ausschließlich `questions` enthalten. Zusätzliche Metadaten wie private Kennungen oder Exportinformationen werden nicht stillschweigend übernommen, sondern bereits bei der Offline-Prüfung zurückgewiesen. Eine spätere Erweiterung benötigt einen ausdrücklich neuen Formatvertrag.
+
+## Selektive Offline-Auswahl
+
+`scripts/select-catalog.py` stellt `select_from_file(datei, frage_ids)` bereit. Die Quelldatei wird vor jeder Auswahl vollständig validiert. Der Helfer übernimmt ausschließlich ausdrücklich gewählte Fragen in ihrer bisherigen Reihenfolge, behält deren Antwort- und Herkunftsangaben sowie die vollständigen Nachweisdateien und entfernt nicht mehr referenzierte Mediendateien. `scripts/write-catalog.py` erzeugt daraus ein neues geprüftes Paket mit aktualisierten Hashes. Leere oder unbekannte Frage-IDs werden zurückgewiesen, die Ursprungsdatei bleibt unverändert.
+
+Dies ist **noch kein Export aus Benutzerkonten oder der Datenbank**: Rollen- und Eigentumsprüfung, Auswahl nach Themen/Katalogen, Privatsphäre, ausdrückliche Lizenz- und Community-Freigabe sowie Metadaten zur neuen Katalogrevision sind vor einem produktiven Export gesondert umzusetzen (#115–#117). Insbesondere dürfen fremde oder private Inhalte niemals allein aufgrund ihrer ID auswählbar werden. Der technische Helfer ist keine Berechtigungsgrenze.
