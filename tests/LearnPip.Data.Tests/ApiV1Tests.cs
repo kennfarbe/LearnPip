@@ -37,7 +37,7 @@ public sealed class ApiV1Tests
     /// </summary>
     /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     [Fact]
-    public async Task Private_resources_require_the_owner_or_explicit_group_share()
+    public async Task PrivateResourcesRequireTheOwnerOrExplicitGroupShare()
     {
         var source = Environment.GetEnvironmentVariable("ConnectionStrings__LearnPip")
             ?? throw new InvalidOperationException("Set ConnectionStrings__LearnPip to a disposable PostgreSQL server.");
@@ -208,10 +208,10 @@ public sealed class ApiV1Tests
                 .. System.Text.Encoding.ASCII.GetBytes("GPSDATA-private")
             ];
             using var withExif = new MemoryStream();
-            withExif.Write(jpeg, 0, 2);
-            withExif.Write([0xff, 0xe1, (byte)((exif.Length + 2) >> 8), (byte)(exif.Length + 2)]);
-            withExif.Write(exif);
-            withExif.Write(jpeg, 2, jpeg.Length - 2);
+            await withExif.WriteAsync(jpeg.AsMemory(0, 2));
+            await withExif.WriteAsync(new byte[] { 0xff, 0xe1, (byte)((exif.Length + 2) >> 8), (byte)(exif.Length + 2) });
+            await withExif.WriteAsync(exif);
+            await withExif.WriteAsync(jpeg.AsMemory(2, jpeg.Length - 2));
             using var upload = new MultipartFormDataContent();
             var imageContent = new ByteArrayContent(withExif.ToArray());
             imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");

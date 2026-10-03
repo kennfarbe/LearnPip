@@ -25,7 +25,7 @@ public sealed class AdministrationTests
     /// </summary>
     /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     [Fact]
-    public async Task Bootstrap_roles_and_group_leadership_are_scoped_and_audited()
+    public async Task BootstrapRolesAndGroupLeadershipAreScopedAndAudited()
     {
         var source = Environment.GetEnvironmentVariable("ConnectionStrings__LearnPip")
             ?? throw new InvalidOperationException("Set ConnectionStrings__LearnPip to a disposable PostgreSQL server.");

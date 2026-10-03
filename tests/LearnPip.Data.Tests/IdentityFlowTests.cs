@@ -31,7 +31,7 @@ public sealed class IdentityFlowTests
     /// </summary>
     /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     [Fact]
-    public async Task Identity_paths_link_to_one_account_and_revocation_is_immediate()
+    public async Task IdentityPathsLinkToOneAccountAndRevocationIsImmediate()
     {
         var source = Environment.GetEnvironmentVariable("ConnectionStrings__LearnPip")
             ?? throw new InvalidOperationException("Set ConnectionStrings__LearnPip to a disposable PostgreSQL server.");

@@ -31,7 +31,7 @@ public sealed class FamilyFlowTests
     /// </summary>
     /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     [Fact]
-    public async Task Only_verified_child_confirmed_links_expose_aggregates_and_revocation_is_immediate()
+    public async Task OnlyVerifiedChildConfirmedLinksExposeAggregatesAndRevocationIsImmediate()
     {
         var source = Environment.GetEnvironmentVariable("ConnectionStrings__LearnPip")
             ?? throw new InvalidOperationException("Set ConnectionStrings__LearnPip to a disposable PostgreSQL server.");

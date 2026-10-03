@@ -13,7 +13,7 @@ public static class ProgressMetrics
     // question or variant does not accumulate points; time spent is irrelevant.
 
     /// <summary>
-    /// Die erreichten Teilnahmepunkte.
+    /// Berechnet Teilnahmepunkte aus Antwortversuchen und angesehenen Erklärungen.
     /// </summary>
     /// <param name="attempts">Die für den Lernfortschritt berücksichtigten Antwortversuche.</param>
     /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
@@ -21,7 +21,7 @@ public static class ProgressMetrics
         .SelectMany(item => new[]
         {
             (item.ContentId, Day: DateOnly.FromDateTime(item.AnsweredAtUtc.UtcDateTime),
-                Points: item.WasGuessed ? 1 : 2 + (item.IsCorrect ? 1 : 0), Explanation: false),
+                Points: PointsFor(item), Explanation: false),
             item.ExplanationViewedAtUtc.HasValue ?
                 (item.ContentId, Day: DateOnly.FromDateTime(item.ExplanationViewedAtUtc.Value.UtcDateTime),
                     Points: 0, Explanation: true) :
@@ -61,5 +61,15 @@ public static class ProgressMetrics
         }
 
         return false;
+    }
+
+    private static int PointsFor(ProgressAttempt item)
+    {
+        if (item.WasGuessed)
+        {
+            return 1;
+        }
+
+        return item.IsCorrect ? 3 : 2;
     }
 }

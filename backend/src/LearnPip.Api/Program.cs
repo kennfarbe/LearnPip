@@ -22,7 +22,7 @@ if (args is ["--healthcheck"])
     using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
     try
     {
-        using var response = await client.GetAsync("http://127.0.0.1:8080/health/ready");
+        using var response = await client.GetAsync(new UriBuilder(Uri.UriSchemeHttp, System.Net.IPAddress.Loopback.ToString(), 8080, "health/ready").Uri);
         Environment.ExitCode = response.IsSuccessStatusCode ? 0 : 1;
     }
     catch (HttpRequestException)
@@ -273,9 +273,15 @@ if (args.Contains("--bootstrap-admin", StringComparer.OrdinalIgnoreCase))
     return;
 }
 
-app.Run();
+await app.RunAsync();
 
 /// <summary>
 /// Einstiegspunkt und Konfiguration des API-Hosts.
 /// </summary>
-public partial class Program;
+public partial class Program
+{
+    private Program()
+    {
+        // Die Instanz wird nicht benötigt; der API-Host verwendet den statischen Einstiegspunkt.
+    }
+}

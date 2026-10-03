@@ -27,33 +27,3 @@ indent_size = 2
 
 [*.md]
 trim_trailing_whitespace = false
-
-
-# Existing API analyzer debt (follow-up cleanup). New warnings remain errors.
-[backend/src/LearnPip.Api/*.cs]
-dotnet_diagnostic.S1118.severity = none
-dotnet_diagnostic.CA1848.severity = none
-dotnet_diagnostic.S1075.severity = none
-dotnet_diagnostic.S6966.severity = none
-
-[backend/src/LearnPip.Api/**/*.cs]
-dotnet_diagnostic.S1118.severity = none
-dotnet_diagnostic.S3358.severity = none
-dotnet_diagnostic.CA1848.severity = none
-dotnet_diagnostic.S6966.severity = none
-dotnet_diagnostic.S1075.severity = none
-dotnet_diagnostic.S1871.severity = none
-dotnet_diagnostic.S3267.severity = none
-dotnet_diagnostic.CA1859.severity = none
-dotnet_diagnostic.S8969.severity = none
-dotnet_diagnostic.S1125.severity = none
-dotnet_diagnostic.S6610.severity = none
-dotnet_diagnostic.CA1866.severity = none
-dotnet_diagnostic.S6444.severity = none
-
-# Test names intentionally describe behavior using underscores; tests also retain
-# a few fixture-specific analyzer exceptions without relaxing production code.
-[tests/LearnPip.Data.Tests/*.cs]
-dotnet_diagnostic.CA1707.severity = none
-dotnet_diagnostic.CA1861.severity = none
-dotnet_diagnostic.S6966.severity = none

@@ -401,7 +401,7 @@ public static class QuestionEndpoints
             !ValidText(request.Subject, 120) || !ValidText(request.Topic, 120) ||
             !ValidText(request.Source, 500) || !ValidText(request.License, 120) ||
             string.IsNullOrWhiteSpace(request.Language) || request.Language.Length > 35 ||
-            !Regex.IsMatch(request.Language, "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$"))
+            !Regex.IsMatch(request.Language, "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$", RegexOptions.None, TimeSpan.FromSeconds(1)))
         {
             return "Selection mode and subject, topic, language, source and license are required.";
         }

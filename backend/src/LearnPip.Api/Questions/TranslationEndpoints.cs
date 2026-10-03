@@ -200,7 +200,7 @@ public static class TranslationEndpoints
         return true;
     }
 
-    private static IReadOnlyList<ContentBlockOutput> Convert(IReadOnlyList<LocalizedBlock> blocks) =>
+    private static ContentBlockOutput[] Convert(IReadOnlyList<LocalizedBlock> blocks) =>
         blocks.Select(block => new ContentBlockOutput(
             block.Kind,
             block.Text,

@@ -20,7 +20,7 @@ public sealed class DatabaseMigrationTests
     /// </summary>
     /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     [Fact]
-    public async Task Migration_creates_a_fresh_database_and_preserves_existing_data()
+    public async Task MigrationCreatesAFreshDatabaseAndPreservesExistingData()
     {
         var sourceConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__LearnPip");
         if (string.IsNullOrWhiteSpace(sourceConnectionString))

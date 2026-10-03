@@ -28,7 +28,7 @@ public sealed class SolutionVerifierTests
     [InlineData("10 m / 2", "5", null, "5", "unverified")]
     [InlineData("2 + 2", "4", "5", "4", "conflict")]
     [InlineData("Biologie: Mitochondrien", "Zellatmung", null, "Zellatmung", "unverified")]
-    public void Arithmetic_is_checked_but_unsupported_subjects_are_not_claimed_verified(
+    public void ArithmeticIsCheckedButUnsupportedSubjectsAreNotClaimedVerified(
         string formula,
         string solution,
         string? reference,
@@ -42,7 +42,7 @@ public sealed class SolutionVerifierTests
     /// Prüft die Ablehnung widersprüchlicher Lösungsschritte und vorweggenommener Antworten.
     /// </summary>
     [Fact]
-    public void Contradictory_steps_and_spoiler_hints_are_withheld()
+    public void ContradictoryStepsAndSpoilerHintsAreWithheld()
     {
         var actualResult1 = SolutionVerifier.Check(
                     "2+2",

@@ -31,7 +31,7 @@ public sealed class GroupFlowTests
     /// </summary>
     /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     [Fact]
-    public async Task Invitations_are_limited_revocable_and_independent_of_membership()
+    public async Task InvitationsAreLimitedRevocableAndIndependentOfMembership()
     {
         var source = Environment.GetEnvironmentVariable("ConnectionStrings__LearnPip")
             ?? throw new InvalidOperationException("Set ConnectionStrings__LearnPip to a disposable PostgreSQL server.");

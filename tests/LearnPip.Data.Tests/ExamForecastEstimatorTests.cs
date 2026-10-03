@@ -25,7 +25,7 @@ public sealed class ExamForecastEstimatorTests
     /// Prüft Fragenabdeckung, zeitversetzte Wiederholungen und zwei aktuelle bestandene Simulationen als Prognosegrundlage.
     /// </summary>
     [Fact]
-    public void Readiness_requires_coverage_spaced_repeats_and_two_recent_passes()
+    public void ReadinessRequiresCoverageSpacedRepeatsAndTwoRecentPasses()
     {
         var estimate = ExamForecastEstimator.Estimate(Evidence, Passed, [], 1, null, null, Today);
         Assert.Equal("window", estimate.Status);
@@ -88,7 +88,7 @@ public sealed class ExamForecastEstimatorTests
     /// Prüft die Empfehlung aktueller Prüfungstermine mit Quellenangabe und bekannter offener Anmeldefrist.
     /// </summary>
     [Fact]
-    public void Only_recent_sourced_dates_with_open_known_deadline_are_suggested()
+    public void OnlyRecentSourcedDatesWithOpenKnownDeadlineAreSuggested()
     {
         var sessions = new[]
         {

@@ -39,8 +39,6 @@ public sealed class ResourceAuthorizationHandler(LearnPipDbContext dbContext) :
             switch (requirement)
             {
                 case ActiveAccountRequirement:
-                    context.Succeed(requirement);
-                    break;
                 case QuestionReadRequirement when context.Resource is Question question &&
                     question.DeletedAtUtc == null &&
                     (question.OwnerAccountId == accountId ||
@@ -48,8 +46,6 @@ public sealed class ResourceAuthorizationHandler(LearnPipDbContext dbContext) :
                 dbContext,
                 accountId)
                          .AnyAsync(version => version.QuestionId == question.Id)):
-                    context.Succeed(requirement);
-                    break;
                 case MediaReadRequirement when context.Resource is MediaAsset media &&
                     media.DeletedAtUtc == null && (media.OwnerAccountId == accountId ||
                      await QuestionAccess.ReadableVersions(
@@ -64,23 +60,17 @@ public sealed class ResourceAuthorizationHandler(LearnPipDbContext dbContext) :
                      await dbContext.QuestionVersions.AsNoTracking().AnyAsync(version =>
                          version.Id == media.QuestionVersionId &&
                          version.Question.DeletedAtUtc == null)):
-                    context.Succeed(requirement);
-                    break;
                 case GroupReadRequirement when context.Resource is StudyGroup group &&
                     group.DeletedAtUtc == null &&
                     (group.OwnerAccountId == accountId ||
                      await dbContext.GroupMemberships.AsNoTracking()
                          .AnyAsync(member => member.StudyGroupId == group.Id && member.AccountId == accountId)):
-                    context.Succeed(requirement);
-                    break;
                 case FreshAdminSessionRequirement when
                     SessionAuthentication.TryGetSessionId(context.User, out var sessionId) &&
                     await dbContext.AccountSessions.AsNoTracking().AnyAsync(session =>
                         session.Id == sessionId && session.AccountId == accountId &&
                         session.RevokedAtUtc == null && session.ExpiresAtUtc > DateTimeOffset.UtcNow &&
                         session.CreatedAtUtc >= DateTimeOffset.UtcNow.AddMinutes(-15)):
-                    context.Succeed(requirement);
-                    break;
                 case SystemRoleRequirement role when
                     await dbContext.AccountRoles.AsNoTracking().AnyAsync(grant =>
                         grant.AccountId == accountId &&

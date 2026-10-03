@@ -15,7 +15,7 @@ public sealed class ReviewScheduleTests
     /// Prüft reproduzierbare Wiederholungspläne und verkürzte Intervalle bei unsicheren Antworten.
     /// </summary>
     [Fact]
-    public void Replay_is_reproducible_and_uncertainty_reduces_interval()
+    public void ReplayIsReproducibleAndUncertaintyReducesInterval()
     {
         var start = new DateTimeOffset(2026, 9, 1, 12, 0, 0, TimeSpan.Zero);
         var events = Enumerable.Range(0, 3).Select(index => new ReviewEvent(

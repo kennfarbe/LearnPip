@@ -21,7 +21,7 @@ public sealed class AccountLifecycleTests
     /// </summary>
     /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     [Fact]
-    public async Task Lifecycle_warns_once_per_phase_rechecks_activity_and_deletes_private_data()
+    public async Task LifecycleWarnsOncePerPhaseRechecksActivityAndDeletesPrivateData()
     {
         var source = Environment.GetEnvironmentVariable("ConnectionStrings__LearnPip")
             ?? throw new InvalidOperationException("Set ConnectionStrings__LearnPip to a disposable PostgreSQL server.");
@@ -127,7 +127,7 @@ public sealed class AccountLifecycleTests
     /// </summary>
     /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     [Fact]
-    public async Task Voluntary_deletion_removes_private_media_and_learning_history_immediately()
+    public async Task VoluntaryDeletionRemovesPrivateMediaAndLearningHistoryImmediately()
     {
         var source = Environment.GetEnvironmentVariable("ConnectionStrings__LearnPip")
             ?? throw new InvalidOperationException("Set ConnectionStrings__LearnPip to a disposable PostgreSQL server.");

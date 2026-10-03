@@ -11,11 +11,13 @@ namespace LearnPip.Data.Tests;
 /// </summary>
 public sealed class ExamScoringTests
 {
+    private static readonly string[] CorrectAnswers = ["correct", "right"];
+
     /// <summary>
     /// Prüft die Fragenauswahl pro Original und den Erhalt der richtigen Antwort beim Mischen.
     /// </summary>
     [Fact]
-    public void Question_modes_select_one_per_original_and_shuffling_preserves_correct_answer()
+    public void QuestionModesSelectOnePerOriginalAndShufflingPreservesCorrectAnswer()
     {
         var original = new CatalogQuestion("B1", "B", "Original", ["correct", "wrong"], 0);
         var variant = new CatalogQuestion(
@@ -40,7 +42,7 @@ public sealed class ExamScoringTests
         Assert.All(
             originals.Concat(variants).Concat(mixed),
             question =>
-            Assert.Contains(question.Answers[question.CorrectIndex], new[] { "correct", "right" }));
+            Assert.Contains(question.Answers[question.CorrectIndex], CorrectAnswers));
         Assert.Throws<ArgumentException>(() => ExamQuestionSelection.Select(
                 catalog,
                 rule,
@@ -53,7 +55,7 @@ public sealed class ExamScoringTests
     /// Prüft das Bestehen aller erforderlichen Prüfungsteile und deren getrennte Zeitgrenzen.
     /// </summary>
     [Fact]
-    public void Every_required_part_must_pass_and_timing_is_per_part()
+    public void EveryRequiredPartMustPassAndTimingIsPerPart()
     {
         var operations = new SnapshotPart(
             new ProfilePart("B", "Betrieb", "B", 2, 45, 2, "B"),

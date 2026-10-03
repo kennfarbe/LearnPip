@@ -33,7 +33,7 @@ public static class ExamPlanEstimator
             }
 
             streak++;
-            due = day.AddDays(streak == 1 ? 1 : streak == 2 ? 3 : 7);
+            due = day.AddDays(streak switch { 1 => 1, 2 => 3, _ => 7 });
         }
 
         return streak >= 3;
@@ -59,8 +59,12 @@ public static class ExamPlanEstimator
         var school = (input.SchoolDays ?? []).ToHashSet();
         var breaks = (input.BreakDays ?? []).ToHashSet();
         var cap = input.DailyLimitMinutes;
-        var missing = input.ScopeContents == null ? "scope" :
-            input.DailyMinutes == null ? "time" : "target";
+        var missing = "scope";
+        if (input.ScopeContents != null)
+        {
+            missing = input.DailyMinutes == null ? "time" : "target";
+        }
+
         int scope;
         int minutes;
         int target;
@@ -117,7 +121,12 @@ public static class ExamPlanEstimator
             start,
             school,
             breaks);
-        int? suggestedScope = feasible ? null : Math.Min(scope, target == 0 ? scope : (int)Math.Floor((mastered + expected) * 100.0 / target));
+        int? suggestedScope = null;
+        if (!feasible)
+        {
+            suggestedScope = Math.Min(scope, target == 0 ? scope : (int)Math.Floor((mastered + expected) * 100.0 / target));
+        }
+
         DateOnly? suggestedDate = null;
         if (!feasible && minutes > 0 && days < 365 &&
             mastered + Simulate(
@@ -262,8 +271,8 @@ public static class ExamPlanEstimator
                 continue;
             }
 
-            var fraction = school.Contains((int)date.DayOfWeek == 0 ? 7 : (int)date.DayOfWeek)
-                ? 0.5 : 1.0;
+            var schoolDay = date.DayOfWeek == DayOfWeek.Sunday ? 7 : (int)date.DayOfWeek;
+            var fraction = school.Contains(schoolDay) ? 0.5 : 1.0;
             var budget = (int)Math.Floor(Math.Min(minutes, cap) * fraction * reserve);
 
             // Due reviews take priority. A postponed review stays due, never counts early.

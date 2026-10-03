@@ -181,8 +181,8 @@ public static class ExamEndpoints
         }
 
         if (input.AmateurClass != string.Empty && (input.Parts.Count != 3 ||
-            input.Parts.Select(part => part.CreditCode).ToHashSet().SetEquals(
-                ["B", "V", "T-" + input.AmateurClass]) == false))
+            !input.Parts.Select(part => part.CreditCode).ToHashSet().SetEquals(
+                ["B", "V", "T-" + input.AmateurClass])))
         {
             return Invalid("parts", "Amateur radio profiles require B, V and the matching technical part.");
         }
@@ -375,7 +375,7 @@ public static class ExamEndpoints
         }
 
         var rows = await db.ExamSimulations.AsNoTracking()
-            .Where(item => item.AccountId == accountId && item.SnapshotJson.StartsWith("["))
+            .Where(item => item.AccountId == accountId && EF.Functions.Like(item.SnapshotJson, "[%"))
             .OrderByDescending(item => item.StartedAtUtc)
             .Take(50).Select(item => new
             {
@@ -547,7 +547,7 @@ public static class ExamEndpoints
     private static Dictionary<string, int> Answers(ExamSimulation run) =>
         JsonSerializer.Deserialize<Dictionary<string, int>>(run.AnswersJson, Json)!;
 
-    private static IReadOnlyList<CatalogQuestion> PowerQuestions(PowerSnapshot snapshot) =>
+    private static CatalogQuestion[] PowerQuestions(PowerSnapshot snapshot) =>
         snapshot.Parts.SelectMany(part => part.Questions).ToArray();
 
     private static async Task<IResult> StartPower(
@@ -614,7 +614,7 @@ public static class ExamEndpoints
         }
 
         var rows = await db.ExamSimulations.AsNoTracking()
-            .Where(item => item.AccountId == accountId && item.SnapshotJson.StartsWith("{"))
+            .Where(item => item.AccountId == accountId && EF.Functions.Like(item.SnapshotJson, "{%"))
             .OrderByDescending(item => item.StartedAtUtc).Take(50)
             .Select(item => new
             {
@@ -722,7 +722,7 @@ public static class ExamEndpoints
 
         var snapshot = JsonSerializer.Deserialize<PowerSnapshot>(run.SnapshotJson, Json)!;
         run.CurrentPartIndex++;
-        if (run.CurrentPartIndex * snapshot.StageSize >= PowerQuestions(snapshot).Count)
+        if (run.CurrentPartIndex * snapshot.StageSize >= PowerQuestions(snapshot).Length)
         {
             run.CompletedAtUtc = DateTimeOffset.UtcNow;
         }
@@ -766,8 +766,8 @@ public static class ExamEndpoints
             snapshot.QuestionMode,
             Math.Min(
                 run.CurrentPartIndex + 1,
-                (all.Count + snapshot.StageSize - 1) / snapshot.StageSize),
-            (all.Count + snapshot.StageSize - 1) / snapshot.StageSize,
+                (all.Length + snapshot.StageSize - 1) / snapshot.StageSize),
+            (all.Length + snapshot.StageSize - 1) / snapshot.StageSize,
             run.CompletedAtUtc,
             current.Select(question => (object)new
             {

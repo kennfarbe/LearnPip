@@ -17,7 +17,7 @@ public sealed class ExamPlanEstimatorTests
     /// Prüft unterschiedliche Lerntage und Lerninhalte für sichere Wiederholungen.
     /// </summary>
     [Fact]
-    public void Repetition_needs_separate_days_and_a_distinct_content()
+    public void RepetitionNeedsSeparateDaysAndADistinctContent()
     {
         var shortPlan = new ExamPlanInput(1, 120, null, null, 4, 120, [], [], null);
         var longPlan = shortPlan with { HorizonDays = 5 };
@@ -48,7 +48,7 @@ public sealed class ExamPlanEstimatorTests
     /// Prüft die Auswirkungen von Pausen, Schultagen und Tageslimits auf die Machbarkeit des Prüfungstermins.
     /// </summary>
     [Fact]
-    public void Breaks_school_days_and_daily_limit_make_an_optimistic_date_infeasible()
+    public void BreaksSchoolDaysAndDailyLimitMakeAnOptimisticDateInfeasible()
     {
         var breaks = Enumerable.Range(0, 4).Select(Start.AddDays).ToArray();
         var plan = new ExamPlanInput(2, 30, 100, null, 5, 30, [1, 2, 3, 4, 5], breaks, null);
@@ -64,7 +64,7 @@ public sealed class ExamPlanEstimatorTests
     /// Prüft die einmalige Anrechnung beherrschter Inhalte und die Begrenzung der Lernzeit.
     /// </summary>
     [Fact]
-    public void Already_mastered_content_counts_once_and_time_is_bounded()
+    public void AlreadyMasteredContentCountsOnceAndTimeIsBounded()
     {
         var plan = new ExamPlanInput(2, null, 50, null, 7, 60, [], [], null);
         var result = ExamPlanEstimator.Estimate(plan, 2, 1, Start);

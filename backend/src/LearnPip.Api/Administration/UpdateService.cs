@@ -29,8 +29,23 @@ public sealed class UpdateService(
     private const string ReleaseKey = "update_latest_release";
     private const string JobKey = "update_job";
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-    private static readonly Regex Stable = new(@"^v\d+\.\d+\.\d+$", RegexOptions.Compiled);
+    private static readonly Regex Stable = new(@"^v\d+\.\d+\.\d+$", RegexOptions.Compiled, TimeSpan.FromSeconds(1));
     private static readonly string[] Intervals = ["daily", "weekly", "monthly", "never"];
+
+    private static readonly Action<ILogger, Exception?> CheckFailedLog = LoggerMessage.Define(
+        LogLevel.Warning,
+        new EventId(1, "CheckFailedLog"),
+        "Stable release check failed.");
+
+    private static readonly Action<ILogger, Exception?> SubmitFailedLog = LoggerMessage.Define(
+        LogLevel.Error,
+        new EventId(2, "SubmitFailedLog"),
+        "Could not submit update job to the operator.");
+
+    private static readonly Action<ILogger, Exception?> ImportFailedLog = LoggerMessage.Define(
+        LogLevel.Warning,
+        new EventId(3, "ImportFailedLog"),
+        "Could not import update operator status.");
 
     /// <summary>Holt die aktuell konfigurierte installierte Version.</summary>
     public string InstalledVersion
@@ -158,7 +173,7 @@ public sealed class UpdateService(
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidOperationException)
         {
-            logger.LogWarning(ex, "Stable release check failed.");
+            CheckFailedLog(logger, ex);
             var failed = await this.StatusAsync(ct);
             return failed with { State = "check_failed", Error = "Release-Prüfung fehlgeschlagen. Bitte später erneut versuchen." };
         }
@@ -240,7 +255,7 @@ public sealed class UpdateService(
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            logger.LogError(ex, "Could not submit update job to the operator.");
+            SubmitFailedLog(logger, ex);
             job.State = "failed";
             job.Phase = "queue";
             job.Message = "Der Update-Operator konnte den Auftrag nicht entgegennehmen.";
@@ -353,7 +368,7 @@ public sealed class UpdateService(
         }
         catch (Exception ex) when (ex is IOException or JsonException)
         {
-            logger.LogWarning(ex, "Could not import update operator status.");
+            ImportFailedLog(logger, ex);
         }
     }
 }

@@ -135,7 +135,7 @@ public static class LearningSessionEndpoints
         await db.SaveChangesAsync(cancellationToken);
         return Results.Created(
             $"/api/v1/learning/sessions/{session.Id}",
-            new ApiResponse<LearningSessionView>((await View(session, plan, db, cancellationToken))!));
+            new ApiResponse<LearningSessionView>(await View(session, plan, db, cancellationToken)));
     }
 
     private static async Task<IResult> Read(
@@ -158,11 +158,11 @@ public static class LearningSessionEndpoints
             return Results.NotFound();
         }
 
-        return Results.Ok(new ApiResponse<LearningSessionView>((await View(
+        return Results.Ok(new ApiResponse<LearningSessionView>(await View(
                     session,
                     Parse(session),
                     db,
-                    cancellationToken))!));
+                    cancellationToken)));
     }
 
     private static async Task<IResult> Answer(

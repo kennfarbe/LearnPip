@@ -64,7 +64,7 @@ public static class ExamForecastEstimator
                 item.Date,
                 item.Place,
                 item.RegistrationDeadline,
-                item.RegistrationDeadline is null ? "unknown" : item.RegistrationDeadline < today ? "closed" : "open",
+                RegistrationStatus(item.RegistrationDeadline, today),
                 item.SourceUrl,
                 item.CheckedOn)).ToArray();
         var suggestion = earliest is null ? null : visible.FirstOrDefault(item =>
@@ -93,4 +93,11 @@ public static class ExamForecastEstimator
             version,
             visible);
     }
+
+    private static string RegistrationStatus(DateOnly? deadline, DateOnly today) => deadline switch
+    {
+        null => "unknown",
+        var value when value < today => "closed",
+        _ => "open",
+    };
 }

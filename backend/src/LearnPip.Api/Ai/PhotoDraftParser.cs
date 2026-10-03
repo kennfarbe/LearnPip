@@ -67,9 +67,12 @@ public static class PhotoDraftParser
 
         var reference = string.IsNullOrWhiteSpace(referenceHint) ? item.ReferenceSolution :
             referenceHint.Trim();
-        var comparison = string.IsNullOrWhiteSpace(reference) ? "unknown" :
-            Normalize(reference) == Normalize(item.ComputedSolution) ? "same-text" :
-            "different-text";
+        var comparison = "unknown";
+        if (!string.IsNullOrWhiteSpace(reference))
+        {
+            comparison = Normalize(reference) == Normalize(item.ComputedSolution) ? "same-text" : "different-text";
+        }
+
         return new PhotoReview(
             item with
             {

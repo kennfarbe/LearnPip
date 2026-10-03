@@ -22,7 +22,7 @@ public sealed class UpdateVersionTests
     [InlineData("v1.4.0", "v1.3.1", 1)]
     [InlineData("v1.2.9", "v1.3.1", -1)]
     [InlineData("v2.0.0", "v1.99.99", 1)]
-    public void Stable_versions_are_compared_semantically(
+    public void StableVersionsAreComparedSemantically(
         string left,
         string right,
         int expected)
@@ -39,7 +39,7 @@ public sealed class UpdateVersionTests
     [InlineData("main")]
     [InlineData("latest")]
     [InlineData("1.4.0")]
-    public void Non_stable_versions_are_never_treated_as_newer(string value)
+    public void NonStableVersionsAreNeverTreatedAsNewer(string value)
     {
         Assert.Equal(0, UpdateService.Compare(value, "v1.3.1"));
     }

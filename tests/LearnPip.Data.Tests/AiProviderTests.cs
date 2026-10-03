@@ -19,7 +19,7 @@ public sealed class AiProviderTests
     /// Prüft deaktivierte KI-Vorgaben und die ausdrückliche HTTPS-Freigabe für Cloud-Anbieter.
     /// </summary>
     [Fact]
-    public void Default_is_off_and_cloud_requires_explicit_permission_and_https()
+    public void DefaultIsOffAndCloudRequiresExplicitPermissionAndHttps()
     {
         var config = Configure(new Dictionary<string, string?>
         {
@@ -44,7 +44,7 @@ public sealed class AiProviderTests
     /// Prüft die Kontobindung persönlicher KI-Schlüssel und deren Ausschluss aus Modusmetadaten.
     /// </summary>
     [Fact]
-    public void User_key_is_bound_to_account_and_never_exposed_by_mode_metadata()
+    public void UserKeyIsBoundToAccountAndNeverExposedByModeMetadata()
     {
         var config = Configure(new Dictionary<string, string?>
         {
@@ -68,7 +68,7 @@ public sealed class AiProviderTests
     /// </summary>
     /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     [Fact]
-    public async Task Provider_failure_does_not_trigger_another_provider()
+    public async Task ProviderFailureDoesNotTriggerAnotherProvider()
     {
         var attempts = 0;
         using var client = new HttpClient(new StubHandler(() =>
@@ -90,7 +90,7 @@ public sealed class AiProviderTests
     /// </summary>
     /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     [Fact]
-    public async Task Photo_request_sends_the_selected_image_and_no_extra_account_data()
+    public async Task PhotoRequestSendsTheSelectedImageAndNoExtraAccountData()
     {
         string? body = null;
         using var client = new HttpClient(new PhotoHandler(async request =>
@@ -121,7 +121,7 @@ public sealed class AiProviderTests
     /// Prüft die Ablehnung unvollständiger Fotoergebnisse und die Grenzen des Lösungsvergleichs.
     /// </summary>
     [Fact]
-    public void Photo_review_rejects_incomplete_output_and_never_claims_mathematical_verification()
+    public void PhotoReviewRejectsIncompleteOutputAndNeverClaimsMathematicalVerification()
     {
         var mediaId = Guid.NewGuid();
         Assert.Null(PhotoDraftParser.Parse("{}", mediaId, "operator-local", null));

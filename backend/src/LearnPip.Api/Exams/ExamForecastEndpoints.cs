@@ -62,12 +62,9 @@ public static class ExamForecastEndpoints
             if (run.SnapshotJson.StartsWith('['))
             {
                 var snapshot = JsonSerializer.Deserialize<List<SnapshotPart>>(run.SnapshotJson, Json)!;
-                foreach (var question in snapshot.SelectMany(part => part.Questions))
+                foreach (var question in snapshot.SelectMany(part => part.Questions).Where(question => answers.ContainsKey(question.Code)))
                 {
-                    if (answers.ContainsKey(question.Code))
-                    {
-                        answered.Add(question.BaseCode ?? question.Code);
-                    }
+                    answered.Add(question.BaseCode ?? question.Code);
                 }
 
                 if (run.CompletedAtUtc != null)
@@ -81,12 +78,9 @@ public static class ExamForecastEndpoints
             else
             {
                 var snapshot = JsonSerializer.Deserialize<PowerSnapshot>(run.SnapshotJson, Json)!;
-                foreach (var question in snapshot.Parts.SelectMany(part => part.Questions))
+                foreach (var question in snapshot.Parts.SelectMany(part => part.Questions).Where(question => answers.ContainsKey(question.Code)))
                 {
-                    if (answers.ContainsKey(question.Code))
-                    {
-                        answered.Add(question.BaseCode ?? question.Code);
-                    }
+                    answered.Add(question.BaseCode ?? question.Code);
                 }
             }
         }

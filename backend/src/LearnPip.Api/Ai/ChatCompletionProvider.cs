@@ -115,7 +115,7 @@ public sealed class ChatCompletionProvider(
                 throw new InvalidDataException("AI response too large.");
             }
 
-            buffer.Write(chunk, 0, count);
+            await buffer.WriteAsync(chunk.AsMemory(0, count), cancellationToken);
         }
 
         using var json = JsonDocument.Parse(buffer.ToArray());

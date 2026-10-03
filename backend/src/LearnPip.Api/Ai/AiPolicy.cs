@@ -53,8 +53,13 @@ public static class AiPolicy
             "user-key" => hasUserKey && AiKeyVault.Available(config),
             _ => true,
         };
-        var quota = int.TryParse(config[$"Ai:Quota:{mode}"], out var configured) ? configured :
-            mode == "operator-cloud" ? 10 : mode == "operator-local" ? 50 : 20;
+        var defaultQuota = mode switch
+        {
+            "operator-cloud" => 10,
+            "operator-local" => 50,
+            _ => 20,
+        };
+        var quota = int.TryParse(config[$"Ai:Quota:{mode}"], out var configured) ? configured : defaultQuota;
         quota = Math.Clamp(quota, 0, 1000);
         var max = int.TryParse(config["Ai:MaxInputBytes"], out var configuredMax) ?
             configuredMax : 8192;
@@ -62,20 +67,33 @@ public static class AiPolicy
         var imageMax = int.TryParse(config["Ai:MaxImageBytes"], out var configuredImageMax) ?
             configuredImageMax : 2 * 1024 * 1024;
         imageMax = Math.Clamp(imageMax, 1, 5 * 1024 * 1024);
-        return mode == "off" ? new AiModeInfo(
-            mode,
-            true,
-            "Kein Anbieter",
-            "Keine Übermittlung. Manuelles Lernen bleibt verfügbar.",
-            0,
-            max,
-            imageMax,
-            false) :
-            new AiModeInfo(
+        if (mode == "off")
+        {
+            return new AiModeInfo(
+                mode,
+                true,
+                "Kein Anbieter",
+                "Keine Übermittlung. Manuelles Lernen bleibt verfügbar.",
+                0,
+                max,
+                imageMax,
+                false);
+        }
+
+        var sharedData = "Ausdrücklich gewählter Text oder Foto an den lokalen Dienst des Betreibers.";
+        if (!local)
+        {
+            var keyDisclosure = mode == "user-key"
+                ? "der eigene API-Schlüssel wird mitgesendet."
+                : "der Betreiber trägt den API-Schlüssel.";
+            sharedData = "Ausdrücklich gewählter Text oder Foto an den Cloud-Anbieter; " + keyDisclosure;
+        }
+
+        return new AiModeInfo(
             mode,
             allowed && uriValid && !string.IsNullOrWhiteSpace(model) && keyReady && quota > 0,
             uriValid ? uri!.GetLeftPart(UriPartial.Authority) : "Nicht konfiguriert",
-            local ? "Ausdrücklich gewählter Text oder Foto an den lokalen Dienst des Betreibers." : "Ausdrücklich gewählter Text oder Foto an den Cloud-Anbieter; " + (mode == "user-key" ? "der eigene API-Schlüssel wird mitgesendet." : "der Betreiber trägt den API-Schlüssel."),
+            sharedData,
             quota,
             max,
             imageMax,

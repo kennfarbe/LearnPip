@@ -9,13 +9,18 @@ namespace LearnPip.Api;
 /// <summary>
 /// Prüft im Hintergrund auf neue stabile Versionen.
 /// </summary>
-/// <param name="scopes">Die freigegebenen OIDC-Berechtigungsbereiche.</param>
+/// <param name="scopes">Die Factory für abgegrenzte Dienstbereiche.</param>
 /// <param name="logger">Der Logger für den Dienst.</param>
 public sealed class UpdateCheckBackgroundService(
         IServiceScopeFactory scopes,
         ILogger<UpdateCheckBackgroundService> logger)
     : BackgroundService
 {
+    private static readonly Action<ILogger, Exception?> CheckFailedLog = LoggerMessage.Define(
+        LogLevel.Warning,
+        new EventId(1, "ScheduledCheckFailed"),
+        "Scheduled update check failed; it will be retried.");
+
     /// <summary>
     /// Führt die Hintergrundarbeit bis zum Abbruch des Hosts aus.
     /// </summary>
@@ -33,7 +38,7 @@ public sealed class UpdateCheckBackgroundService(
             }
             catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
             {
-                logger.LogWarning(ex, "Scheduled update check failed; it will be retried.");
+                CheckFailedLog(logger, ex);
             }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));

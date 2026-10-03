@@ -32,7 +32,7 @@ public sealed class VisibilityTests
     /// </summary>
     /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     [Fact]
-    public async Task Only_explicit_versions_and_their_referenced_media_are_visible()
+    public async Task OnlyExplicitVersionsAndTheirReferencedMediaAreVisible()
     {
         var source = Environment.GetEnvironmentVariable("ConnectionStrings__LearnPip")
             ?? throw new InvalidOperationException("Set ConnectionStrings__LearnPip to a disposable PostgreSQL server.");
