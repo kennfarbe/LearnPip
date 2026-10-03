@@ -28,7 +28,7 @@ public static class FacebookOAuthSetup
     /// <summary>Registers Facebook Login as a separate server-side OAuth flow.</summary>
     /// <param name="authentication">Authentication builder.</param>
     /// <param name="configuration">Server configuration.</param>
-    /// <returns>Authentication builder.</returns>
+    /// <returns>The builder with the Facebook Login handler registered when configured.</returns>
     public static AuthenticationBuilder AddLearnPipFacebook(
         this AuthenticationBuilder authentication,
         IConfiguration configuration)
@@ -57,13 +57,12 @@ public static class FacebookOAuthSetup
             options.Scope.Clear();
             options.Events.OnCreatingTicket = async context =>
             {
-                using var request = new HttpRequestMessage(
-                    HttpMethod.Get,
-                    new UriBuilder(Uri.UriSchemeHttps, "graph.facebook.com")
-                    {
-                        Path = "v24.0/me",
-                        Query = "fields=id",
-                    }.Uri);
+                var endpoint = new UriBuilder(Uri.UriSchemeHttps, "graph.facebook.com")
+                {
+                    Path = "v24.0/me",
+                    Query = "fields=id",
+                }.Uri;
+                using var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
                 request.Headers.Authorization = new AuthenticationHeaderValue(
                     "Bearer",
                     context.AccessToken);
