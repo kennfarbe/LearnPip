@@ -72,6 +72,28 @@ public sealed class OidcProviderConfigurationTests
         Assert.Null(OidcSetup.ProviderScheme(configuration, "facebook"));
     }
 
+    /// <summary>
+    /// Fehlerhafte Issuer-Adressen werden nicht als Anmeldeanbieter angeboten.
+    /// </summary>
+    [Theory]
+    [InlineData("http://issuer.example.invalid")]
+    [InlineData("not-a-url")]
+    [InlineData("https://user:password@issuer.example.invalid")]
+    [InlineData("https://issuer.example.invalid/?token=example")]
+    [InlineData("https://issuer.example.invalid/#fragment")]
+    public void InvalidIssuerDoesNotEnableProvider(string authority)
+    {
+        var configuration = CreateConfiguration(new Dictionary<string, string?>
+        {
+            ["Oidc:Providers:microsoft:Authority"] = authority,
+            ["Oidc:Providers:microsoft:ClientId"] = "client",
+            ["Oidc:Providers:microsoft:ClientSecret"] = "secret",
+        });
+
+        Assert.Empty(OidcSetup.EnabledProviders(configuration));
+        Assert.Null(OidcSetup.ProviderScheme(configuration, "microsoft"));
+    }
+
     private static IConfiguration CreateConfiguration(Dictionary<string, string?> values) =>
         new ConfigurationBuilder().AddInMemoryCollection(values).Build();
 }
