@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/kennfarbe/LearnPip/compare/v1.5.1...v1.6.0) (2026-10-03)
+
+
+### Features
+
+* **catalog:** add offline ZIP integrity and semantic validator ([8956ef0](https://github.com/kennfarbe/LearnPip/commit/8956ef07f29b1323d8f280c32f413dfbd5ffca58))
+
 ## [1.5.1](https://github.com/kennfarbe/LearnPip/compare/v1.5.0...v1.5.1) (2026-10-03)
 
 
