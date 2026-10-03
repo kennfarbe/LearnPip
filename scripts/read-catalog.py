@@ -6,7 +6,7 @@ database or silently migrate unknown versions. Format 0.1.0 is still a draft.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from typing import NamedTuple
 import json
 from pathlib import Path
 import zipfile
@@ -21,8 +21,7 @@ _validator = module_from_spec(_SPEC)
 _LOADER.exec_module(_validator)
 
 
-@dataclass(frozen=True)
-class CatalogSnapshot:
+class CatalogSnapshot(NamedTuple):
     manifest: dict
     questions: dict
     media: dict[str, bytes]
