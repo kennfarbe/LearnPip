@@ -71,6 +71,15 @@ if [[ "$*" == *'run --rm migrate'* && "${MOCK_FAIL_MIGRATE:-}" == 1 ]]; then exi
         assert f'  {secret}:\n    file: ./secrets/{secret}' in compose_text
         assert secret in (repo / 'scripts/prod-init.sh').read_text()
 
+    # Provider credentials must remain server-side and survive upgrades.
+    compose = (repo / 'deploy/compose.prod.yaml').read_text()
+    init_script = (repo / 'scripts/prod-init.sh').read_text()
+    for provider in ('GithubOAuth', 'FacebookOAuth'):
+        secret = f'{provider}__ClientSecret'
+        assert f'      - {secret}' in compose
+        assert f'  {secret}:\n    file: ./secrets/{secret}' in compose
+        assert secret in init_script
+
     run('prepare')
     assert not (target / 'current').exists()
     assert not log.exists(), 'prepare must not invoke Docker'
