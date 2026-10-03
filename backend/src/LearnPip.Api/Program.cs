@@ -80,7 +80,8 @@ builder.Services.AddAuthentication(SessionAuthentication.Scheme)
     SessionAuthentication.Scheme,
     _ => { })
     .AddLearnPipOidc(builder.Configuration)
-    .AddLearnPipGithub(builder.Configuration);
+    .AddLearnPipGithub(builder.Configuration)
+    .AddLearnPipFacebook(builder.Configuration);
 builder.Services.AddApiAuthorization();
 builder.Services.AddRateLimiter(options =>
 {
