@@ -1,0 +1,51 @@
+{
+  "format_id": "org.learnpip.catalog.zip",
+  "schema_version": "0.1.0",
+  "package_id": "example.frozen",
+  "catalog_version": "2026.10.0",
+  "source_revision": "fixture-v1",
+  "title": "Älteres Prüfpaket",
+  "description": "Synthetischer unveränderlicher Vertragstest",
+  "language": "de-DE",
+  "publisher": "Synthetic test author",
+  "created_at": "2026-10-03T00:00:00Z",
+  "license": {
+    "id": "CC0-1.0",
+    "holder": "Synthetic test author",
+    "attribution": "Synthetic fixture; not a real question catalog"
+  },
+  "questions": [
+    {
+      "id": "example:frozen-01",
+      "language": "de-DE",
+      "prompt": "Welche Lösung gilt für Äpfel?",
+      "answers": [
+        {
+          "id": "a",
+          "text": "Falsch"
+        },
+        {
+          "id": "b",
+          "text": "Richtig"
+        }
+      ],
+      "correct_answer_ids": [
+        "b"
+      ],
+      "explanation": "Synthetische Erklärung.",
+      "topics": [
+        "Vertrag"
+      ],
+      "difficulty": "easy",
+      "license": {
+        "id": "CC0-1.0",
+        "holder": "Synthetic test author",
+        "attribution": "Synthetic fixture"
+      },
+      "provenance": {
+        "kind": "original"
+      },
+      "media": []
+    }
+  ]
+}
