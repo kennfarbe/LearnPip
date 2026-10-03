@@ -1,3 +1,23 @@
+# [1.11.0](https://github.com/kennfarbe/LearnPip/compare/v1.10.0...v1.11.0) (2026-10-03)
+
+
+### Bug Fixes
+
+* **identity:** initialize newly introduced optional provider secrets on upgrades ([d009ae0](https://github.com/kennfarbe/LearnPip/commit/d009ae01933a18e23766f977416d11088428c836))
+* **identity:** mount persistent keys for migration startup as well ([610cad5](https://github.com/kennfarbe/LearnPip/commit/610cad51b528db93a958ca4e135922fb12840393))
+* **identity:** require valid HTTPS issuer before advertising OIDC provider ([48f1ea5](https://github.com/kennfarbe/LearnPip/commit/48f1ea5d4fc5cbac3d6c489e218bc5119e4aec68))
+* **identity:** reserve generic OIDC registration for supported protocol providers ([2d85a7e](https://github.com/kennfarbe/LearnPip/commit/2d85a7ea39b702720d74972dcdf9c6627f42e3e1))
+
+
+### Features
+
+* **identity:** add per-provider login and explicit account linking routes ([0900c10](https://github.com/kennfarbe/LearnPip/commit/0900c100285ec7a50b5cb67b51905116378cd7ad))
+* **identity:** initialize empty provider secret files without rotating existing secrets ([00498a0](https://github.com/kennfarbe/LearnPip/commit/00498a025ab12bde6d9492c6d15c10bd3cca139c))
+* **identity:** mount persistent Data Protection volume in production ([b87b32c](https://github.com/kennfarbe/LearnPip/commit/b87b32c697547dd93d2c0077ebad53f9ef298a5f))
+* **identity:** persist production Data Protection keys across API restarts ([e8d8eed](https://github.com/kennfarbe/LearnPip/commit/e8d8eed2e519d1a6aceb82112fcbcc37bf2ed0e7))
+* **identity:** register separately configured OIDC authentication schemes ([129fad8](https://github.com/kennfarbe/LearnPip/commit/129fad853cef0618ccc11a176dd51e01268dd2f0))
+* **identity:** wire optional Apple and Microsoft OIDC configuration into production Compose ([54c82f0](https://github.com/kennfarbe/LearnPip/commit/54c82f00cbb696f0d4de89219e4f2807db8a61b9))
+
 # [1.10.0](https://github.com/kennfarbe/LearnPip/compare/v1.9.2...v1.10.0) (2026-10-03)
 
 
