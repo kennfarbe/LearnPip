@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/kennfarbe/LearnPip/compare/v1.9.0...v1.9.1) (2026-10-03)
+
+
+### Bug Fixes
+
+* **catalog:** reject unknown fields in offline draft contract ([d76ec4b](https://github.com/kennfarbe/LearnPip/commit/d76ec4b4c16b5205066218736094bd36283a3214))
+
 # [1.9.0](https://github.com/kennfarbe/LearnPip/compare/v1.8.0...v1.9.0) (2026-10-03)
 
 
