@@ -50,6 +50,11 @@ public static class AuthEndpoints
             .RequireRateLimiting("auth")
             .Produces<ApiResponse<SessionGrant>>()
             .ProducesProblem(StatusCodes.Status401Unauthorized);
+        auth.MapGet("/github/start", (IConfiguration configuration) =>
+            GithubOAuthSetup.IsEnabled(configuration)
+                ? Results.Challenge(new AuthenticationProperties { RedirectUri = "/" }, [GithubOAuthSetup.Scheme])
+                : Results.NotFound())
+            .RequireRateLimiting("auth");
         auth.MapGet("/oidc/providers", (IConfiguration configuration) =>
             Results.Ok(OidcSetup.EnabledProviders(configuration)))
             .Produces<string[]>();
