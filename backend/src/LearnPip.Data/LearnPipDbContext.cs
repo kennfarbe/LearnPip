@@ -19,6 +19,9 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
     /// <summary>Holt die Datenmenge AdministrationAuditEvents.</summary>
     public DbSet<AdministrationAuditEvent> AdministrationAuditEvents => this.Set<AdministrationAuditEvent>();
 
+    /// <summary>Holt die lokalen Passwortzugänge.</summary>
+    public DbSet<PasswordCredential> PasswordCredentials => this.Set<PasswordCredential>();
+
     /// <summary>Holt die Datenmenge Accounts.</summary>
     public DbSet<Account> Accounts => this.Set<Account>();
 
@@ -292,6 +295,16 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
             entity.HasIndex(x => new { x.Provider, x.Subject }).IsUnique();
             entity.HasOne(x => x.Account).WithMany(x => x.ExternalIdentities)
                 .HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PasswordCredential>(entity =>
+        {
+            entity.HasKey(x => x.AccountId);
+            entity.Property(x => x.Username).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.PasswordHash).HasMaxLength(512).IsRequired();
+            entity.HasIndex(x => x.Username).IsUnique();
+            entity.HasOne(x => x.Account).WithOne()
+                .HasForeignKey<PasswordCredential>(x => x.AccountId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<RecoveryCredential>(entity =>

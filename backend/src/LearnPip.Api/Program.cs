@@ -62,6 +62,7 @@ builder.Services.AddProblemDetails(options =>
         context.ProblemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier);
 
 builder.Services.AddScoped<IdentityService>();
+builder.Services.AddScoped<PasswordService>();
 builder.Services.AddScoped<AccountLifecycleService>();
 builder.Services.AddSingleton<IInactivityNoticeSender, DisabledInactivityNoticeSender>();
 builder.Services.AddScoped<AdministrationService>();
@@ -191,7 +192,8 @@ app.Use(async (context, next) =>
     if (!HttpMethods.IsGet(context.Request.Method) &&
         !HttpMethods.IsHead(context.Request.Method) &&
         !HttpMethods.IsOptions(context.Request.Method) &&
-        context.Request.Cookies.ContainsKey(SessionAuthentication.CookieName) &&
+        (context.Request.Cookies.ContainsKey(SessionAuthentication.CookieName) ||
+         context.Request.Path == "/api/v1/auth/password") &&
         !context.Request.Headers.ContainsKey("Authorization"))
     {
         var configuredOrigin = builder.Configuration["Authentication:PublicOrigin"];
@@ -251,6 +253,7 @@ app.MapGet(
     .WithName("Readiness");
 app.MapV1Endpoints();
 app.MapAuthEndpoints();
+app.MapPasswordEndpoints();
 app.MapDataRightsEndpoints();
 app.MapMediaEndpoints();
 app.MapQuestionEndpoints();
@@ -273,6 +276,28 @@ if (args.Contains("--migrate", StringComparer.OrdinalIgnoreCase))
     await using var scope = app.Services.CreateAsyncScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<LearnPipDbContext>();
     await dbContext.Database.MigrateAsync();
+    return;
+}
+
+if (args is ["--initialize-admin"] or ["--reset-admin-password"])
+{
+    // Two lines over stdin; never command-line arguments or long-lived configuration.
+    var username = await Console.In.ReadLineAsync() ?? string.Empty;
+    var password = await Console.In.ReadLineAsync() ?? string.Empty;
+    await using var scope = app.Services.CreateAsyncScope();
+    var passwords = scope.ServiceProvider.GetRequiredService<PasswordService>();
+    if (args[0] == "--reset-admin-password")
+    {
+        await passwords.ResetAsync(username, password);
+        Console.WriteLine("Passwort zurückgesetzt; bestehende Sitzungen widerrufen.");
+    }
+    else
+    {
+        var created = await passwords.BootstrapAsync(username, password);
+        Console.WriteLine(created ? "Administrator eingerichtet." : "Administrator bereits eingerichtet; unverändert.");
+        Environment.ExitCode = created ? 0 : 10;
+    }
+
     return;
 }
 

@@ -644,6 +644,35 @@ namespace LearnPip.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("LearnPip.Data.Domain.PasswordCredential", b =>
+                {
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("FailedAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("LockedUntilUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("AccountId");
+
+                    b.HasIndex("Username")
+                        .IsUnique();
+
+                    b.ToTable("PasswordCredentials");
+                });
+
             modelBuilder.Entity("LearnPip.Data.Domain.PrivateCatalog", b =>
                 {
                     b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
@@ -1338,6 +1367,17 @@ namespace LearnPip.Data.Migrations
                     b.Navigation("Owner");
 
                     b.Navigation("QuestionVersion");
+                });
+
+            modelBuilder.Entity("LearnPip.Data.Domain.PasswordCredential", b =>
+                {
+                    b.HasOne("LearnPip.Data.Domain.Account", "Account")
+                        .WithOne()
+                        .HasForeignKey("LearnPip.Data.Domain.PasswordCredential", "AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
                 });
 
             modelBuilder.Entity("LearnPip.Data.Domain.PrivateCatalog", b =>
