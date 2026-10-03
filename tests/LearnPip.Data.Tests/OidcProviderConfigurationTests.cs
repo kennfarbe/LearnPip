@@ -75,6 +75,7 @@ public sealed class OidcProviderConfigurationTests
     /// <summary>
     /// Fehlerhafte Issuer-Adressen werden nicht als Anmeldeanbieter angeboten.
     /// </summary>
+    /// <param name="authority">Die zu prüfende Issuer-Adresse.</param>
     [Theory]
     [InlineData("http://issuer.example.invalid")]
     [InlineData("not-a-url")]
