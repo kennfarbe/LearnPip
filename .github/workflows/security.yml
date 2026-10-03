@@ -1,0 +1,236 @@
+name: Dependency and image security audit
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 3 * * 0'
+  pull_request:
+    paths:
+      - '.github/workflows/security.yml'
+      - 'backend/**/*.csproj'
+      - 'backend/**/*.props'
+      - 'backend/**/*.sln'
+      - 'frontend/web/package.json'
+      - 'frontend/web/package-lock.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'backend/**/Dockerfile'
+      - 'frontend/web/Dockerfile'
+      - 'deploy/compose*.yaml'
+      - 'scripts/security-report.py'
+      - 'scripts/npm-security-audit.sh'
+      - 'scripts/try-security-overrides.sh'
+      - 'tests/ops/test_security_report.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-audit-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  dependencies:
+    name: NuGet and npm dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Test aggregate scanner parser
+        run: python3 -m unittest discover -s tests/ops -p 'test_security_report.py' -v
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24
+
+      - name: Audit root and Angular dependencies; test safe lockfile fixes
+        id: npm_audit
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=0
+          bash scripts/npm-security-audit.sh . root production || status=1
+          bash scripts/npm-security-audit.sh frontend/web web production || status=1
+          bash scripts/npm-security-audit.sh . root development || status=1
+          bash scripts/npm-security-audit.sh frontend/web web development || status=1
+          exit "$status"
+
+      - name: Trial targeted transitive overrides without changing checkout
+        if: always()
+        shell: bash
+        run: bash scripts/try-security-overrides.sh
+
+      - name: Upload override trial candidate for review
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: npm-override-trial
+          path: |
+            ${{ runner.temp }}/learnpip-override-trial/package.json
+            ${{ runner.temp }}/learnpip-override-trial/package-lock.json
+            ${{ runner.temp }}/learnpip-override-trial/override-audit.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Restore NuGet graph
+        shell: bash
+        run: |
+          if ! dotnet restore backend/LearnPip.sln > "$RUNNER_TEMP/nuget-restore.log" 2>&1; then
+            echo "NuGet restore incomplete. Inspect locally; no scan success claimed." >&2
+            exit 1
+          fi
+
+      - name: Scan direct and transitive NuGet packages
+        shell: bash
+        run: |
+          if ! dotnet list backend/LearnPip.sln package --vulnerable --include-transitive --format json > "$RUNNER_TEMP/nuget.json" 2> "$RUNNER_TEMP/nuget-error.log"; then
+            echo "NuGet vulnerability scan incomplete. Inspect locally." >&2
+            exit 1
+          fi
+          python3 scripts/security-report.py nuget "$RUNNER_TEMP/nuget.json"
+
+      - name: Collect complete scanner reports
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/security-reports"
+          for component in root web; do
+            for scope in production development; do
+              source="$RUNNER_TEMP/learnpip-security-$component-$scope"
+              if [ -d "$source" ]; then
+                for name in npm-audit-private.json npm-after-fix-private.json npm-fix-private.json; do
+                  if [ -f "$source/$name" ]; then
+                    cp "$source/$name" "$RUNNER_TEMP/security-reports/$component-$scope-$name"
+                  fi
+                done
+              fi
+            done
+          done
+          if [ -f "$RUNNER_TEMP/nuget.json" ]; then
+            cp "$RUNNER_TEMP/nuget.json" "$RUNNER_TEMP/security-reports/nuget.json"
+          fi
+
+      - name: Upload full audit reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: dependency-security-reports
+          path: ${{ runner.temp }}/security-reports/*.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Enforce complete dependency audit result
+        if: always()
+        shell: bash
+        env:
+          NPM_OUTCOME: ${{ steps.npm_audit.outcome }}
+        run: |
+          if [ "$NPM_OUTCOME" != success ]; then
+            echo 'npm vulnerability audit remains unresolved; job stays blocked.' >&2
+            exit 1
+          fi
+
+  release:
+    name: Resolve published release
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - name: Resolve latest stable release
+        id: release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            https://api.github.com/repos/kennfarbe/LearnPip/releases/latest \
+            > "$RUNNER_TEMP/latest-release.json"
+          tag="$(python3 - "$RUNNER_TEMP/latest-release.json" <<'PY'
+          import json
+          import re
+          import sys
+          with open(sys.argv[1], encoding="utf-8") as stream:
+              release = json.load(stream)
+          tag = release.get("tag_name", "")
+          if release.get("draft") or release.get("prerelease") or not re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", tag):
+              raise SystemExit("No validated stable release tag")
+          print(tag)
+          PY
+          )"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  published-images:
+    name: Published image audit (${{ matrix.component }})
+    needs: [release]
+    if: needs.release.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [api, worker, web]
+    steps:
+      - name: Check out scanner parser
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Resolve concrete published image digest
+        id: image
+        shell: bash
+        env:
+          COMPONENT: ${{ matrix.component }}
+          TAG: ${{ needs.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          image="kennfarbe/learnpip:$COMPONENT-$TAG"
+          if ! docker pull "$image" > "$RUNNER_TEMP/docker-pull.log" 2>&1; then
+            echo "Published image unavailable; scan incomplete." >&2
+            exit 1
+          fi
+          ref="$(docker image inspect --format '{{index .RepoDigests 0}}' "$image")"
+          if [[ ! "$ref" =~ ^kennfarbe/learnpip@sha256:[a-f0-9]{64}$ ]]; then
+            echo "Published image digest unavailable; scan incomplete." >&2
+            exit 1
+          fi
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
+      - name: Scan published image without public vulnerability details
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: ${{ steps.image.outputs.ref }}
+          version: v0.74.0
+          format: json
+          output: ${{ runner.temp }}/trivy.json
+          severity: HIGH,CRITICAL
+          scanners: vuln
+          vuln-type: os,library
+          hide-progress: true
+          cache: false
+          exit-code: '0'
+
+      - name: Enforce scanner outcome without publishing advisory details
+        run: python3 scripts/security-report.py trivy "$RUNNER_TEMP/trivy.json"
