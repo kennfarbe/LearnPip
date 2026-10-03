@@ -82,6 +82,55 @@ jobs:
           fi
           python3 scripts/security-report.py nuget "$RUNNER_TEMP/nuget.json"
 
+      - name: Encrypt private reports if a public key is configured
+        id: private_report
+        if: always()
+        shell: bash
+        env:
+          REPORT_KEY: ${{ secrets.SECURITY_REPORT_GPG_PUBLIC_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$REPORT_KEY" ]; then
+            echo 'Encrypted retention not configured; no raw reports will be uploaded.'
+            exit 0
+          fi
+          export GNUPGHOME="$RUNNER_TEMP/private-gpg"
+          mkdir -p "$GNUPGHOME"
+          chmod 700 "$GNUPGHOME"
+          printf '%s\n' "$REPORT_KEY" | gpg --batch --quiet --import > "$RUNNER_TEMP/gpg-import.log" 2>&1 || {
+            echo 'Unable to import security report public key; upload disabled.' >&2
+            exit 1
+          }
+          fingerprint="$(gpg --batch --with-colons --list-keys | awk -F: '$1=="fpr" {print $10; exit}')"
+          if [ -z "$fingerprint" ]; then
+            echo 'Missing public key fingerprint; upload disabled.' >&2
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/private-report-collection"
+          for candidate in "$RUNNER_TEMP"/learnpip-security-*/npm-*private.json "$RUNNER_TEMP/nuget.json"; do
+            if [ -f "$candidate" ]; then
+              cp "$candidate" "$RUNNER_TEMP/private-report-collection/$(basename "$(dirname "$candidate")")-$(basename "$candidate")"
+            fi
+          done
+          if [ -z "$(ls -A "$RUNNER_TEMP/private-report-collection")" ]; then
+            echo 'No private reports to retain.'
+            exit 0
+          fi
+          tar -C "$RUNNER_TEMP/private-report-collection" -czf "$RUNNER_TEMP/security-private-reports.tar.gz" .
+          gpg --batch --yes --quiet --trust-model always --encrypt --recipient "$fingerprint" \
+            --output "$RUNNER_TEMP/security-private-reports.tar.gz.gpg" "$RUNNER_TEMP/security-private-reports.tar.gz"
+          rm -f "$RUNNER_TEMP/security-private-reports.tar.gz"
+          echo 'available=true' >> "$GITHUB_OUTPUT"
+
+      - name: Retain encrypted reports only
+        if: always() && steps.private_report.outputs.available == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: encrypted-security-reports
+          path: ${{ runner.temp }}/security-private-reports.tar.gz.gpg
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Enforce complete dependency audit result
         if: always()
         shell: bash
