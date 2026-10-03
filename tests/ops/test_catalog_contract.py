@@ -218,6 +218,25 @@ class CatalogContractTests(unittest.TestCase):
         Path(self.filename).write_bytes(make_zip(self.manifest, self.files))
         return self.filename
 
+    def test_unknown_manifest_field_is_rejected(self):
+        self.manifest["unreviewed_setting"] = True
+        with self.assertRaisesRegex(InvalidPackage, "Unknown manifest fields"):
+            self.check(make_zip(self.manifest, self.files))
+
+    def test_unknown_question_field_is_rejected(self):
+        self.questions["questions"][0]["unreviewed_setting"] = True
+        self.files["questions.json"] = json.dumps(self.questions).encode("utf-8")
+        self.update_question_record()
+        with self.assertRaisesRegex(InvalidPackage, "Unknown question fields"):
+            self.check(make_zip(self.manifest, self.files))
+
+    def test_unknown_nested_license_field_is_rejected(self):
+        self.questions["questions"][0]["license"]["unreviewed_setting"] = True
+        self.files["questions.json"] = json.dumps(self.questions).encode("utf-8")
+        self.update_question_record()
+        with self.assertRaisesRegex(InvalidPackage, "Unknown license fields"):
+            self.check(make_zip(self.manifest, self.files))
+
     def test_reader_rejects_unknown_future_version(self):
         self.manifest["schema_version"] = "2.0.0"
         Path(self.filename).write_bytes(make_zip(self.manifest, self.files))
