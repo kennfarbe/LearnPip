@@ -50,6 +50,11 @@ public static class AuthEndpoints
             .RequireRateLimiting("auth")
             .Produces<ApiResponse<SessionGrant>>()
             .ProducesProblem(StatusCodes.Status401Unauthorized);
+        auth.MapGet("/oidc/providers", (IConfiguration configuration) =>
+            Results.Ok(OidcSetup.EnabledProviders(configuration)))
+            .Produces<string[]>();
+        auth.MapGet("/oidc/{provider}/start", StartNamedOidc)
+            .RequireRateLimiting("auth");
         auth.MapGet(
             "/oidc/start",
             StartOidc)
@@ -88,6 +93,8 @@ public static class AuthEndpoints
             CompleteEmailLink)
             .RequireRateLimiting("auth")
             .Produces(StatusCodes.Status204NoContent);
+        secured.MapGet("/oidc/{provider}/link/start", StartNamedOidcLink)
+            .RequireRateLimiting("auth");
         secured.MapGet(
             "/oidc/link/start",
             StartOidcLink)
@@ -184,6 +191,34 @@ public static class AuthEndpoints
         {
             return Results.Conflict();
         }
+    }
+
+    private static IResult StartNamedOidc(string provider, IConfiguration configuration)
+    {
+        var scheme = OidcSetup.ProviderScheme(configuration, provider);
+        return scheme == null ? Results.NotFound() :
+            Results.Challenge(new AuthenticationProperties { RedirectUri = "/" }, [scheme]);
+    }
+
+    private static IResult StartNamedOidcLink(
+        string provider,
+        IConfiguration configuration,
+        ClaimsPrincipal principal)
+    {
+        var scheme = OidcSetup.ProviderScheme(configuration, provider);
+        if (scheme == null)
+        {
+            return Results.NotFound();
+        }
+
+        if (!SessionAuthentication.TryGetSessionId(principal, out var sessionId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var properties = new AuthenticationProperties { RedirectUri = "/" };
+        properties.Items[OidcSetup.LinkSessionKey] = sessionId.ToString();
+        return Results.Challenge(properties, [scheme]);
     }
 
     private static IResult StartOidc(IConfiguration configuration)
