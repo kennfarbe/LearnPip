@@ -115,6 +115,42 @@ public sealed class OidcProviderConfigurationTests
     }
 
     /// <summary>
+    /// Microsoft tokens must match the exact tenant strategy selected by the operator.
+    /// </summary>
+    [Theory]
+    [InlineData(
+        "https://login.microsoftonline.com/organizations/v2.0",
+        "https://login.microsoftonline.com/11111111-1111-1111-1111-111111111111/v2.0",
+        true)]
+    [InlineData(
+        "https://login.microsoftonline.com/organizations/v2.0",
+        "https://attacker.example/11111111-1111-1111-1111-111111111111/v2.0",
+        false)]
+    [InlineData(
+        "https://login.microsoftonline.com/organizations/v2.0",
+        "https://login.microsoftonline.com/not-a-tenant/v2.0",
+        false)]
+    [InlineData(
+        "https://login.microsoftonline.com/consumers/v2.0",
+        "https://login.microsoftonline.com/9188040d-6c67-4c5b-b112-36a304b66dad/v2.0",
+        true)]
+    [InlineData(
+        "https://login.microsoftonline.com/consumers/v2.0",
+        "https://login.microsoftonline.com/11111111-1111-1111-1111-111111111111/v2.0",
+        false)]
+    [InlineData(
+        "https://login.microsoftonline.com/11111111-1111-1111-1111-111111111111/v2.0",
+        "https://login.microsoftonline.com/22222222-2222-2222-2222-222222222222/v2.0",
+        false)]
+    public void MicrosoftIssuerMustMatchConfiguredTenantStrategy(
+        string authority,
+        string issuer,
+        bool expected)
+    {
+        Assert.Equal(expected, OidcSetup.IsTrustedMicrosoftIssuer(authority, issuer));
+    }
+
+    /// <summary>
     /// Fremde Issuer dürfen nicht unter dem Namen eines bekannten Anbieters auftreten.
     /// </summary>
     /// <param name="provider">Der deklarierte Anbieter.</param>
