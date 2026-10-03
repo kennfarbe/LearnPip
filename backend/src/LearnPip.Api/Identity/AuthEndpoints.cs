@@ -137,6 +137,8 @@ public static class AuthEndpoints
         }).RequireRateLimiting("auth");
         secured.MapGet("/oidc/{provider}/link/start", StartNamedOidcLink)
             .RequireRateLimiting("auth");
+        secured.MapDelete("/providers/{provider}/link", UnlinkProvider)
+            .RequireRateLimiting("auth");
         secured.MapGet(
             "/oidc/link/start",
             StartOidcLink)
@@ -261,6 +263,46 @@ public static class AuthEndpoints
         var properties = new AuthenticationProperties { RedirectUri = "/" };
         properties.Items[OidcSetup.LinkSessionKey] = sessionId.ToString();
         return Results.Challenge(properties, [scheme]);
+    }
+
+    private static async Task<IResult> UnlinkProvider(
+        string provider,
+        IConfiguration configuration,
+        ClaimsPrincipal principal,
+        IdentityService identity,
+        CancellationToken cancellationToken)
+    {
+        if (!AccountIdentity.TryGetAccountId(principal, out var accountId) ||
+            !SessionAuthentication.TryGetSessionId(principal, out _))
+        {
+            return Results.Unauthorized();
+        }
+
+        var issuer = provider switch
+        {
+            "apple" => "https://appleid.apple.com",
+            "microsoft" when !string.IsNullOrWhiteSpace(configuration["Oidc:Providers:microsoft:Authority"]) =>
+                configuration["Oidc:Providers:microsoft:Authority"]!.TrimEnd('/'),
+            "github" => "https://github.com",
+            "facebook" when !string.IsNullOrWhiteSpace(configuration["FacebookOAuth:ClientId"]) =>
+                "https://facebook.com/app/" + configuration["FacebookOAuth:ClientId"],
+            _ => null,
+        };
+        if (issuer == null)
+        {
+            return Results.NotFound();
+        }
+
+        try
+        {
+            return await identity.UnlinkOidcAsync(issuer, accountId, cancellationToken)
+                ? Results.NoContent()
+                : Results.NotFound();
+        }
+        catch (IdentityConflictException)
+        {
+            return Results.Conflict();
+        }
     }
 
     private static IResult StartOidc(IConfiguration configuration)
