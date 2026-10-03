@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace LearnPip.Api.Identity;
 
@@ -32,6 +33,51 @@ public static class OidcSetup
     /// <returns>Enabled provider names.</returns>
     public static string[] EnabledProviders(IConfiguration configuration) =>
         ProviderNames.Where(name => IsConfigured(configuration, name)).ToArray();
+
+    /// <summary>Validates a Microsoft issuer against the configured tenant strategy.</summary>
+    /// <param name="authority">The configured Microsoft authority.</param>
+    /// <param name="issuer">The issuer from the validated identity token.</param>
+    /// <returns>Whether the issuer belongs to the configured tenant strategy.</returns>
+    public static bool IsTrustedMicrosoftIssuer(string authority, string issuer)
+    {
+        if (!Uri.TryCreate(authority, UriKind.Absolute, out var configured) ||
+            !Uri.TryCreate(issuer, UriKind.Absolute, out var actual) ||
+            !configured.Host.Equals("login.microsoftonline.com", StringComparison.OrdinalIgnoreCase) ||
+            !actual.Host.Equals(configured.Host, StringComparison.OrdinalIgnoreCase) ||
+            configured.Scheme != Uri.UriSchemeHttps ||
+            actual.Scheme != Uri.UriSchemeHttps ||
+            !configured.IsDefaultPort || !actual.IsDefaultPort ||
+            !string.IsNullOrEmpty(actual.Query) || !string.IsNullOrEmpty(actual.Fragment))
+        {
+            return false;
+        }
+
+        var configuredSegments = configured.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var actualSegments = actual.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (configuredSegments.Length != 2 ||
+            !configuredSegments[1].Equals("v2.0", StringComparison.Ordinal) ||
+            actualSegments.Length != 2 ||
+            !actualSegments[1].Equals("v2.0", StringComparison.Ordinal) ||
+            !Guid.TryParseExact(actualSegments[0], "D", out _))
+        {
+            return false;
+        }
+
+        if (configuredSegments[0] == "organizations")
+        {
+            return true;
+        }
+
+        if (configuredSegments[0] == "consumers")
+        {
+            return actualSegments[0].Equals(
+                "9188040d-6c67-4c5b-b112-36a304b66dad",
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        return Guid.TryParseExact(configuredSegments[0], "D", out _) &&
+            configuredSegments[0].Equals(actualSegments[0], StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>Returns the authentication scheme for a validated configured provider.</summary>
     /// <param name="configuration">The application configuration.</param>
@@ -163,6 +209,15 @@ public static class OidcSetup
                 options.SaveTokens = false;
                 options.MapInboundClaims = false;
                 options.RequireHttpsMetadata = true;
+                if (scheme == Scheme + "-microsoft")
+                {
+                    options.TokenValidationParameters.IssuerValidator = (issuer, _, _) =>
+                        IsTrustedMicrosoftIssuer(authority, issuer)
+                            ? issuer
+                            : throw new SecurityTokenInvalidIssuerException(
+                                "The Microsoft issuer is outside the configured tenant strategy.");
+                }
+
                 options.SignInScheme = "oidc-temporary";
                 options.CallbackPath = callback;
                 options.Scope.Clear();
