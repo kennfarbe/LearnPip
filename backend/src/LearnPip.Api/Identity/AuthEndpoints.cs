@@ -50,6 +50,11 @@ public static class AuthEndpoints
             .RequireRateLimiting("auth")
             .Produces<ApiResponse<SessionGrant>>()
             .ProducesProblem(StatusCodes.Status401Unauthorized);
+        auth.MapGet("/facebook/start", (IConfiguration configuration) =>
+            FacebookOAuthSetup.IsEnabled(configuration)
+                ? Results.Challenge(new AuthenticationProperties { RedirectUri = "/" }, [FacebookOAuthSetup.Scheme])
+                : Results.NotFound())
+            .RequireRateLimiting("auth");
         auth.MapGet("/github/start", (IConfiguration configuration) =>
             GithubOAuthSetup.IsEnabled(configuration)
                 ? Results.Challenge(new AuthenticationProperties { RedirectUri = "/" }, [GithubOAuthSetup.Scheme])
