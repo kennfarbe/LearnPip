@@ -33,9 +33,13 @@ class SecurityReportTests(unittest.TestCase):
             {"id": "synthetic", "vulnerabilities": [{"severity": "High"}]}]}]}]}
         self.assertEqual(evaluate("nuget", report), (1, 0))
 
-    def test_missing_nuget_frameworks_is_not_green(self):
+    def test_no_vulnerable_nuget_frameworks_is_green(self):
+        self.assertEqual(evaluate("nuget", {"version": 1, "projects": [
+            {"path": "synthetic.csproj"}]}), (0, 0))
+
+    def test_missing_nuget_projects_is_not_green(self):
         with self.assertRaises(InvalidScan):
-            evaluate("nuget", {"projects": [{"frameworks": []}]})
+            evaluate("nuget", {"version": 1, "projects": []})
 
     def test_trivy_image_finding(self):
         report = {"SchemaVersion": 2, "Results": [{"Vulnerabilities": [
