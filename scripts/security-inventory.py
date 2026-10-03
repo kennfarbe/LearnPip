@@ -7,6 +7,18 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import time
+
+
+def command_json(command):
+    for attempt in range(3):
+        try:
+            return json.loads(subprocess.check_output(command, stderr=subprocess.DEVNULL, timeout=60))
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+            if attempt == 2:
+                raise ValueError("Inventory lookup unavailable after retries; audit incomplete") from None
+            time.sleep(2 ** attempt)
+    raise ValueError("Inventory incomplete")
 
 
 def releases(policy, fetch):
@@ -73,7 +85,7 @@ def main():
         if endpoint.startswith("../"):
             prefix = "repos/kennfarbe/LearnPip/"
             endpoint = endpoint[3:]
-        return json.loads(subprocess.check_output(["gh", "api", prefix + endpoint], stderr=subprocess.DEVNULL))
+        return command_json(["gh", "api", prefix + endpoint])
     if args.resolved_sources:
         inventory = json.loads(args.resolved_sources.read_text())
         resolved = [{"tag": item["label"], "commit": item["ref"]} for item in inventory["include"] if item["label"] != "main"]
@@ -84,9 +96,9 @@ def main():
     targets = [{"ref": "main", "label": "main"}] + [{"ref": item["commit"], "label": item["tag"]} for item in resolved]
     if args.images:
         def inspect(image):
-            return json.loads(subprocess.check_output(["docker", "buildx", "imagetools", "inspect", "--raw", image], stderr=subprocess.DEVNULL))
+            return command_json(["docker", "buildx", "imagetools", "inspect", "--raw", image])
         def runtime_images(tag):
-            response = json.loads(subprocess.check_output(["gh", "api", "repos/kennfarbe/LearnPip/contents/deploy/compose.prod.yaml?ref=" + tag], stderr=subprocess.DEVNULL))
+            response = command_json(["gh", "api", "repos/kennfarbe/LearnPip/contents/deploy/compose.prod.yaml?ref=" + tag])
             compose = base64.b64decode(response["content"]).decode()
             found = []
             service = None
@@ -103,10 +115,10 @@ def main():
                 raise ValueError("Published runtime inventory incomplete")
             dockerfiles = []
             for component, path in (("build-sdk", "backend/Dockerfile"), ("build-node", "frontend/web/Dockerfile")):
-                response = json.loads(subprocess.check_output(["gh", "api", "repos/kennfarbe/LearnPip/contents/" + path + "?ref=" + tag], stderr=subprocess.DEVNULL))
+                response = command_json(["gh", "api", "repos/kennfarbe/LearnPip/contents/" + path + "?ref=" + tag])
                 dockerfiles.append((component, base64.b64decode(response["content"]).decode()))
             if any(component == "db" and image.startswith("kennfarbe/learnpip:db-") for component, image in found):
-                response = json.loads(subprocess.check_output(["gh", "api", "repos/kennfarbe/LearnPip/contents/deploy/postgres.Dockerfile?ref=" + tag], stderr=subprocess.DEVNULL))
+                response = command_json(["gh", "api", "repos/kennfarbe/LearnPip/contents/deploy/postgres.Dockerfile?ref=" + tag])
                 dockerfiles.append(("build-go", base64.b64decode(response["content"]).decode()))
             return found + build_images(dockerfiles)
         targets = [target for item in resolved for target in image_targets(item["tag"], policy["platforms"], inspect, runtime_images(item["tag"]))]

@@ -2,6 +2,8 @@
 import importlib.util
 from pathlib import Path
 import unittest
+from unittest.mock import patch
+import subprocess
 
 spec = importlib.util.spec_from_file_location('inventory', Path(__file__).resolve().parents[2] / 'scripts/security-inventory.py')
 module = importlib.util.module_from_spec(spec)
@@ -36,6 +38,18 @@ class InventoryTests(unittest.TestCase):
     def test_missing_supported_platform_blocks_inventory(self):
         with self.assertRaises(ValueError):
             module.image_targets('v1.0.0', ['linux/arm64'], lambda _: {'manifests': []})
+
+
+class LookupTests(unittest.TestCase):
+    def test_transient_registry_failure_is_retried_and_permanent_failure_is_incomplete(self):
+        error = subprocess.CalledProcessError(1, ['synthetic'])
+        with patch.object(module.subprocess, 'check_output', side_effect=[error, b'{"ok": true}']) as call, patch.object(module.time, 'sleep'):
+            self.assertEqual(module.command_json(['synthetic']), {'ok': True})
+            self.assertEqual(call.call_count, 2)
+        with patch.object(module.subprocess, 'check_output', side_effect=error) as call, patch.object(module.time, 'sleep'):
+            with self.assertRaises(ValueError):
+                module.command_json(['synthetic'])
+            self.assertEqual(call.call_count, 3)
 
 
 class BuildInventoryTests(unittest.TestCase):
