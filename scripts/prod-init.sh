@@ -30,7 +30,7 @@ fi
 if [[ ! -e "$secrets_dir/Authentication__EmailCodeKey" ]]; then
   openssl rand -base64 32 | tr -d "\n" > "$secrets_dir/Authentication__EmailCodeKey"
 fi
-for optional_secret in Mail__Password Oidc__ClientSecret Oidc__Providers__apple__ClientSecret Oidc__Providers__microsoft__ClientSecret Ai__CloudKey; do
+for optional_secret in Mail__Password Oidc__ClientSecret Oidc__Providers__apple__ClientSecret Oidc__Providers__microsoft__ClientSecret GithubOAuth__ClientSecret Ai__CloudKey; do
   if [[ ! -e "$secrets_dir/$optional_secret" ]]; then
     : > "$secrets_dir/$optional_secret"
   fi
