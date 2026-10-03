@@ -114,8 +114,8 @@ public static class CommunityFeedbackEndpoints
             return Invalid("reason", "Provide a moderation purpose of 10-500 characters.");
         }
 
-        if (!await db.QuestionVersions.AsNoTracking().AnyAsync(version =>
-            version.Id == versionId && version.Question.DeletedAtUtc == null,
+        if (!await db.QuestionVersions.AsNoTracking().AnyAsync(
+            version => version.Id == versionId && version.Question.DeletedAtUtc == null,
             cancellationToken))
         {
             return Results.NotFound();
