@@ -20,6 +20,10 @@ READER = runpy.run_path(str(Path(__file__).resolve().parents[2] /
                             "scripts" / "read-catalog.py"))
 read_catalog = READER["read_catalog"]
 ReaderInvalidPackage = READER["_validator"].InvalidPackage
+WRITER = runpy.run_path(str(Path(__file__).resolve().parents[2] /
+                            "scripts" / "write-catalog.py"))
+write_catalog = WRITER["write_catalog"]
+WriterInvalidPackage = WRITER["_validator"].InvalidPackage
 
 
 def license_details():
@@ -109,6 +113,33 @@ class CatalogContractTests(unittest.TestCase):
         self.assertEqual(snapshot.notices["ATTRIBUTION"], self.files["ATTRIBUTION"])
         self.assertEqual(Path(self.filename).read_bytes(), original)
         self.assertFalse((Path(self.tempdir.name) / "media").exists())
+
+    def test_writer_roundtrip_preserves_content_and_source(self):
+        original = make_zip(self.manifest, self.files)
+        Path(self.filename).write_bytes(original)
+        snapshot = read_catalog(self.filename)
+        target = Path(self.tempdir.name) / "export.zip"
+        write_catalog(snapshot, target)
+        exported = read_catalog(target)
+        self.assertEqual(exported.questions, snapshot.questions)
+        self.assertEqual(exported.media, snapshot.media)
+        self.assertEqual(exported.notices, snapshot.notices)
+        self.assertEqual(exported.manifest, snapshot.manifest)
+        self.assertEqual(Path(self.filename).read_bytes(), original)
+
+    def test_writer_refuses_invalid_snapshot_without_replacing_target(self):
+        snapshot = read_catalog(self.write_sample())
+        changed = dict(snapshot.manifest)
+        changed["schema_version"] = "9.0.0"
+        target = Path(self.tempdir.name) / "preserve.zip"
+        target.write_bytes(b"existing")
+        with self.assertRaisesRegex(WriterInvalidPackage, "Unsupported schema_version"):
+            write_catalog(snapshot._replace(manifest=changed), target)
+        self.assertEqual(target.read_bytes(), b"existing")
+
+    def write_sample(self):
+        Path(self.filename).write_bytes(make_zip(self.manifest, self.files))
+        return self.filename
 
     def test_reader_rejects_unknown_future_version(self):
         self.manifest["schema_version"] = "2.0.0"
