@@ -136,6 +136,41 @@ class CatalogContractTests(unittest.TestCase):
         self.assertEqual(exported.notices, snapshot.notices)
         self.assertEqual(Path(self.filename).read_bytes(), original)
 
+    def test_provenance_fixture_preserves_distinct_licenses_and_media(self):
+        fixture_path = (Path(__file__).resolve().parents[1] / "fixtures" /
+                        "catalog" / "0.1.0" / "provenance.json")
+        frozen = json.loads(fixture_path.read_text(encoding="utf-8"))
+        expected = {"questions": frozen.pop("questions")}
+        files = {
+            "questions.json": json.dumps(expected, ensure_ascii=False).encode("utf-8"),
+            "LICENSES.md": b"CC0-1.0, CC-BY-SA-4.0, CC-BY-4.0 synthetic only\\n",
+            "NOTICE": b"Synthetic contract fixture\\n",
+            "ATTRIBUTION": b"Synthetic question and media authors\\n",
+            "media/diagram.txt": "Synthetisches Bild: Größe\\n".encode("utf-8"),
+        }
+        frozen["files"] = [
+            {"path": path, "size": len(content),
+             "sha256": hashlib.sha256(content).hexdigest()}
+            for path, content in files.items()
+        ]
+        original = make_zip(frozen, files)
+        Path(self.filename).write_bytes(original)
+        snapshot = read_catalog(self.filename)
+        target = Path(self.tempdir.name) / "provenance-export.zip"
+        write_catalog(snapshot, target)
+        exported = read_catalog(target)
+        question = exported.questions["questions"][0]
+        self.assertEqual(exported.questions, expected)
+        self.assertEqual(question["license"]["id"], "CC-BY-SA-4.0")
+        self.assertEqual(question["provenance"]["modification_note"],
+                         "Synthetisch gekürzt")
+        self.assertEqual(question["media"][0]["license"]["id"], "CC-BY-4.0")
+        self.assertEqual(question["media"][0]["provenance"]["source_revision"],
+                         "media-rev-1")
+        self.assertEqual(exported.media["media/diagram.txt"], files["media/diagram.txt"])
+        self.assertEqual(exported.notices, snapshot.notices)
+        self.assertEqual(Path(self.filename).read_bytes(), original)
+
     def test_reader_preserves_questions_media_and_attribution(self):
         original = make_zip(self.manifest, self.files)
         Path(self.filename).write_bytes(original)
