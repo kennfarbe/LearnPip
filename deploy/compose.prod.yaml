@@ -68,6 +68,10 @@ services:
       Oidc__Authority: ${LEARNPIP_OIDC_AUTHORITY:-}
       Oidc__ClientId: ${LEARNPIP_OIDC_CLIENT_ID:-}
       Oidc__PostLoginPath: ${LEARNPIP_OIDC_POST_LOGIN_PATH:-/}
+      Oidc__Providers__apple__Authority: ${LEARNPIP_APPLE_OIDC_AUTHORITY:-}
+      Oidc__Providers__apple__ClientId: ${LEARNPIP_APPLE_OIDC_CLIENT_ID:-}
+      Oidc__Providers__microsoft__Authority: ${LEARNPIP_MICROSOFT_OIDC_AUTHORITY:-}
+      Oidc__Providers__microsoft__ClientId: ${LEARNPIP_MICROSOFT_OIDC_CLIENT_ID:-}
       Ai__AllowedModes: ${LEARNPIP_AI_ALLOWED_MODES:-off}
       Ai__CloudEndpoint: ${LEARNPIP_AI_CLOUD_ENDPOINT:-}
       Ai__CloudModel: ${LEARNPIP_AI_CLOUD_MODEL:-}
@@ -87,6 +91,8 @@ services:
       - Authentication__EmailCodeKey
       - Mail__Password
       - Oidc__ClientSecret
+      - Oidc__Providers__apple__ClientSecret
+      - Oidc__Providers__microsoft__ClientSecret
       - Ai__CloudKey
       - Ai__KeyEncryptionKey
     networks:
@@ -201,6 +207,10 @@ secrets:
     file: ./secrets/Mail__Password
   Oidc__ClientSecret:
     file: ./secrets/Oidc__ClientSecret
+  Oidc__Providers__apple__ClientSecret:
+    file: ./secrets/Oidc__Providers__apple__ClientSecret
+  Oidc__Providers__microsoft__ClientSecret:
+    file: ./secrets/Oidc__Providers__microsoft__ClientSecret
   Ai__CloudKey:
     file: ./secrets/Ai__CloudKey
   Ai__KeyEncryptionKey:
