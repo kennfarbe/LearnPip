@@ -150,6 +150,13 @@ public static class OidcSetup
                 options.ClientId = configuration[section + ":ClientId"]!;
                 options.ClientSecret = configuration[section + ":ClientSecret"]!;
                 options.ResponseType = "code";
+                if (scheme == Scheme + "-apple")
+                {
+                    // Apple delivers its web authorization response via cross-site form POST.
+                    options.ResponseMode = "form_post";
+                    options.CorrelationCookie.SameSite = SameSiteMode.None;
+                    options.NonceCookie.SameSite = SameSiteMode.None;
+                }
                 options.UsePkce = true;
                 options.SaveTokens = false;
                 options.MapInboundClaims = false;
