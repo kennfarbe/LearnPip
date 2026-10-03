@@ -80,5 +80,5 @@ public static class ExternalLoginCompletion
     private static bool IsSafePath(string? path) =>
         !string.IsNullOrWhiteSpace(path) &&
         path.StartsWith('/') && !path.StartsWith("//", StringComparison.Ordinal) &&
-        !path.Contains('\\r') && !path.Contains('\\n');
+        !path.Contains('\r') && !path.Contains('\n');
 }
