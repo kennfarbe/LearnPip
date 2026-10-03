@@ -14,7 +14,7 @@ Die Aufnahme verwendet fiktive Beispieldaten.
 
 ![LearnPip-Übersicht im hellen Design mit Navigation, Einstiegskarten zum Lernen, Fragen und Katalogen sowie persönlichem Lernfortschritt.](docs/screenshots/overview.png)
 
-Weitere Ansichten des Frageneditors, der Kataloge und einer mobilen Lerneinheit
+Weitere Ansichten zum Bearbeiten von Fragen, zu Katalogen und zur mobilen Lerneinheit
 findest du in der [Bildvorschau](docs/UI-PREVIEW.md).
 
 ## Für wen ist LearnPip gedacht?
