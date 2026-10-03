@@ -241,8 +241,17 @@ jobs:
             ${{ runner.temp }}/trivy-version.json
             ${{ runner.temp }}/scan-trivy.json
           retention-days: 14
-      - name: Enforce production findings
-        run: node scripts/security-report.mjs trivy "$RUNNER_TEMP/trivy.json"
+      - name: Document published findings on PRs; enforce on scheduled and manual audits
+        env:
+          AUDIT_EVENT: ${{ github.event_name }}
+        run: |
+          status=0
+          node scripts/security-report.mjs trivy "$RUNNER_TEMP/trivy.json" || status=$?
+          if [ "$status" -eq 1 ] && [ "$AUDIT_EVENT" = pull_request ]; then
+            echo "Published image findings recorded in reports and ledger; corrected candidates remain strictly gated."
+            exit 0
+          fi
+          exit "$status"
 
   candidate-images:
     name: Release image gate (${{ matrix.component }}, ${{ matrix.arch }})

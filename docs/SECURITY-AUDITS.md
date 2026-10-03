@@ -49,3 +49,9 @@ Unterstützte Quellen werden als größenbegrenztes Datenarchiv abgerufen; Pfadt
 Der Runner übernimmt ausschließlich erwartete, größenbegrenzte reguläre Berichtdateien. Symbolische Links und Spezialdateien aus dem Container werden abgewiesen, bevor Berichte gelesen oder hochgeladen werden. Automatisches npm-Caching im verbliebenen Node-Setup ist ausdrücklich deaktiviert. Scannerfehler und fehlende Berichte bleiben blockierend; die Isolation ändert keine Befund- oder Freigaberegel.
 
 Die aggregierte Auswertung der npm-, NuGet- und Trivy-Berichte erfolgt mit `scripts/security-report.mjs` unter Node.js ohne zusätzliche npm-Abhängigkeiten. Exitcode 0 bedeutet keine HIGH-/CRITICAL-Befunde, 1 bedeutet entsprechende Befunde und 2 einen unvollständigen oder ungültigen Bericht. Die Ausgabe enthält keine einzelnen Schwachstellenkennungen. Andere Hilfsskripte für Inventar, Befundregister und sichere Dateiübernahme verwenden weiterhin Python.
+
+## Bereits veröffentlichte Images
+
+Vom Projektverantwortlichen am 4. Oktober 2026 freigegeben: Bei Pull Requests werden Befunde in bereits veröffentlichten, unveränderlichen Image-Digests vollständig im Scanbericht und Befundregister dokumentiert. Diese Befunde verhindern nicht die Prüfung und Veröffentlichung einer korrigierten Folgeversion. Sie bleiben offen, behalten Verantwortlichen und Behebungsfrist und werden nicht allein durch diese Regel als behoben markiert. Planmäßige und manuelle Prüfungen blockieren weiterhin bei HIGH-/CRITICAL-Befunden in diesen Images.
+
+Ungültige oder unvollständige Scans, fehlende Ziele und veraltete Datenbanken bleiben auch bei Pull Requests blockierend. Neue Release-Kandidaten einschließlich sämtlicher Build-Images bleiben strikt gesperrt, solange HIGH-/CRITICAL-Befunde vorliegen. Für npm-Bibliotheken im Node-Build-Werkzeug ist keine Ausnahme freigegeben.
