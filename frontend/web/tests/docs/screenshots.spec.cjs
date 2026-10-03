@@ -33,6 +33,8 @@ test('document the current application with synthetic sample data', async ({ pag
   await capture(page, 'catalogs');
 
   await page.goto('/settings');
+  await page.getByText('Lokales Passwort ändern', { exact: true }).click();
+  await capture(page, 'admin-password');
   await page.getByLabel('Design', { exact: true }).selectOption('dark');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/learn');

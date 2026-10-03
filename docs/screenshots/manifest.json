@@ -1,5 +1,5 @@
 {
-  "sourceHash": "12642bced16f06b17b3c9cd904572d58eb910436cfcd34e5df01ade271d6c299",
+  "sourceHash": "1a3fb7a474541b345c741cafb324dc1c2866b33b16ae22a0292f43bf44f2992c",
   "images": {
     "overview.png": {
       "sha256": "85c93c29333540c6ef47a074db31524561829bc2900a9a4161e4123a2ff8f1b4",
@@ -20,6 +20,11 @@
       "sha256": "755c986e740aace9e037b0ccfb3d5dbb79e08afb2a55a8b1bdbffe8b8fb3368e",
       "width": 390,
       "height": 998
+    },
+    "admin-password.png": {
+      "sha256": "107c1fc54738b9b8d0f380305f82f5d13140557706e6d26b989b0c0c2fb90c1d",
+      "width": 1440,
+      "height": 1854
     }
   }
 }

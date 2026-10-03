@@ -41,7 +41,3 @@ for scanner, name, scan_target in reports:
     except (OSError, ValueError, KeyError, TypeError):
         complete = False
     (directory / ('scan-' + name)).write_text(json.dumps({'scanner': scanner, 'target': scan_target, 'report': name, 'complete': complete}))
-# Stable filename for image workflow upload.
-if kind == 'trivy':
-    (directory / 'scan-trivy.json').write_text((directory / 'scan-trivy.json.json').read_text())
-    (directory / 'scan-trivy.json.json').unlink()

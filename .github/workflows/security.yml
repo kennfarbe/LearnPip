@@ -244,7 +244,7 @@ jobs:
           exit-code: '0'
       - name: Verify advisory database age
         run: |
-          trivy --version --format json > "$RUNNER_TEMP/trivy-version.json"
+          trivy --cache-dir "$GITHUB_WORKSPACE/.cache/trivy" --version --format json > "$RUNNER_TEMP/trivy-version.json"
           python3 scripts/security-db-age.py "$RUNNER_TEMP/trivy-version.json"
       - name: Record scan and inventory
         if: always()
@@ -321,7 +321,7 @@ jobs:
           exit-code: '0'
       - name: Verify advisory database age
         run: |
-          trivy --version --format json > "$RUNNER_TEMP/trivy-version.json"
+          trivy --cache-dir "$GITHUB_WORKSPACE/.cache/trivy" --version --format json > "$RUNNER_TEMP/trivy-version.json"
           python3 scripts/security-db-age.py "$RUNNER_TEMP/trivy-version.json"
       - name: Record candidate scan
         if: always()

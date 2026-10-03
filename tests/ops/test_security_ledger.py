@@ -3,6 +3,10 @@ from datetime import datetime, timedelta, timezone
 import importlib.util
 from pathlib import Path
 import unittest
+import json
+import os
+import subprocess
+import tempfile
 
 
 def load(name):
@@ -36,6 +40,21 @@ class LedgerTests(unittest.TestCase):
             ledger.findings('npm', 'target', {'error': {'code': 'ENOAUDIT'}})
         with self.assertRaises(ValueError):
             ledger.findings('trivy', 'target', {})
+
+    def test_real_metadata_script_records_complete_and_stale_scans(self):
+        script = Path(__file__).resolve().parents[2] / 'scripts/security-scan-metadata.py'
+        now = datetime.now(timezone.utc)
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            (directory / 'trivy.json').write_text(json.dumps({'SchemaVersion': 2, 'Metadata': {}, 'Results': []}))
+            version = {'VulnerabilityDB': {'Version': 2, 'UpdatedAt': now.isoformat(), 'DownloadedAt': now.isoformat()}}
+            (directory / 'trivy-version.json').write_text(json.dumps(version))
+            env = os.environ | {'AUDIT_TARGET': 'synthetic', 'SCAN_OUTCOME': 'success'}
+            subprocess.run(['python3', str(script), 'trivy', str(directory)], env=env, check=True, capture_output=True)
+            self.assertTrue(json.loads((directory / 'scan-trivy.json').read_text())['complete'])
+            (directory / 'trivy-version.json').unlink()
+            subprocess.run(['python3', str(script), 'trivy', str(directory)], env=env, check=True, capture_output=True)
+            self.assertFalse(json.loads((directory / 'scan-trivy.json').read_text())['complete'])
 
     def test_stale_advisory_database_is_incomplete(self):
         now = datetime.now(timezone.utc)

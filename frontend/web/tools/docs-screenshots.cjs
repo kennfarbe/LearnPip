@@ -3,7 +3,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const root = path.resolve(__dirname, '../../..');
 const gallery = path.join(root, 'docs/screenshots');
-const names = ['overview', 'question-editor', 'catalogs', 'learning-mobile-dark'];
+const names = ['overview', 'question-editor', 'catalogs', 'learning-mobile-dark', 'admin-password'];
 const hash = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 function files(relative) {
   const absolute = path.join(root, relative);
