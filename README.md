@@ -5,7 +5,7 @@
 
 LearnPip ist ein Open-Source-Projekt für kurze, regelmäßige Lerneinheiten. Lernende sollen eigene Fragen erstellen, in kleinen Schritten üben und ihren Fortschritt nachvollziehen können. Der Quellcode und die Entwicklung finden öffentlich in diesem Repository statt.
 
-> **Projektstatus (3. Oktober 2026):** Backend, responsive Angular-Weboberfläche, Docker-Release-/Installationsweg und die technischen Kernfunktionen der Phasen M1 bis M5 sind vorhanden. Sichere Admin-Web-Updates aus PR #91 sind gemergt; der Betrieb benötigt einen eigens eingerichteten Host-Operator. M0 ist wegen des noch nicht juristisch freigegebenen CLA-Verfahrens nicht abgeschlossen. M6 und weitere Funktions-, Integrations-, Rechts- und Betriebsabnahmen bleiben in Arbeit. Ein vorhandener Codepfad bedeutet noch keine allgemeine Freigabe für öffentliche oder schulische Installationen.
+> **Projektstatus (3. Oktober 2026):** Backend, responsive Angular-Weboberfläche, Docker-Release-/Installationsweg und die technischen Kernfunktionen der Phasen M1 bis M5 sind vorhanden. Sichere Admin-Web-Updates aus PR #91 wurden zusammengeführt; der Betrieb benötigt einen eigens eingerichteten Host-Operator. M0 ist wegen des noch nicht juristisch freigegebenen CLA-Verfahrens nicht abgeschlossen. M6 und weitere Funktions-, Integrations-, Rechts- und Betriebsabnahmen bleiben in Arbeit. Ein vorhandener Codepfad bedeutet noch keine allgemeine Freigabe für öffentliche oder schulische Installationen.
 
 ## Ein erster Eindruck
 
@@ -66,15 +66,15 @@ Die ursprünglichen Meilensteine beschreiben Entwicklungsschwerpunkte, nicht den
 
 | Phase | Technischer Stand am 3. Oktober 2026 | Was noch offen ist |
 | --- | --- | --- |
-| M0 – Projektregeln | AGPL-Lizenzgrenzen, Beitrags- und Sicherheitsdokumentation vorhanden; CLA-Entwurf erstellt. | Juristische Prüfung und wirksamer CLA-Annahme-/Prüfprozess (#3), weitere betreiberspezifische EU-Nachweise (#93–#103). |
+| M0 – Projektregeln | AGPL-Lizenzgrenzen, Beitrags- und Sicherheitsdokumentation vorhanden; CLA-Entwurf erstellt. | Juristische Prüfung und wirksamer CLA-Annahme-/Prüfprozess (#3), weitere für verschiedene Betreiber nötige EU-Nachweise (#93–#103). |
 | M1 – Technisches Fundament | API, Datenbank, bestehende Anmeldewege, Container, CI und Release-/Installationsweg vorhanden. | Vereinfachte Administrator-Ersteinrichtung und zusätzliche Identitätswege (#94–#107). |
-| M2 – Nutzbares MVP | Private Text-/Bildfragen, Lerneinheiten, Antworten, Erklärungen und Fortschritt implementiert. | Weiterentwicklung des portablen Katalogimports und -exports (#108, #110, #115, #118). |
-| M3 – Zusammenarbeit | Gruppen, öffentliche Einreichung und Moderationswege vorhanden; gesonderter auditierter Zugriff für Moderatoren ergänzt. | Vollständige rollenbezogene Frageaktionen und konfigurierbare Rechte (#119/#120), Community-Freigabe (#117). |
+| M2 – Nutzbares MVP | Private Text-/Bildfragen, Lerneinheiten, Antworten, Erklärungen und Fortschritt implementiert. | Weiterentwicklung des portablen Imports von Katalogen und -exports (#108, #110, #115, #118). |
+| M3 – Zusammenarbeit | Gruppen, öffentliche Einreichung und Wege zur Moderation vorhanden; gesonderter mit Protokollierung Zugriff für Moderatoren ergänzt. | Vollständige nach Rollen getrennte Frageaktionen und konfigurierbare Rechte (#119/#120), Community-Freigabe (#117). |
 | M4 – Prüfungsvorbereitung | Lernziele, Prüfungsübungen und Simulationen technisch vorhanden. | Optionale unabhängige Lernpakete und fachspezifische Amateurfunkprüfung N/E/A (#109–#114). |
-| M5 – Optionale KI | Konfigurierbare Cloud-/Lokal-/Aus-Betriebsarten und vorhandene KI-Funktionen; standardmäßig deaktiviert. | Betriebs- und anwendungsfallbezogene Transparenz-/Rechtsprüfung (#102), keine pauschale Einsatzfreigabe. |
-| M6 – Ausbau | Responsive/PWA-Oberfläche, Betriebsfunktionen und Admin-Web-Updates in wesentlichen Teilen vorhanden. | Weitere Zugänge, Katalogverteilung und Betriebs-/Sicherheitsnachweise (#95–#107, #96/#97). |
+| M5 – Optionale KI | Konfigurierbare Cloud-/Lokal-/Aus-Betriebsarten und vorhandene KI-Funktionen; standardmäßig deaktiviert. | Betriebs- und vom Anwendungsfall abhängige Transparenz-/Rechtsprüfung (#102), keine pauschale Einsatzfreigabe. |
+| M6 – Ausbau | Responsive/PWA-Oberfläche, Betriebsfunktionen und Admin-Web-Updates in wesentlichen Teilen vorhanden. | Weitere Zugänge, Verteilung von Katalogen und Betriebs-/Sicherheitsnachweise (#95–#107, #96/#97). |
 
-**Bereits erledigte Grundlagen:** Die PRs #91 (Admin-Web-Updates), #122 (selektive CI mit Integration), #123 (Entwurf des Katalogaustauschs), #124 (zyklischer Security-Audit), #125 (auditierter Moderationszugriff), #126 (EU-Nachweismatrix) und #127 (Archivvertrag-Härtung) sind gemergt. Der Katalogvertrag ist weiter ein **Entwurf 0.1.0**, kein fertiger produktiver Import-/Exportweg. PR #128 (Offline-Reader) ist bei dieser Bestandsaufnahme noch offen und zählt ausdrücklich nicht als abgeschlossen.
+**Bereits erledigte Grundlagen:** Die PRs #91 (Admin-Web-Updates), #122 (selektive CI mit Integration), #123 (Entwurf des Austauschs von Katalogen), #124 (zyklischer Security-Audit), #125 (mit Protokollierung Zugriff zur Moderation), #126 (EU-Nachweismatrix) und #127 (Archivvertrag-Härtung) wurden zusammengeführt. Der Vertrag für das Katalogformat ist weiter ein **Entwurf 0.1.0**, kein fertiger produktiver Import-/Exportweg. Auch PR #128 (Offline-Reader) wurde inzwischen zusammengeführt. Der Reader ist schreibgeschützt und noch kein produktiver Import in die Anwendung.
 
 Die [offenen GitHub-Issues](https://github.com/kennfarbe/LearnPip/issues) sind die verbindliche Detailübersicht. Ein technischer Zwischenstand ersetzt weder die vollständigen Akzeptanzkriterien noch eine rechtliche oder betriebliche Abnahme.
 
