@@ -1,3 +1,36 @@
+# [1.12.0](https://github.com/kennfarbe/LearnPip/compare/v1.11.0...v1.12.0) (2026-10-03)
+
+
+### Bug Fixes
+
+* **identity:** complete OIDC provider configuration ([d52f785](https://github.com/kennfarbe/LearnPip/commit/d52f785acd3d15e83236df81700c25de6979d011))
+* **identity:** correct escaped newline character literals ([67a4db4](https://github.com/kennfarbe/LearnPip/commit/67a4db473d66c23cc459ed106055a590e6ffba79))
+* **identity:** pin Apple issuer and require explicit Microsoft tenant ([0ea5ced](https://github.com/kennfarbe/LearnPip/commit/0ea5ced7bd6ea2365f5399a1b588936bb2127109))
+* **identity:** satisfy Facebook OAuth analyzer checks ([f23265d](https://github.com/kennfarbe/LearnPip/commit/f23265dd9585974f0818b514aba0f5e43e360c56))
+* **identity:** satisfy GitHub OAuth analyzer checks ([a965af1](https://github.com/kennfarbe/LearnPip/commit/a965af14e6cef45d880e3861c19ac8542acbf68b))
+* **identity:** use single escape in C# character literals ([42b2fba](https://github.com/kennfarbe/LearnPip/commit/42b2fba04a3efeaa722a782a5ec017f0ccdd0302))
+* **identity:** validate Microsoft issuer against tenant strategy ([1a74bc2](https://github.com/kennfarbe/LearnPip/commit/1a74bc21fb88bb64035bbf6ad65bfff9f021a556))
+
+
+### Features
+
+* **identity:** add authenticated provider unlink endpoint ([4b66336](https://github.com/kennfarbe/LearnPip/commit/4b66336f633c40b469b2429c12e597c1c8b74fa1))
+* **identity:** centralize safe external account resolution and session issuance ([b43cbd7](https://github.com/kennfarbe/LearnPip/commit/b43cbd7c0f5cfeebc553d1c30df35f48f1d66113))
+* **identity:** configure Facebook OAuth secret in production Compose ([4758c68](https://github.com/kennfarbe/LearnPip/commit/4758c68ea094bc14437e4a1501e1fe6d4a754847))
+* **identity:** create optional GitHub OAuth secret on legacy upgrades ([991afe1](https://github.com/kennfarbe/LearnPip/commit/991afe19b10d28f5cf4c5fbb4fd163100b9d3c2f))
+* **identity:** explicitly link GitHub OAuth identity to current account ([86a0560](https://github.com/kennfarbe/LearnPip/commit/86a0560e23315d5d38b1122bb85217f0d4d8dc0c))
+* **identity:** expose optional Facebook sign-in ([5f219f6](https://github.com/kennfarbe/LearnPip/commit/5f219f6a0b933b9387d015d3578e1748ce971f5d))
+* **identity:** handle Apple form_post with cross-site correlation and nonce cookies ([bea1b04](https://github.com/kennfarbe/LearnPip/commit/bea1b042a16063ea55e4fb62c7bbf5cd41a50537))
+* **identity:** implement GitHub OAuth with verified stable user ID and no email merge ([787a6c1](https://github.com/kennfarbe/LearnPip/commit/787a6c15bea583da9b50ab6a2b946bde272aee1b))
+* **identity:** implement separate Facebook OAuth with app-scoped stable ID ([cc79a01](https://github.com/kennfarbe/LearnPip/commit/cc79a01141beae2fb32486eb487ea08181f270c1))
+* **identity:** offer configured GitHub OAuth sign-in ([e728c7d](https://github.com/kennfarbe/LearnPip/commit/e728c7d704807e8a06d06d996ced770b6554158a))
+* **identity:** preserve optional Facebook OAuth secrets on upgrades ([0b49cc8](https://github.com/kennfarbe/LearnPip/commit/0b49cc8962c39034d60bcfb8c14d2a3c6566bb2a))
+* **identity:** protect production GitHub OAuth client secret ([01ab23e](https://github.com/kennfarbe/LearnPip/commit/01ab23ec7383916bc90db8563b0acd32891634d0))
+* **identity:** register optional Facebook OAuth ([07aaa95](https://github.com/kennfarbe/LearnPip/commit/07aaa951e976c47b433e16a813573b69992c617b))
+* **identity:** register optional GitHub OAuth ([6c55ed5](https://github.com/kennfarbe/LearnPip/commit/6c55ed59f0fd0c88a65ac01f5431742309dc7773))
+* **identity:** require active session for explicit Facebook account link ([1e9b0fd](https://github.com/kennfarbe/LearnPip/commit/1e9b0fdc5b2372f4d4c63563b273507772446833))
+* **identity:** safely unlink external sign-in providers ([c75369c](https://github.com/kennfarbe/LearnPip/commit/c75369cdec56bb8b1e3fa3710d517cc9cb99a080))
+
 # [1.11.0](https://github.com/kennfarbe/LearnPip/compare/v1.10.0...v1.11.0) (2026-10-03)
 
 
