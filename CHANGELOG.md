@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/kennfarbe/LearnPip/compare/v1.9.2...v1.10.0) (2026-10-03)
+
+
+### Features
+
+* **catalog:** select validated offline questions with referenced media ([a67a397](https://github.com/kennfarbe/LearnPip/commit/a67a3976497db4efd492710b3bdc1fd0aa521900))
+
 ## [1.9.2](https://github.com/kennfarbe/LearnPip/compare/v1.9.1...v1.9.2) (2026-10-03)
 
 
