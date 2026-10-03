@@ -55,6 +55,8 @@ jobs:
           node-version: 24
 
       - name: Audit root and Angular dependencies; test safe lockfile fixes privately
+        id: npm_audit
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -79,6 +81,17 @@ jobs:
             exit 1
           fi
           python3 scripts/security-report.py nuget "$RUNNER_TEMP/nuget.json"
+
+      - name: Enforce complete dependency audit result
+        if: always()
+        shell: bash
+        env:
+          NPM_OUTCOME: ${{ steps.npm_audit.outcome }}
+        run: |
+          if [ "$NPM_OUTCOME" != success ]; then
+            echo 'npm vulnerability audit remains unresolved; job stays blocked.' >&2
+            exit 1
+          fi
 
   release:
     name: Resolve published release
