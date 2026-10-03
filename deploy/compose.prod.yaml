@@ -37,6 +37,8 @@ services:
       LEARNPIP_VERSION: ${LEARNPIP_VERSION}
       LearnPip__UpdateQueuePath: /var/lib/learnpip-update/queue
       LearnPip__UpdateStatusPath: /var/lib/learnpip-update/status
+    volumes:
+      - data-protection-keys:/var/lib/learnpip/data-protection
     secrets:
       - ConnectionStrings__LearnPip
     networks:
