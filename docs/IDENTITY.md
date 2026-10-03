@@ -12,6 +12,9 @@ LearnPip unterstützt ein Konto ohne E-Mail-Adresse. Die erste Antwort von `POST
 | `POST /api/v1/auth/email/start`, `/complete` | Einmaligen E-Mail-Code für Anmeldung oder neues Konto verwenden |
 | `POST /api/v1/auth/email/link/start`, `/complete` | Nach aktiver Anmeldung eine E-Mail-Adresse verifizieren und an dasselbe Konto binden |
 | `GET /api/v1/auth/oidc/start`, `/link/start` | OIDC-Code-Flow starten oder mit aktivem Konto verknüpfen |
+| `DELETE /api/v1/auth/providers/{provider}/link` | Apple-, Microsoft-, GitHub- oder Facebook-Verknüpfung nach aktiver Anmeldung trennen |
+
+Externe Verknüpfungen lassen sich über `DELETE /api/v1/auth/providers/{provider}/link` trennen; zulässige Provider sind `apple`, `microsoft`, `github` und `facebook`. Die API verlangt eine aktive Sitzung und verweigert das Entfernen, wenn dadurch das letzte dauerhafte Anmelde- oder Wiederherstellungsmittel verloren ginge. Nach erfolgreicher Trennung werden Fragen, Lernstand und die übrigen Kontozugänge nicht verändert.
 
 Die JSON-Antwort bei der Kontoanlage, Wiederherstellung und E-Mail-Anmeldung enthält ein Bearer-Token für API-Clients. Der Browser erhält außerdem ein `HttpOnly`-Cookie mit `Secure` und `SameSite=Strict`. Für Cookie-Anfragen mit schreibender Methode prüft die API den `Origin`-Header gegen `Authentication__PublicOrigin` oder, falls nicht gesetzt, den Request-Origin. Webclients speichern das Bearer-Token nicht in JavaScript-Speichern. Lokal über HTTP kann das Secure-Cookie nicht genutzt werden; zum API-Test ist das Bearer-Token vorgesehen. Für einen öffentlich erreichbaren Browserbetrieb muss TLS am Proxy/API-Endpunkt aktiv sein.
 
