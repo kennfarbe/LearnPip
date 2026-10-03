@@ -68,7 +68,7 @@ if [[ "$*" == *'run --rm migrate'* && "${MOCK_FAIL_MIGRATE:-}" == 1 ]]; then exi
     for provider in ('apple', 'microsoft'):
         secret = f'Oidc__Providers__{provider}__ClientSecret'
         assert f'      - {secret}' in compose_text
-        assert f'  {secret}:\\n    file: ./secrets/{secret}' in compose_text
+        assert f'  {secret}:\n    file: ./secrets/{secret}' in compose_text
         assert secret in (repo / 'scripts/prod-init.sh').read_text()
 
     run('prepare')
