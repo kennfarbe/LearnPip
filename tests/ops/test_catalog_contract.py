@@ -105,6 +105,27 @@ class CatalogContractTests(unittest.TestCase):
         with self.assertRaisesRegex(InvalidPackage, "checksum mismatch|size mismatch"):
             self.check(make_zip(self.manifest, self.files))
 
+    def test_manifest_must_be_first_entry(self):
+        payload = io.BytesIO()
+        with zipfile.ZipFile(payload, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("NOTICE", self.files["NOTICE"])
+            archive.writestr("manifest.json", json.dumps(self.manifest).encode("utf-8"))
+            for path, content in self.files.items():
+                if path != "NOTICE":
+                    archive.writestr(path, content)
+        with self.assertRaisesRegex(InvalidPackage, "first ZIP entry"):
+            self.check(payload.getvalue())
+
+    def test_executable_media_is_rejected_even_if_declared(self):
+        self.files["media/launch.sh"] = b"echo unsafe\\n"
+        self.manifest["files"].append({
+            "path": "media/launch.sh",
+            "sha256": hashlib.sha256(self.files["media/launch.sh"]).hexdigest(),
+            "size": len(self.files["media/launch.sh"]),
+        })
+        with self.assertRaisesRegex(InvalidPackage, "Unsafe"):
+            self.check(make_zip(self.manifest, self.files))
+
     def test_traversal_path_is_rejected(self):
         with self.assertRaisesRegex(InvalidPackage, "Unsafe"):
             self.check(make_zip(self.manifest, self.files, [("../outside", b"bad")]))
