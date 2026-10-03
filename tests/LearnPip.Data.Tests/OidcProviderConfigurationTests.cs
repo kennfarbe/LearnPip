@@ -12,7 +12,7 @@ namespace LearnPip.Data.Tests;
 /// </summary>
 public sealed class OidcProviderConfigurationTests
 {
-    private static readonly string[] GithubOnly = ["github"];
+    private static readonly string[] NoProviders = [];
     private static readonly string[] AppleAndMicrosoft = ["apple", "microsoft"];
 
     /// <summary>
@@ -28,16 +28,20 @@ public sealed class OidcProviderConfigurationTests
             ["Oidc:Providers:github:Authority"] = "https://other.example.invalid",
             ["Oidc:Providers:github:ClientId"] = "client",
             ["Oidc:Providers:github:ClientSecret"] = "secret",
+            ["Oidc:Providers:facebook:Authority"] = "https://other.example.invalid",
+            ["Oidc:Providers:facebook:ClientId"] = "client",
+            ["Oidc:Providers:facebook:ClientSecret"] = "secret",
             ["Oidc:Providers:unknown:Authority"] = "https://other.example.invalid",
             ["Oidc:Providers:unknown:ClientId"] = "client",
             ["Oidc:Providers:unknown:ClientSecret"] = "secret",
         });
 
-        Assert.Equal(GithubOnly, OidcSetup.EnabledProviders(configuration));
+        Assert.Equal(NoProviders, OidcSetup.EnabledProviders(configuration));
         Assert.Null(OidcSetup.ProviderScheme(configuration, "apple"));
         Assert.Null(OidcSetup.ProviderScheme(configuration, "unknown"));
         Assert.Null(OidcSetup.ProviderScheme(configuration, "GitHub"));
-        Assert.Equal("LearnPipOidc-github", OidcSetup.ProviderScheme(configuration, "github"));
+        Assert.Null(OidcSetup.ProviderScheme(configuration, "github"));
+        Assert.Null(OidcSetup.ProviderScheme(configuration, "facebook"));
         Assert.False(OidcSetup.IsEnabled(configuration));
     }
 
