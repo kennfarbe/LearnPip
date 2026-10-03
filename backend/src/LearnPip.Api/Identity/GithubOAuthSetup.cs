@@ -25,7 +25,7 @@ public static class GithubOAuthSetup
         !string.IsNullOrWhiteSpace(configuration["GithubOAuth:ClientId"]) &&
         !string.IsNullOrWhiteSpace(configuration["GithubOAuth:ClientSecret"]);
 
-    /// <summary>Registers GitHub's separate OAuth code flow.</summary>
+    /// <summary>Registers GitHub's server-side OAuth authorization-code flow.</summary>
     /// <param name="authentication">Authentication builder.</param>
     /// <param name="configuration">Server configuration.</param>
     /// <returns>Authentication builder.</returns>
@@ -60,7 +60,7 @@ public static class GithubOAuthSetup
             {
                 using var request = new HttpRequestMessage(
                     HttpMethod.Get,
-                    "https://api.github.com/user");
+                    new UriBuilder(Uri.UriSchemeHttps, "api.github.com") { Path = "user" }.Uri);
                 request.Headers.Authorization = new AuthenticationHeaderValue(
                     "Bearer",
                     context.AccessToken);
