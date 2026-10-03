@@ -62,8 +62,10 @@ jobs:
         run: |
           set -euo pipefail
           status=0
-          bash scripts/npm-security-audit.sh . root || status=1
-          bash scripts/npm-security-audit.sh frontend/web web || status=1
+          bash scripts/npm-security-audit.sh . root production || status=1
+          bash scripts/npm-security-audit.sh frontend/web web production || status=1
+          bash scripts/npm-security-audit.sh . root development || status=1
+          bash scripts/npm-security-audit.sh frontend/web web development || status=1
           exit "$status"
 
       - name: Trial targeted transitive overrides without changing checkout
@@ -107,14 +109,16 @@ jobs:
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/security-reports"
           for component in root web; do
-            source="$RUNNER_TEMP/learnpip-security-$component"
-            if [ -d "$source" ]; then
-              for name in npm-audit-private.json npm-after-fix-private.json npm-fix-private.json; do
-                if [ -f "$source/$name" ]; then
-                  cp "$source/$name" "$RUNNER_TEMP/security-reports/$component-$name"
-                fi
-              done
-            fi
+            for scope in production development; do
+              source="$RUNNER_TEMP/learnpip-security-$component-$scope"
+              if [ -d "$source" ]; then
+                for name in npm-audit-private.json npm-after-fix-private.json npm-fix-private.json; do
+                  if [ -f "$source/$name" ]; then
+                    cp "$source/$name" "$RUNNER_TEMP/security-reports/$component-$scope-$name"
+                  fi
+                done
+              fi
+            done
           done
           if [ -f "$RUNNER_TEMP/nuget.json" ]; then
             cp "$RUNNER_TEMP/nuget.json" "$RUNNER_TEMP/security-reports/nuget.json"
