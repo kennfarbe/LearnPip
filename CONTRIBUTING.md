@@ -30,3 +30,9 @@ Vielen Dank für dein Interesse an LearnPip. Ideen, Fehlermeldungen und Verbesse
 5. Automatische, verpflichtende CLA-Prüfung sowie Maintainer-Review müssen vor dem Merge erfolgreich sein.
 
 Die [Einführungs- und Prüfliste](docs/CLA-ROLLOUT.md) beschreibt die noch unerledigten rechtlichen und technischen Schritte. Vorschläge oder Diskussionen sind weiterhin willkommen; bitte bis zur Freigabe keinen externen Code zur Übernahme anbieten.
+
+## Dokumentation als Teil jeder Änderung
+
+Die Dokumentation ist Bestandteil der Umsetzung, keine nachgelagerte Aufgabe. Wer Code, Verhalten, Konfiguration, Berechtigungen, Sicherheitskontrollen, API, Datenformate, Installation oder Releaseprozess ändert, passt die betroffenen deutschen Dokumentationsseiten **im selben Pull Request** an. Bei geänderten Meilensteinen oder Funktionen ist außerdem die README-Roadmap einschließlich der noch offenen Grenzen zu aktualisieren. Veraltete Statusdaten, Beispiele, Versionsangaben, Befehle und Links werden korrigiert statt übernommen.
+
+Die PR-Vorlage verlangt eine Dokumentationsprüfung oder eine nachvollziehbare Begründung, wenn eine rein interne Änderung keine Dokumentationsanpassung erfordert. Automatische Markdown-/Linkprüfungen unterstützen das Verfahren, können aber sachliche Richtigkeit und Vollständigkeit nicht ersetzen. Bei der PR-Abnahme ist die Übereinstimmung zwischen Code, Tests, Dokumentation und offenen Issues zu kontrollieren. Ein teilweise erfülltes Issue bleibt offen; Entwürfe werden nicht als produktiv freigegeben dargestellt.
