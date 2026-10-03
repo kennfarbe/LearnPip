@@ -14,6 +14,7 @@ using LearnPip.Api.Media;
 using LearnPip.Api.Questions;
 using LearnPip.Api.Security;
 using LearnPip.Data;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
@@ -39,6 +40,19 @@ if (args is ["--healthcheck"])
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddKeyPerFile("/run/secrets", optional: true);
+if (builder.Environment.IsProduction())
+{
+    const string keyDirectory = "/var/lib/learnpip/data-protection";
+    if (!Directory.Exists(keyDirectory))
+    {
+        throw new InvalidOperationException("Persistent Data Protection key storage is required.");
+    }
+
+    builder.Services.AddDataProtection()
+        .SetApplicationName("LearnPip.Api")
+        .PersistKeysToFileSystem(new DirectoryInfo(keyDirectory));
+}
+
 var connectionString = builder.Configuration.GetConnectionString("LearnPip")
     ?? throw new InvalidOperationException("ConnectionStrings:LearnPip must be configured.");
 builder.Services.AddDbContext<LearnPipDbContext>(options => options.UseNpgsql(connectionString));
