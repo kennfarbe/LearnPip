@@ -18,6 +18,7 @@ on:
       - 'backend/**/Dockerfile'
       - 'frontend/web/Dockerfile'
       - 'deploy/compose*.yaml'
+      - 'deploy/*.Dockerfile'
       - 'scripts/security-report.py'
       - 'scripts/npm-security-audit.sh'
       - 'scripts/try-security-overrides.sh'
