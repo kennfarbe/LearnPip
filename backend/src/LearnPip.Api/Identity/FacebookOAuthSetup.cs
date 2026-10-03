@@ -25,7 +25,7 @@ public static class FacebookOAuthSetup
         !string.IsNullOrWhiteSpace(configuration["FacebookOAuth:ClientId"]) &&
         !string.IsNullOrWhiteSpace(configuration["FacebookOAuth:ClientSecret"]);
 
-    /// <summary>Registers the independent OAuth flow.</summary>
+    /// <summary>Registers Facebook Login as a separate server-side OAuth flow.</summary>
     /// <param name="authentication">Authentication builder.</param>
     /// <param name="configuration">Server configuration.</param>
     /// <returns>Authentication builder.</returns>
@@ -59,7 +59,11 @@ public static class FacebookOAuthSetup
             {
                 using var request = new HttpRequestMessage(
                     HttpMethod.Get,
-                    "https://graph.facebook.com/v24.0/me?fields=id");
+                    new UriBuilder(Uri.UriSchemeHttps, "graph.facebook.com")
+                    {
+                        Path = "v24.0/me",
+                        Query = "fields=id",
+                    }.Uri);
                 request.Headers.Authorization = new AuthenticationHeaderValue(
                     "Bearer",
                     context.AccessToken);
