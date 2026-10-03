@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LanguageService } from './language';
+import { LearningSessionState } from './learning-session-state';
 
 interface Block {
   kind: string;
@@ -26,7 +27,7 @@ interface LearningQuestion {
   translationId: string | null;
   versionNumber: number;
 }
-interface Session {
+export interface Session {
   id: string;
   total: number;
   answered: number;
@@ -34,7 +35,7 @@ interface Session {
   completed: boolean;
   current: LearningQuestion | null;
 }
-interface Feedback {
+export interface Feedback {
   attemptId: string;
   contentId: string;
   isCorrect: boolean;
@@ -75,289 +76,314 @@ const sessionKey = 'learnpip-learning-session';
   imports: [FormsModule],
   template: `
     <section class="learning" aria-labelledby="learning-title">
-      <h2 id="learning-title">{{ language.t('Kurz lernen') }}</h2>
-      <p>
-        Übe mit deinen veröffentlichten privaten Fragen. Jede Frage erscheint in dieser Sitzung nur
-        einmal.
-      </p>
-      @if (overview(); as review) {
-        <div class="review-summary">
-          <strong
-            >Lernstand: {{ review.masteredContents }} von {{ review.totalContents }} Lerninhalten
-            sicher</strong
-          >
-          <span>{{ review.oftenForMeCount }} auf deiner persönlichen Merkliste</span>
-        </div>
-      }
-      @if (!session()) {
-        <div class="settings">
-          <label
-            >Katalog
-            <select [(ngModel)]="catalogId">
-              <option value="">Alle eigenen Fragen</option>
-              @for (catalog of catalogs(); track catalog.id) {
-                <option [value]="catalog.id">{{ catalog.name }}</option>
-              }
-            </select>
-          </label>
-          <label
-            >Anzahl der Fragen
-            <select [(ngModel)]="count">
-              <option [ngValue]="3">Bis zu 3</option>
-              <option [ngValue]="5">Bis zu 5</option>
-              <option [ngValue]="10">Bis zu 10</option>
-            </select>
-          </label>
-          <button type="button" [disabled]="busy()" (click)="start()">
-            {{ language.t('Sitzung starten') }}
-          </button>
-        </div>
-      } @else {
-        <p class="progress">
-          {{ session()!.answered + session()!.skipped }} von {{ session()!.total }} bearbeitet ·
-          {{ session()!.answered }} beantwortet · {{ session()!.skipped }} übersprungen
-        </p>
-        @if (feedback(); as result) {
-          <div class="feedback" role="status">
-            <h3>
-              {{
-                result.isCorrect
-                  ? language.t('Richtig beantwortet')
-                  : language.t('Noch nicht richtig')
-              }}
-            </h3>
-            @if (contentFor(result.contentId); as content) {
-              <p class="review-state">
-                {{ content.mastered ? 'Sicher beherrscht' : 'Weiter üben' }} ·
-                {{
-                  content.dueAtUtc
-                    ? 'Nächste Wiederholung: ' + dateLabel(content.dueAtUtc)
-                    : 'Noch offen'
-                }}
-              </p>
-              <button
-                type="button"
-                class="secondary"
-                [disabled]="busy()"
-                (click)="toggleFrequent(content)"
+      <h2 id="learning-title">
+        {{ language.t(workspace() === 'contents' ? 'Lerninhalte und Varianten' : 'Kurz lernen') }}
+      </h2>
+      @if (workspace() === 'practice') {
+        @if (!session()) {
+          <p>
+            Übe mit deinen veröffentlichten privaten Fragen. Jede Frage erscheint in dieser Sitzung
+            nur einmal.
+          </p>
+          @if (overview(); as review) {
+            <div class="review-summary">
+              <strong
+                >Lernstand: {{ review.masteredContents }} von
+                {{ review.totalContents }} Lerninhalten sicher</strong
               >
-                {{
-                  content.oftenForMe ? 'Von „öfter für mich“ entfernen' : 'Öfter für mich merken'
-                }}
-              </button>
-            }
-            <p>
-              Richtige Antwort:
-              @for (option of session()!.current?.answers ?? []; track option.id) {
-                @if (result.correctOptionIds.includes(option.id)) {
-                  <span class="correct-option">{{ optionLabel(option) }}</span>
+              <span>{{ review.oftenForMeCount }} auf deiner persönlichen Merkliste</span>
+            </div>
+          }
+        }
+        @if (!session()) {
+          <div class="settings">
+            <label
+              >Katalog
+              <select [(ngModel)]="catalogId">
+                <option value="">Alle eigenen Fragen</option>
+                @for (catalog of catalogs(); track catalog.id) {
+                  <option [value]="catalog.id">{{ catalog.name }}</option>
                 }
-              }
-            </p>
-            @if (result.explanation.length) {
-              @if (result.shortExplanation) {
-                <p>{{ result.shortExplanation }}</p>
-              }
-              <button type="button" class="secondary" (click)="toggleExplanation(result)">
-                {{
-                  showFull()
-                    ? language.t('Erklärung einklappen')
-                    : language.t('Ausführliche Erklärung')
-                }}
-              </button>
-              @if (showFull()) {
-                <div class="blocks">
-                  @for (block of result.explanation; track $index) {
-                    @if (block.kind === 'text') {
-                      <p>{{ block.text }}</p>
-                    }
-                    @if (block.kind === 'image' && block.mediaId) {
-                      <img [src]="imageUrl(block.mediaId)" [alt]="block.altText ?? ''" />
-                    }
-                  }
-                </div>
-              }
-            } @else {
-              <p>Zu dieser Frage ist keine Erklärung hinterlegt.</p>
-            }
-            <button type="button" [disabled]="busy()" (click)="next()">
-              {{ language.t('Weiter') }}
+              </select>
+            </label>
+            <label
+              >Anzahl der Fragen
+              <select [(ngModel)]="count">
+                <option [ngValue]="3">Bis zu 3</option>
+                <option [ngValue]="5">Bis zu 5</option>
+                <option [ngValue]="10">Bis zu 10</option>
+              </select>
+            </label>
+            <button type="button" [disabled]="busy()" (click)="start()">
+              {{ language.t('Sitzung starten') }}
             </button>
           </div>
-        } @else if (session()!.current; as question) {
-          <div class="question">
-            @if (question.translationMissing) {
-              <p role="status">
-                {{
-                  language.current() === 'en'
-                    ? 'Translation missing. Original language shown: '
-                    : 'Übersetzung fehlt. Originalsprache wird angezeigt: '
-                }}{{ question.language }}
-              </p>
-            }
-            <div class="blocks">
-              @for (block of question.prompt; track $index) {
-                @if (block.kind === 'text') {
-                  <p>{{ block.text }}</p>
-                }
-                @if (block.kind === 'image' && block.mediaId) {
-                  <img [src]="imageUrl(block.mediaId)" [alt]="block.altText ?? ''" />
-                }
-              }
-            </div>
-            <p class="hint">
-              {{
-                question.selectionMode === 'single'
-                  ? 'Wähle eine Antwort.'
-                  : 'Wähle alle richtigen Antworten.'
-              }}
-            </p>
-            @if (question.hint) {
-              <button
-                type="button"
-                class="secondary"
-                (click)="guidanceLevel.set(1)"
-                [disabled]="guidanceLevel() >= 1"
-              >
-                {{ language.t('Hinweis anzeigen') }}
-              </button>
-              @if (guidanceLevel() >= 1) {
-                <p class="hint" role="status">{{ question.hint }}</p>
-              }
-            }
-            @if (question.nextStep && guidanceLevel() >= 1) {
-              <button
-                type="button"
-                class="secondary"
-                (click)="guidanceLevel.set(2)"
-                [disabled]="guidanceLevel() >= 2"
-              >
-                {{ language.t('Nächsten Schritt anzeigen') }}
-              </button>
-              @if (guidanceLevel() >= 2) {
-                <p class="hint" role="status">{{ question.nextStep }}</p>
-              }
-            }
-            <div class="options" role="group" aria-label="Antwortmöglichkeiten">
-              @for (option of question.answers; track option.id) {
-                <label class="option">
-                  <input
-                    [type]="question.selectionMode === 'single' ? 'radio' : 'checkbox'"
-                    name="learning-answer"
-                    [checked]="selected().includes(option.id)"
-                    (change)="toggle(option.id, question.selectionMode)"
-                  />
-                  <span class="blocks">
-                    @for (block of option.blocks; track $index) {
-                      @if (block.kind === 'text') {
-                        <span>{{ block.text }}</span>
-                      }
-                      @if (block.kind === 'image' && block.mediaId) {
-                        <img [src]="imageUrl(block.mediaId)" [alt]="block.altText ?? ''" />
-                      }
-                    }
-                  </span>
-                </label>
-              }
-            </div>
-            @if (question.translationId) {
-              <label
-                >{{ language.t('Übersetzungsfehler melden') }}
-                <textarea [(ngModel)]="translationReport" maxlength="2000"></textarea>
-              </label>
-              <button
-                type="button"
-                class="secondary"
-                [disabled]="busy() || !translationReport.trim()"
-                (click)="reportTranslation(question)"
-              >
-                {{ language.t('Übersetzungsfehler melden') }}
-              </button>
-            }
-            <div class="actions">
-              <button type="button" [disabled]="busy() || !selected().length" (click)="answer()">
-                {{ language.t('Prüfen') }}
-              </button>
-              <button type="button" class="secondary" [disabled]="busy()" (click)="skip()">
-                {{ language.t('Ohne Wertung überspringen') }}
-              </button>
-            </div>
-            <label class="guess"
-              ><input type="checkbox" [(ngModel)]="wasGuessed" /> Ich habe geraten</label
-            >
-          </div>
         } @else {
-          <div class="feedback" role="status">
-            <h3>Sitzung abgeschlossen</h3>
-            <p>
-              {{ session()!.answered }} beantwortet, {{ session()!.skipped }} ohne Wertung
-              übersprungen.
-            </p>
-            <button type="button" (click)="reset()">{{ language.t('Neue Sitzung') }}</button>
-          </div>
-        }
-      }
-      @if (overview(); as review) {
-        <div class="content-panel">
-          <h3>Lerninhalte und Varianten</h3>
-          <p>
-            Mehrere Fragevarianten können zu einem Lerninhalt gehören. Die Zielquote zählt jeden
-            Inhalt einmal.
+          <progress
+            [value]="processedCount()"
+            [max]="session()!.total"
+            [attr.aria-label]="language.t('Fortschritt der Lerneinheit')"
+          ></progress>
+          <p class="progress">
+            {{ processedCount() }} von {{ session()!.total }} bearbeitet ·
+            {{ session()!.answered }} beantwortet · {{ session()!.skipped }} übersprungen
           </p>
-          <ul>
-            @for (content of review.contents; track content.id) {
-              <li>
-                <span
-                  ><strong>{{ content.title }}</strong> · {{ content.questionIds.length }} Frage(n)
-                  ·
-                  {{ content.mastered ? 'sicher' : 'in Übung' }}
-                  @if (content.oftenForMe) {
-                    · öfter für mich
-                  }
-                </span>
+          @if (feedback(); as result) {
+            <div class="feedback" role="status">
+              <h3 id="learning-step-title" tabindex="-1">
+                {{
+                  result.isCorrect
+                    ? language.t('Richtig beantwortet')
+                    : language.t('Noch nicht richtig')
+                }}
+              </h3>
+              @if (contentFor(result.contentId); as content) {
+                <p class="review-state">
+                  {{ content.mastered ? 'Sicher beherrscht' : 'Weiter üben' }} ·
+                  {{
+                    content.dueAtUtc
+                      ? 'Nächste Wiederholung: ' + dateLabel(content.dueAtUtc)
+                      : 'Noch offen'
+                  }}
+                </p>
                 <button
                   type="button"
                   class="secondary"
                   [disabled]="busy()"
                   (click)="toggleFrequent(content)"
                 >
-                  {{ content.oftenForMe ? 'Merkliste entfernen' : 'Öfter für mich' }}
+                  {{
+                    content.oftenForMe ? 'Von „öfter für mich“ entfernen' : 'Öfter für mich merken'
+                  }}
                 </button>
-              </li>
-            }
-          </ul>
-          @if (review.contents.length > 1) {
-            <div class="settings">
-              <label
-                >Fragevariante
-                <select [(ngModel)]="variantId">
-                  <option value="">Frage auswählen</option>
-                  @for (content of review.contents; track content.id) {
-                    @for (id of content.questionIds; track id) {
-                      <option [value]="id">{{ content.title }} · {{ id.slice(0, 8) }}</option>
+              }
+              <p>
+                Richtige Antwort:
+                @for (option of session()!.current?.answers ?? []; track option.id) {
+                  @if (result.correctOptionIds.includes(option.id)) {
+                    <span class="correct-option">{{ optionLabel(option) }}</span>
+                  }
+                }
+              </p>
+              @if (result.explanation.length) {
+                @if (result.shortExplanation) {
+                  <p>{{ result.shortExplanation }}</p>
+                }
+                <button type="button" class="secondary" (click)="toggleExplanation(result)">
+                  {{
+                    showFull()
+                      ? language.t('Erklärung einklappen')
+                      : language.t('Ausführliche Erklärung')
+                  }}
+                </button>
+                @if (showFull()) {
+                  <div class="blocks">
+                    @for (block of result.explanation; track $index) {
+                      @if (block.kind === 'text') {
+                        <p>{{ block.text }}</p>
+                      }
+                      @if (block.kind === 'image' && block.mediaId) {
+                        <img [src]="imageUrl(block.mediaId)" [alt]="block.altText ?? ''" />
+                      }
                     }
-                  }
-                </select>
-              </label>
-              <label
-                >Gehört zum Lerninhalt
-                <select [(ngModel)]="contentTargetId">
-                  <option value="">Lerninhalt auswählen</option>
-                  @for (content of review.contents; track content.id) {
-                    <option [value]="content.id">{{ content.title }}</option>
-                  }
-                </select>
-              </label>
-              <button
-                type="button"
-                [disabled]="busy() || !variantId || !contentTargetId"
-                (click)="assignVariant()"
-              >
-                Variante zuordnen
+                  </div>
+                }
+              } @else {
+                <p>Zu dieser Frage ist keine Erklärung hinterlegt.</p>
+              }
+              <button type="button" [disabled]="busy()" (click)="next()">
+                {{
+                  language.t(
+                    processedCount() >= session()!.total ? 'Sitzung abschließen' : 'Nächste Frage'
+                  )
+                }}
               </button>
             </div>
+          } @else if (session()!.current; as question) {
+            <div class="question">
+              <h3 id="learning-step-title" tabindex="-1">
+                {{ language.t('Frage') }} {{ processedCount() + 1 }} / {{ session()!.total }}
+              </h3>
+              @if (question.translationMissing) {
+                <p role="status">
+                  {{
+                    language.current() === 'en'
+                      ? 'Translation missing. Original language shown: '
+                      : 'Übersetzung fehlt. Originalsprache wird angezeigt: '
+                  }}{{ question.language }}
+                </p>
+              }
+              <div class="blocks">
+                @for (block of question.prompt; track $index) {
+                  @if (block.kind === 'text') {
+                    <p>{{ block.text }}</p>
+                  }
+                  @if (block.kind === 'image' && block.mediaId) {
+                    <img [src]="imageUrl(block.mediaId)" [alt]="block.altText ?? ''" />
+                  }
+                }
+              </div>
+              <p class="hint">
+                {{
+                  question.selectionMode === 'single'
+                    ? 'Wähle eine Antwort.'
+                    : 'Wähle alle richtigen Antworten.'
+                }}
+              </p>
+              @if (question.hint) {
+                <button
+                  type="button"
+                  class="secondary"
+                  (click)="guidanceLevel.set(1)"
+                  [disabled]="guidanceLevel() >= 1"
+                >
+                  {{ language.t('Hinweis anzeigen') }}
+                </button>
+                @if (guidanceLevel() >= 1) {
+                  <p class="hint" role="status">{{ question.hint }}</p>
+                }
+              }
+              @if (question.nextStep && guidanceLevel() >= 1) {
+                <button
+                  type="button"
+                  class="secondary"
+                  (click)="guidanceLevel.set(2)"
+                  [disabled]="guidanceLevel() >= 2"
+                >
+                  {{ language.t('Nächsten Schritt anzeigen') }}
+                </button>
+                @if (guidanceLevel() >= 2) {
+                  <p class="hint" role="status">{{ question.nextStep }}</p>
+                }
+              }
+              <div class="options" role="group" aria-label="Antwortmöglichkeiten">
+                @for (option of question.answers; track option.id) {
+                  <label class="option">
+                    <input
+                      [type]="question.selectionMode === 'single' ? 'radio' : 'checkbox'"
+                      name="learning-answer"
+                      [checked]="selected().includes(option.id)"
+                      (change)="toggle(option.id, question.selectionMode)"
+                    />
+                    <span class="blocks">
+                      @for (block of option.blocks; track $index) {
+                        @if (block.kind === 'text') {
+                          <span>{{ block.text }}</span>
+                        }
+                        @if (block.kind === 'image' && block.mediaId) {
+                          <img [src]="imageUrl(block.mediaId)" [alt]="block.altText ?? ''" />
+                        }
+                      }
+                    </span>
+                  </label>
+                }
+              </div>
+              @if (question.translationId) {
+                <details class="workspace-disclosure">
+                  <summary>{{ language.t('Übersetzungsfehler melden') }}</summary>
+                  <label
+                    >{{ language.t('Übersetzungsfehler melden') }}
+                    <textarea [(ngModel)]="translationReport" maxlength="2000"></textarea>
+                  </label>
+                  <button
+                    type="button"
+                    class="secondary"
+                    [disabled]="busy() || !translationReport.trim()"
+                    (click)="reportTranslation(question)"
+                  >
+                    {{ language.t('Übersetzungsfehler melden') }}
+                  </button>
+                </details>
+              }
+              <div class="actions">
+                <button type="button" [disabled]="busy() || !selected().length" (click)="answer()">
+                  {{ language.t('Prüfen') }}
+                </button>
+                <button type="button" class="secondary" [disabled]="busy()" (click)="skip()">
+                  {{ language.t('Ohne Wertung überspringen') }}
+                </button>
+              </div>
+              <label class="guess"
+                ><input type="checkbox" [(ngModel)]="wasGuessed" /> Ich habe geraten</label
+              >
+            </div>
+          } @else {
+            <div class="feedback" role="status">
+              <h3 id="learning-step-title" tabindex="-1">
+                {{ language.t('Sitzung abgeschlossen') }}
+              </h3>
+              <p>
+                {{ session()!.answered }} beantwortet, {{ session()!.skipped }} ohne Wertung
+                übersprungen.
+              </p>
+              <button type="button" (click)="reset()">{{ language.t('Neue Sitzung') }}</button>
+            </div>
           }
-        </div>
+        }
+      }
+      @if (workspace() === 'contents') {
+        @if (overview(); as review) {
+          <div class="content-panel">
+            <h3>Lerninhalte und Varianten</h3>
+            <p>
+              Mehrere Fragevarianten können zu einem Lerninhalt gehören. Die Zielquote zählt jeden
+              Inhalt einmal.
+            </p>
+            <ul>
+              @for (content of review.contents; track content.id) {
+                <li>
+                  <span
+                    ><strong>{{ content.title }}</strong> ·
+                    {{ content.questionIds.length }} Frage(n) ·
+                    {{ content.mastered ? 'sicher' : 'in Übung' }}
+                    @if (content.oftenForMe) {
+                      · öfter für mich
+                    }
+                  </span>
+                  <button
+                    type="button"
+                    class="secondary"
+                    [disabled]="busy()"
+                    (click)="toggleFrequent(content)"
+                  >
+                    {{ content.oftenForMe ? 'Merkliste entfernen' : 'Öfter für mich' }}
+                  </button>
+                </li>
+              }
+            </ul>
+            @if (review.contents.length > 1) {
+              <div class="settings">
+                <label
+                  >Fragevariante
+                  <select [(ngModel)]="variantId">
+                    <option value="">Frage auswählen</option>
+                    @for (content of review.contents; track content.id) {
+                      @for (id of content.questionIds; track id) {
+                        <option [value]="id">{{ content.title }} · {{ id.slice(0, 8) }}</option>
+                      }
+                    }
+                  </select>
+                </label>
+                <label
+                  >Gehört zum Lerninhalt
+                  <select [(ngModel)]="contentTargetId">
+                    <option value="">Lerninhalt auswählen</option>
+                    @for (content of review.contents; track content.id) {
+                      <option [value]="content.id">{{ content.title }}</option>
+                    }
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  [disabled]="busy() || !variantId || !contentTargetId"
+                  (click)="assignVariant()"
+                >
+                  Variante zuordnen
+                </button>
+              </div>
+            }
+          </div>
+        }
       }
       @if (message()) {
         <p class="message" role="alert">{{ message() }}</p>
@@ -367,28 +393,54 @@ const sessionKey = 'learnpip-learning-session';
   styleUrl: './learning-session.css',
 })
 export class LearningSession implements OnInit {
+  readonly workspace = input<'practice' | 'contents'>('practice');
+  private readonly state = inject(LearningSessionState);
   readonly language = inject(LanguageService);
   readonly catalogs = signal<Catalog[]>([]);
-  readonly session = signal<Session | null>(null);
-  readonly selected = signal<string[]>([]);
-  readonly feedback = signal<Feedback | null>(null);
-  readonly showFull = signal(false);
-  readonly guidanceLevel = signal(0);
-  readonly busy = signal(false);
+  readonly session = this.state.session;
+  readonly selected = this.state.selected;
+  readonly feedback = this.state.feedback;
+  readonly showFull = this.state.showFull;
+  readonly guidanceLevel = this.state.guidanceLevel;
+  readonly busy = this.state.busy;
   readonly message = signal('');
   readonly overview = signal<ReviewOverview | null>(null);
   catalogId = '';
   count = 5;
   variantId = '';
   contentTargetId = '';
-  wasGuessed = false;
-  translationReport = '';
+  get wasGuessed(): boolean {
+    return this.state.wasGuessed;
+  }
+  set wasGuessed(value: boolean) {
+    this.state.wasGuessed = value;
+  }
+  get translationReport(): string {
+    return this.state.translationReport;
+  }
+  set translationReport(value: string) {
+    this.state.translationReport = value;
+  }
 
   ngOnInit(): void {
-    void this.loadCatalogs();
     void this.loadReview();
-    const id = sessionStorage.getItem(sessionKey);
-    if (id) void this.load(id);
+    if (this.workspace() === 'practice') {
+      void this.loadCatalogs();
+      const id = sessionStorage.getItem(sessionKey);
+      if (id) void this.load(id, this.session()?.id === id);
+      if (!id) this.reset();
+    }
+  }
+
+  processedCount(): number {
+    const session = this.session();
+    return session
+      ? Math.min(session.total, session.answered + session.skipped + (this.feedback() ? 1 : 0))
+      : 0;
+  }
+
+  private focusStep(): void {
+    requestAnimationFrame(() => document.getElementById('learning-step-title')?.focus());
   }
 
   private async loadCatalogs(): Promise<void> {
@@ -442,6 +494,7 @@ export class LearningSession implements OnInit {
       const session = ((await response.json()) as Api<Session>).data;
       this.session.set(session);
       sessionStorage.setItem(sessionKey, session.id);
+      this.focusStep();
     } catch {
       this.message.set('Verbindung zum Server fehlgeschlagen.');
     } finally {
@@ -449,7 +502,7 @@ export class LearningSession implements OnInit {
     }
   }
 
-  async load(id: string): Promise<void> {
+  async load(id: string, preserveFeedback = false): Promise<void> {
     try {
       const response = await fetch(`/api/v1/learning/sessions/${id}`, {
         credentials: 'same-origin',
@@ -458,7 +511,11 @@ export class LearningSession implements OnInit {
         this.reset();
         return;
       }
-      this.session.set(((await response.json()) as Api<Session>).data);
+      const loaded = ((await response.json()) as Api<Session>).data;
+      if (!preserveFeedback || !this.feedback()) {
+        this.session.set(loaded);
+        this.focusStep();
+      }
     } catch {
       this.message.set('Sitzung konnte nicht geladen werden.');
     }
@@ -488,6 +545,7 @@ export class LearningSession implements OnInit {
         return;
       }
       this.feedback.set(((await response.json()) as Api<Feedback>).data);
+      this.focusStep();
       await this.loadReview();
       window.dispatchEvent(new Event('learnpip:progress-changed'));
       this.message.set('');
@@ -512,6 +570,10 @@ export class LearningSession implements OnInit {
         return;
       }
       this.selected.set([]);
+      this.guidanceLevel.set(0);
+      this.showFull.set(false);
+      this.wasGuessed = false;
+      this.translationReport = '';
       await this.load(session.id);
       window.dispatchEvent(new Event('learnpip:progress-changed'));
       this.message.set('Frage ohne Wertung übersprungen.');
@@ -538,6 +600,7 @@ export class LearningSession implements OnInit {
     sessionStorage.removeItem(sessionKey);
     this.session.set(null);
     this.feedback.set(null);
+    this.showFull.set(false);
     this.selected.set([]);
     this.guidanceLevel.set(0);
     this.wasGuessed = false;

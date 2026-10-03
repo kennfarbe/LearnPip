@@ -8,12 +8,12 @@
   --muted: #52635c;
   --accent: #205d45;
   --accent-hover: #174635;
-  --accent-text: #39785e;
+  --accent-text: #2f684f;
   --on-accent: #fff;
   --border: #dfe9df;
-  --border-strong: #98afa4;
+  --border-strong: #708b7b;
   --soft: #e4f3e7;
-  --warning: #e5a44c;
+  --warning: #9b650d;
   --danger: #7c3626;
 }
 :root[data-theme='dark'] {
@@ -106,5 +106,132 @@ select {
   button,
   select {
     min-height: 44px;
+  }
+}
+
+/* Shared workspace controls retain the same hierarchy on every route. */
+.workspace-card {
+  margin: 1rem 0;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid var(--border-strong);
+  border-radius: 0.9rem;
+  background: var(--surface);
+}
+.workspace-card h2 {
+  margin-top: 0;
+  font-size: 1.35rem;
+}
+.workspace-card p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+.action-grid .workspace-card {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+}
+.action-grid a {
+  margin-top: auto;
+}
+.primary-card {
+  background: var(--soft);
+  border-color: var(--accent-text);
+}
+.primary-action,
+.secondary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  margin: 0.25rem 0;
+  border: 1px solid var(--accent-text);
+  border-radius: 0.55rem;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  text-decoration: none;
+}
+.primary-action {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.secondary-action {
+  background: var(--surface);
+  color: var(--accent-text);
+}
+.primary-action:hover {
+  background: var(--accent-hover);
+}
+.secondary-action:hover {
+  background: var(--soft);
+}
+.workspace-disclosure,
+.editor-disclosure {
+  margin: 1rem 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 0.7rem;
+  background: var(--surface);
+  padding: 0.5rem 1rem;
+}
+summary {
+  min-height: 44px;
+  padding: 0.75rem 0.25rem;
+  font-weight: 650;
+  color: var(--text);
+  cursor: pointer;
+}
+.settings-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 1rem;
+}
+.workspace-card label {
+  display: grid;
+  gap: 0.5rem;
+  font-weight: 600;
+  margin: 0.75rem 0;
+}
+.workspace-card :where(input, select, textarea) {
+  font: inherit;
+  padding: 0.7rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 0.5rem;
+  width: 100%;
+}
+.catalog-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+}
+.notice {
+  padding: 1rem;
+  border: 1px solid var(--danger);
+  border-radius: 0.6rem;
+}
+:where(button, select, input:not([type='checkbox']):not([type='radio'])) {
+  min-height: 44px;
+}
+:where(button):disabled {
+  cursor: not-allowed;
+}
+@media (max-width: 46rem) {
+  .action-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto;
+    animation-duration: 0.01ms;
+    transition-duration: 0.01ms;
   }
 }

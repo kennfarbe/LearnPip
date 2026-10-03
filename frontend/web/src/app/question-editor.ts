@@ -1,6 +1,7 @@
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { LanguageService } from './language';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 
 type Block = { kind: 'text' | 'image'; text?: string; mediaId?: string };
 type Answer = { text: string; imageId: string; imageAlt: string; isCorrect: boolean };
@@ -42,7 +43,7 @@ type SubmissionPreview = {
 
 @Component({
   selector: 'app-question-editor',
-  imports: [FormsModule],
+  imports: [FormsModule, RouterLink],
   template: `
     <section class="editor" aria-labelledby="editor-title">
       <header>
@@ -60,15 +61,6 @@ type SubmissionPreview = {
       <div class="workspace">
         <aside aria-label="Private Kataloge und Entwürfe">
           <h3>{{ uiLanguage.t('Private Kataloge') }}</h3>
-          <div class="row">
-            <input
-              aria-label="Neuer Katalog"
-              placeholder="Neuer Katalog"
-              maxlength="120"
-              [(ngModel)]="newCatalog"
-            />
-            <button type="button" (click)="createCatalog()">{{ uiLanguage.t('Anlegen') }}</button>
-          </div>
           <label for="catalog-filter">{{ uiLanguage.t('Anzeigen') }}</label>
           <select id="catalog-filter" [(ngModel)]="filterCatalog">
             <option value="all">{{ uiLanguage.t('Alle Entwürfe') }}</option>
@@ -77,21 +69,19 @@ type SubmissionPreview = {
               <option [value]="catalog.id">{{ catalog.name }} ({{ catalog.questionCount }})</option>
             }
           </select>
-          @if (activeCatalog()) {
-            <label for="catalog-rename">{{ uiLanguage.t('Katalogname ändern') }}</label>
-            <input id="catalog-rename" maxlength="120" [(ngModel)]="renamedCatalog" />
-            <div class="row">
-              <button type="button" class="secondary" (click)="renameCatalog()">
-                {{ uiLanguage.t('Umbenennen') }}
-              </button>
-              <button type="button" class="secondary" (click)="deleteCatalog()">
-                {{ uiLanguage.t('Katalog löschen') }}
-              </button>
-            </div>
-          }
-          <button type="button" class="secondary" (click)="newDraft()">
-            {{ uiLanguage.t('Neue Frage') }}
+          <label for="draft-search">{{ uiLanguage.t('Fragen suchen') }}</label>
+          <input id="draft-search" type="search" [(ngModel)]="search" />
+          <label for="draft-status">{{ uiLanguage.t('Fassungsstatus') }}</label>
+          <select id="draft-status" [(ngModel)]="filterStatus">
+            <option value="all">{{ uiLanguage.t('Alle Fragen') }}</option>
+            <option value="draft">{{ uiLanguage.t('Nur Entwürfe') }}</option>
+            <option value="published">{{ uiLanguage.t('Mit veröffentlichter Fassung') }}</option>
+          </select>
+          <button type="button" (click)="newDraft()">
+            {{ uiLanguage.t('Neue Frage erstellen') }}
           </button>
+          <a routerLink="/catalogs">{{ uiLanguage.t('Kataloge verwalten') }}</a>
+          <p role="status">{{ visibleDrafts().length }} {{ uiLanguage.t('Fragen gefunden') }}</p>
           <ul class="draft-list">
             @for (draft of visibleDrafts(); track draft.questionId) {
               <li>
@@ -100,7 +90,8 @@ type SubmissionPreview = {
                   [attr.aria-current]="questionId() === draft.questionId ? 'true' : null"
                   (click)="editDraft(draft)"
                 >
-                  {{ draft.content.subject || 'Unbenannte Frage' }}
+                  {{ draftTitle(draft) }}
+                  <small>{{ draft.content.subject }} · {{ draft.content.topic }}</small>
                   <small>{{
                     draft.latestVersion ? 'Fassung ' + draft.latestVersion : 'Nur Entwurf'
                   }}</small>
@@ -110,274 +101,312 @@ type SubmissionPreview = {
           </ul>
         </aside>
 
-        <div class="form-panel">
-          <h3>{{ questionId() ? 'Frage bearbeiten' : 'Neue Frage' }}</h3>
-          <p class="privacy">
-            {{
-              latestVersion()
-                ? 'Änderungen werden erst mit einer neuen Fassung wirksam.'
-                : 'Dieser Entwurf bleibt privat, bis du ihn ausdrücklich veröffentlichst.'
-            }}
-          </p>
-          <div class="two-column">
-            <label
-              >{{ uiLanguage.t('Fach')
-              }}<input [(ngModel)]="subject" maxlength="120" placeholder="z. B. Biologie"
-            /></label>
-            <label
-              >{{ uiLanguage.t('Thema')
-              }}<input [(ngModel)]="topic" maxlength="120" placeholder="z. B. Pflanzen"
-            /></label>
-            <label
-              >{{ uiLanguage.t('Sprache')
-              }}<input [(ngModel)]="language" maxlength="35" placeholder="de"
-            /></label>
-            <label
-              >{{ uiLanguage.t('Katalog')
-              }}<select [(ngModel)]="catalogId">
-                <option value="">{{ uiLanguage.t('Ohne Katalog') }}</option>
-                @for (catalog of catalogs(); track catalog.id) {
-                  <option [value]="catalog.id">{{ catalog.name }}</option>
-                }
-              </select>
-            </label>
-          </div>
-          <label
-            >{{ uiLanguage.t('Frage')
-            }}<textarea
-              [(ngModel)]="promptText"
-              maxlength="4000"
-              rows="4"
-              placeholder="Formuliere deine Frage"
-            ></textarea>
-          </label>
-          <div class="image-field">
-            <label for="prompt-image">{{ uiLanguage.t('Foto oder Bilddatei zur Frage') }}</label>
-            <input
-              id="prompt-image"
-              type="file"
-              accept="image/jpeg,image/png"
-              (change)="uploadImage($event, -1)"
-            />
-            <label
-              >{{ uiLanguage.t('Bildbeschreibung')
-              }}<input
-                [(ngModel)]="promptImageAlt"
-                maxlength="300"
-                placeholder="Was ist auf dem Bild zu sehen?"
-            /></label>
-            @if (promptImageId) {
-              <img [src]="imageUrl(promptImageId)" [alt]="promptImageAlt" />
-              <button type="button" class="secondary" (click)="promptImageId = ''">
-                {{ uiLanguage.t('Bild aus Frage entfernen') }}
+        @if (editing()) {
+          <div class="form-panel">
+            <div class="answer-heading">
+              <h3 id="question-form-title" tabindex="-1">
+                {{ uiLanguage.t(questionId() ? 'Frage bearbeiten' : 'Neue Frage') }}
+              </h3>
+              <button type="button" class="secondary" (click)="closeEditor()">
+                {{ uiLanguage.t('Editor schließen') }}
               </button>
-            }
-          </div>
-          <label
-            >{{ uiLanguage.t('Auswahlart')
-            }}<select [(ngModel)]="selectionMode" (change)="normalizeChoice()">
-              <option value="single">{{ uiLanguage.t('Eine richtige Antwort') }}</option>
-              <option value="multiple">{{ uiLanguage.t('Mehrere richtige Antworten') }}</option>
-            </select>
-          </label>
-          <fieldset>
-            <legend>{{ uiLanguage.t('Antworten') }}</legend>
-            @for (answer of answers; track $index; let i = $index) {
-              <div class="answer">
-                <div class="answer-heading">
-                  <strong>Antwort {{ i + 1 }}</strong>
-                  @if (answers.length > 2) {
-                    <button type="button" class="secondary" (click)="removeAnswer(i)">
-                      {{ uiLanguage.t('Entfernen') }}
-                    </button>
-                  }
-                </div>
+            </div>
+            <p class="privacy">
+              {{
+                latestVersion()
+                  ? 'Änderungen werden erst mit einer neuen Fassung wirksam.'
+                  : 'Dieser Entwurf bleibt privat, bis du ihn ausdrücklich veröffentlichst.'
+              }}
+            </p>
+            <div class="two-column">
+              <label
+                >{{ uiLanguage.t('Fach')
+                }}<input [(ngModel)]="subject" maxlength="120" placeholder="z. B. Biologie"
+              /></label>
+              <label
+                >{{ uiLanguage.t('Thema')
+                }}<input [(ngModel)]="topic" maxlength="120" placeholder="z. B. Pflanzen"
+              /></label>
+            </div>
+            <details class="editor-disclosure">
+              <summary>{{ uiLanguage.t('Sprache und Katalogzuordnung') }}</summary>
+              <div class="two-column">
                 <label
-                  >{{ uiLanguage.t('Antworttext')
-                  }}<textarea [(ngModel)]="answer.text" maxlength="4000" rows="2"></textarea>
-                </label>
-                <label
-                  >{{ uiLanguage.t('Bilddatei (optional)')
-                  }}<input
-                    type="file"
-                    accept="image/jpeg,image/png"
-                    (change)="uploadImage($event, i)"
+                  >{{ uiLanguage.t('Sprache')
+                  }}<input [(ngModel)]="language" maxlength="35" placeholder="de"
                 /></label>
+                <label
+                  >{{ uiLanguage.t('Katalog')
+                  }}<select [(ngModel)]="catalogId">
+                    <option value="">{{ uiLanguage.t('Ohne Katalog') }}</option>
+                    @for (catalog of catalogs(); track catalog.id) {
+                      <option [value]="catalog.id">{{ catalog.name }}</option>
+                    }
+                  </select>
+                </label>
+              </div>
+            </details>
+            <label
+              >{{ uiLanguage.t('Frage')
+              }}<textarea
+                [(ngModel)]="promptText"
+                maxlength="4000"
+                rows="4"
+                placeholder="Formuliere deine Frage"
+              ></textarea>
+            </label>
+            <details class="editor-disclosure">
+              <summary>{{ uiLanguage.t('Bild zur Frage hinzufügen') }}</summary>
+              <div class="image-field">
+                <label for="prompt-image">{{
+                  uiLanguage.t('Foto oder Bilddatei zur Frage')
+                }}</label>
+                <input
+                  id="prompt-image"
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  (change)="uploadImage($event, -1)"
+                />
                 <label
                   >{{ uiLanguage.t('Bildbeschreibung')
                   }}<input
-                    [(ngModel)]="answer.imageAlt"
+                    [(ngModel)]="promptImageAlt"
                     maxlength="300"
-                    placeholder="Bild beschreiben"
+                    placeholder="Was ist auf dem Bild zu sehen?"
                 /></label>
-                @if (answer.imageId) {
-                  <img [src]="imageUrl(answer.imageId)" [alt]="answer.imageAlt" />
-                  <button type="button" class="secondary" (click)="answer.imageId = ''">
-                    {{ uiLanguage.t('Bild entfernen') }}
+                @if (promptImageId) {
+                  <img [src]="imageUrl(promptImageId)" [alt]="promptImageAlt" />
+                  <button type="button" class="secondary" (click)="promptImageId = ''">
+                    {{ uiLanguage.t('Bild aus Frage entfernen') }}
                   </button>
                 }
-                @if (selectionMode === 'single') {
-                  <label class="choice"
-                    ><input
-                      type="radio"
-                      name="correct-answer"
-                      [checked]="answer.isCorrect"
-                      (change)="selectCorrect(i)"
-                    />{{ uiLanguage.t('Richtig') }}</label
-                  >
-                } @else {
-                  <label class="choice"
-                    ><input type="checkbox" [(ngModel)]="answer.isCorrect" />{{
-                      uiLanguage.t('Richtig')
-                    }}</label
-                  >
-                }
               </div>
-            }
-            <button
-              type="button"
-              class="secondary"
-              [disabled]="answers.length >= 8"
-              (click)="addAnswer()"
-            >
-              {{ uiLanguage.t('Antwort hinzufügen') }}
-            </button>
-          </fieldset>
-          <label
-            >{{ uiLanguage.t('Lösungsweg und Erklärung')
-            }}<textarea
-              [(ngModel)]="explanation"
-              maxlength="4000"
-              rows="4"
-              placeholder="Warum ist die Lösung richtig?"
-            ></textarea>
-          </label>
-          <div class="two-column">
+            </details>
             <label
-              >{{ uiLanguage.t('Herkunft')
-              }}<input [(ngModel)]="source" maxlength="500" placeholder="z. B. Eigene Frage"
-            /></label>
-            <label
-              >{{ uiLanguage.t('Lizenz')
-              }}<input [(ngModel)]="license" maxlength="120" placeholder="z. B. eigene Inhalte"
-            /></label>
-          </div>
-          <div class="actions">
-            <button type="button" [disabled]="busy()" (click)="saveDraft()">
-              {{ uiLanguage.t('Privat speichern') }}
-            </button>
-            <button type="button" class="publish" [disabled]="busy()" (click)="publish()">
-              {{ latestVersion() ? 'Neue Fassung veröffentlichen' : 'Fassung veröffentlichen' }}
-            </button>
-            @if (questionId() && latestVersion()) {
-              <button type="button" class="secondary" [disabled]="busy()" (click)="createVariant()">
-                {{ uiLanguage.t('Bearbeitbare Variante zum Lerninhalt anlegen') }}
-              </button>
-            }
-          </div>
-          @if (latestVersion()) {
-            <p class="privacy">
-              Fassung {{ latestVersion() }} ist
-              {{ visibility() === 'public' ? 'öffentlich' : 'privat' }}. Eine neue Fassung bleibt
-              immer privat. Eine öffentliche Einreichung wird erst nach Moderation sichtbar.
-            </p>
-            @if (submissionStatus()) {
-              <p role="status">Einreichung: {{ submissionStatus() }}</p>
-            }
-            @if (
-              visibility() === 'public' ||
-              submissionStatus() === 'pending' ||
-              submissionStatus() === 'minor_hold'
-            ) {
-              <button type="button" class="secondary" [disabled]="busy()" (click)="withdraw()">
-                {{ uiLanguage.t('Freigabe oder Einreichung zurückziehen') }}
-              </button>
-            } @else {
-              <button
-                type="button"
-                class="secondary"
-                [disabled]="busy()"
-                (click)="requestPreview()"
-              >
-                {{ uiLanguage.t('Öffentliche Einreichung vorbereiten und Vorschau anzeigen') }}
-              </button>
-              @if (submissionPreview(); as preview) {
-                <div class="privacy">
-                  <h4>{{ uiLanguage.t('Vorschau der einzureichenden Fassung') }}</h4>
-                  <p>Herkunft: {{ preview.version.source }}</p>
-                  @for (block of preview.version.prompt; track $index) {
-                    @if (block.kind === 'text') {
-                      <p>{{ block.text }}</p>
+              >{{ uiLanguage.t('Auswahlart')
+              }}<select [(ngModel)]="selectionMode" (change)="normalizeChoice()">
+                <option value="single">{{ uiLanguage.t('Eine richtige Antwort') }}</option>
+                <option value="multiple">{{ uiLanguage.t('Mehrere richtige Antworten') }}</option>
+              </select>
+            </label>
+            <fieldset>
+              <legend>{{ uiLanguage.t('Antworten') }}</legend>
+              @for (answer of answers; track $index; let i = $index) {
+                <div class="answer">
+                  <div class="answer-heading">
+                    <strong>Antwort {{ i + 1 }}</strong>
+                    @if (answers.length > 2) {
+                      <button type="button" class="secondary" (click)="removeAnswer(i)">
+                        {{ uiLanguage.t('Entfernen') }}
+                      </button>
                     }
-                    @if (block.kind === 'image' && block.mediaId) {
-                      <img [src]="imageUrl(block.mediaId)" [alt]="block.altText || ''" />
-                    }
-                  }
-                  <ol>
-                    @for (answer of preview.version.answers; track $index) {
-                      <li>
-                        @for (block of answer.blocks; track $index) {
-                          @if (block.kind === 'text') {
-                            {{ block.text }}
-                          }
-                          @if (block.kind === 'image' && block.mediaId) {
-                            <img [src]="imageUrl(block.mediaId)" [alt]="block.altText || ''" />
-                          }
-                        }
-                      </li>
-                    }
-                  </ol>
+                  </div>
                   <label
-                    >{{ uiLanguage.t('Inhaltslizenz')
-                    }}<select [(ngModel)]="publicLicense">
-                      <option value="">{{ uiLanguage.t('Bitte bewusst auswählen') }}</option>
-                      <option value="CC BY 4.0">{{ uiLanguage.t('CC BY 4.0') }}</option>
-                      <option value="CC BY-SA 4.0">{{ uiLanguage.t('CC BY-SA 4.0') }}</option>
-                      <option value="CC0 1.0">{{ uiLanguage.t('CC0 1.0') }}</option>
-                    </select>
+                    >{{ uiLanguage.t('Antworttext')
+                    }}<textarea [(ngModel)]="answer.text" maxlength="4000" rows="2"></textarea>
                   </label>
-                  <label
-                    >{{ uiLanguage.t('Urheberangabe')
-                    }}<input [(ngModel)]="authorAttribution" maxlength="120"
-                  /></label>
-                  <label
-                    >{{ uiLanguage.t('Alterserklärung')
-                    }}<select [(ngModel)]="ageDeclaration">
-                      <option value="">{{ uiLanguage.t('Bitte auswählen') }}</option>
-                      <option value="adult">{{ uiLanguage.t('Volljährig') }}</option>
-                      <option value="minor">
-                        {{ uiLanguage.t('Minderjährig (gesonderte Prüfung ohne Freigabe)') }}
-                      </option>
-                    </select>
-                  </label>
-                  <label
-                    ><input type="checkbox" [(ngModel)]="rightsConfirmed" />{{
-                      uiLanguage.t(
-                        'Ich besitze die nötigen Rechte an Text und Antworten und stimme der gewählten öffentlichen Lizenz zu.'
-                      )
-                    }}</label
-                  >
-                  @if (preview.hasImages) {
+                  <details class="editor-disclosure">
+                    <summary>{{ uiLanguage.t('Bild zur Antwort hinzufügen') }}</summary>
                     <label
-                      ><input type="checkbox" [(ngModel)]="imageRightsConfirmed" />{{
-                        uiLanguage.t(
-                          'Ich besitze die nötigen Bildrechte und habe persönliche Daten geprüft. Schulbuchfotos ohne Rechte darf ich nicht einreichen.'
-                        )
+                      >{{ uiLanguage.t('Bilddatei (optional)')
+                      }}<input
+                        type="file"
+                        accept="image/jpeg,image/png"
+                        (change)="uploadImage($event, i)"
+                    /></label>
+                    <label
+                      >{{ uiLanguage.t('Bildbeschreibung')
+                      }}<input
+                        [(ngModel)]="answer.imageAlt"
+                        maxlength="300"
+                        placeholder="Bild beschreiben"
+                    /></label>
+                    @if (answer.imageId) {
+                      <img [src]="imageUrl(answer.imageId)" [alt]="answer.imageAlt" />
+                      <button type="button" class="secondary" (click)="answer.imageId = ''">
+                        {{ uiLanguage.t('Bild entfernen') }}
+                      </button>
+                    }
+                  </details>
+                  @if (selectionMode === 'single') {
+                    <label class="choice"
+                      ><input
+                        type="radio"
+                        name="correct-answer"
+                        [checked]="answer.isCorrect"
+                        (change)="selectCorrect(i)"
+                      />{{ uiLanguage.t('Richtig') }}</label
+                    >
+                  } @else {
+                    <label class="choice"
+                      ><input type="checkbox" [(ngModel)]="answer.isCorrect" />{{
+                        uiLanguage.t('Richtig')
                       }}</label
                     >
                   }
-                  <button type="button" [disabled]="busy()" (click)="submitForReview()">
-                    {{ uiLanguage.t('Diese Fassung zur Moderation einreichen') }}
-                  </button>
                 </div>
               }
+              <button
+                type="button"
+                class="secondary"
+                [disabled]="answers.length >= 8"
+                (click)="addAnswer()"
+              >
+                {{ uiLanguage.t('Antwort hinzufügen') }}
+              </button>
+            </fieldset>
+            <details class="editor-disclosure">
+              <summary>{{ uiLanguage.t('Erklärung, Herkunft und Lizenz') }}</summary>
+              <p>
+                {{ uiLanguage.t('Herkunft und Lizenz sind vor dem Veröffentlichen erforderlich.') }}
+              </p>
+              <label
+                >{{ uiLanguage.t('Lösungsweg und Erklärung')
+                }}<textarea
+                  [(ngModel)]="explanation"
+                  maxlength="4000"
+                  rows="4"
+                  placeholder="Warum ist die Lösung richtig?"
+                ></textarea>
+              </label>
+              <div class="two-column">
+                <label
+                  >{{ uiLanguage.t('Herkunft')
+                  }}<input [(ngModel)]="source" maxlength="500" placeholder="z. B. Eigene Frage"
+                /></label>
+                <label
+                  >{{ uiLanguage.t('Lizenz')
+                  }}<input [(ngModel)]="license" maxlength="120" placeholder="z. B. eigene Inhalte"
+                /></label>
+              </div>
+            </details>
+            <div class="actions">
+              <button type="button" [disabled]="busy()" (click)="saveDraft()">
+                {{ uiLanguage.t('Privat speichern') }}
+              </button>
+              <button type="button" class="publish" [disabled]="busy()" (click)="publish()">
+                {{ latestVersion() ? 'Neue Fassung veröffentlichen' : 'Fassung veröffentlichen' }}
+              </button>
+              @if (questionId() && latestVersion()) {
+                <button
+                  type="button"
+                  class="secondary"
+                  [disabled]="busy()"
+                  (click)="createVariant()"
+                >
+                  {{ uiLanguage.t('Bearbeitbare Variante zum Lerninhalt anlegen') }}
+                </button>
+              }
+            </div>
+            @if (latestVersion()) {
+              <p class="privacy">
+                Fassung {{ latestVersion() }} ist
+                {{ visibility() === 'public' ? 'öffentlich' : 'privat' }}. Eine neue Fassung bleibt
+                immer privat. Eine öffentliche Einreichung wird erst nach Moderation sichtbar.
+              </p>
+              @if (submissionStatus()) {
+                <p role="status">Einreichung: {{ submissionStatus() }}</p>
+              }
+              @if (
+                visibility() === 'public' ||
+                submissionStatus() === 'pending' ||
+                submissionStatus() === 'minor_hold'
+              ) {
+                <button type="button" class="secondary" [disabled]="busy()" (click)="withdraw()">
+                  {{ uiLanguage.t('Freigabe oder Einreichung zurückziehen') }}
+                </button>
+              } @else {
+                <button
+                  type="button"
+                  class="secondary"
+                  [disabled]="busy()"
+                  (click)="requestPreview()"
+                >
+                  {{ uiLanguage.t('Öffentliche Einreichung vorbereiten und Vorschau anzeigen') }}
+                </button>
+                @if (submissionPreview(); as preview) {
+                  <div class="privacy">
+                    <h4>{{ uiLanguage.t('Vorschau der einzureichenden Fassung') }}</h4>
+                    <p>Herkunft: {{ preview.version.source }}</p>
+                    @for (block of preview.version.prompt; track $index) {
+                      @if (block.kind === 'text') {
+                        <p>{{ block.text }}</p>
+                      }
+                      @if (block.kind === 'image' && block.mediaId) {
+                        <img [src]="imageUrl(block.mediaId)" [alt]="block.altText || ''" />
+                      }
+                    }
+                    <ol>
+                      @for (answer of preview.version.answers; track $index) {
+                        <li>
+                          @for (block of answer.blocks; track $index) {
+                            @if (block.kind === 'text') {
+                              {{ block.text }}
+                            }
+                            @if (block.kind === 'image' && block.mediaId) {
+                              <img [src]="imageUrl(block.mediaId)" [alt]="block.altText || ''" />
+                            }
+                          }
+                        </li>
+                      }
+                    </ol>
+                    <label
+                      >{{ uiLanguage.t('Inhaltslizenz')
+                      }}<select [(ngModel)]="publicLicense">
+                        <option value="">{{ uiLanguage.t('Bitte bewusst auswählen') }}</option>
+                        <option value="CC BY 4.0">{{ uiLanguage.t('CC BY 4.0') }}</option>
+                        <option value="CC BY-SA 4.0">{{ uiLanguage.t('CC BY-SA 4.0') }}</option>
+                        <option value="CC0 1.0">{{ uiLanguage.t('CC0 1.0') }}</option>
+                      </select>
+                    </label>
+                    <label
+                      >{{ uiLanguage.t('Urheberangabe')
+                      }}<input [(ngModel)]="authorAttribution" maxlength="120"
+                    /></label>
+                    <label
+                      >{{ uiLanguage.t('Alterserklärung')
+                      }}<select [(ngModel)]="ageDeclaration">
+                        <option value="">{{ uiLanguage.t('Bitte auswählen') }}</option>
+                        <option value="adult">{{ uiLanguage.t('Volljährig') }}</option>
+                        <option value="minor">
+                          {{ uiLanguage.t('Minderjährig (gesonderte Prüfung ohne Freigabe)') }}
+                        </option>
+                      </select>
+                    </label>
+                    <label
+                      ><input type="checkbox" [(ngModel)]="rightsConfirmed" />{{
+                        uiLanguage.t(
+                          'Ich besitze die nötigen Rechte an Text und Antworten und stimme der gewählten öffentlichen Lizenz zu.'
+                        )
+                      }}</label
+                    >
+                    @if (preview.hasImages) {
+                      <label
+                        ><input type="checkbox" [(ngModel)]="imageRightsConfirmed" />{{
+                          uiLanguage.t(
+                            'Ich besitze die nötigen Bildrechte und habe persönliche Daten geprüft. Schulbuchfotos ohne Rechte darf ich nicht einreichen.'
+                          )
+                        }}</label
+                      >
+                    }
+                    <button type="button" [disabled]="busy()" (click)="submitForReview()">
+                      {{ uiLanguage.t('Diese Fassung zur Moderation einreichen') }}
+                    </button>
+                  </div>
+                }
+              }
             }
-          }
-          @if (status()) {
-            <p role="status" class="status">{{ status() }}</p>
-          }
-        </div>
+          </div>
+        } @else {
+          <div class="form-panel">
+            <h3>{{ uiLanguage.t('Wähle eine Frage oder erstelle eine neue.') }}</h3>
+            <p>{{ uiLanguage.t('Deine Entwürfe bleiben privat.') }}</p>
+          </div>
+        }
       </div>
+      @if (status()) {
+        <p role="status" class="status">{{ status() }}</p>
+      }
     </section>
   `,
   styleUrl: './question-editor.css',
@@ -393,8 +422,10 @@ export class QuestionEditor implements OnInit, OnDestroy {
   readonly submissionStatus = signal('');
   readonly status = signal('');
   readonly busy = signal(false);
-  newCatalog = '';
-  renamedCatalog = '';
+  readonly editing = signal(false);
+  private readonly route = inject(ActivatedRoute);
+  search = '';
+  filterStatus = 'all';
   filterCatalog = 'all';
   catalogId = '';
   publicLicense = '';
@@ -413,13 +444,18 @@ export class QuestionEditor implements OnInit, OnDestroy {
   promptImageAlt = '';
   explanation = '';
   answers: Answer[] = [this.emptyAnswer(true), this.emptyAnswer(false)];
+  private savedState = this.draftState();
 
   ngOnInit(): void {
+    this.filterCatalog = this.route.snapshot.queryParamMap.get('catalog') ?? 'all';
     void this.refresh();
+    if (this.route.snapshot.queryParamMap.get('create') === 'true') this.newDraft();
+    window.addEventListener('beforeunload', this.beforeUnload);
     window.addEventListener('learnpip:photo-draft', this.openPhotoDraft);
   }
 
   ngOnDestroy(): void {
+    window.removeEventListener('beforeunload', this.beforeUnload);
     window.removeEventListener('learnpip:photo-draft', this.openPhotoDraft);
   }
 
@@ -435,12 +471,60 @@ export class QuestionEditor implements OnInit, OnDestroy {
     return this.catalogs().find((item) => item.id === this.filterCatalog);
   }
 
-  visibleDrafts(): Draft[] {
-    return this.drafts().filter(
-      (item) =>
-        this.filterCatalog === 'all' ||
-        (this.filterCatalog === 'none' ? !item.catalogId : item.catalogId === this.filterCatalog),
+  draftTitle(draft: Draft): string {
+    return (
+      draft.content.prompt?.find((block) => block.kind === 'text')?.text ||
+      draft.content.subject ||
+      this.uiLanguage.t('Unbenannte Frage')
     );
+  }
+
+  visibleDrafts(): Draft[] {
+    const term = this.search.trim().toLocaleLowerCase();
+    return this.drafts().filter((item) => {
+      const inCatalog =
+        this.filterCatalog === 'all' ||
+        (this.filterCatalog === 'none' ? !item.catalogId : item.catalogId === this.filterCatalog);
+      const matchesStatus =
+        this.filterStatus === 'all' ||
+        (this.filterStatus === 'draft' ? !item.latestVersion : item.latestVersion > 0);
+      const text = [this.draftTitle(item), item.content.subject, item.content.topic]
+        .join(' ')
+        .toLocaleLowerCase();
+      return inCatalog && matchesStatus && text.includes(term);
+    });
+  }
+
+  private draftState(): string {
+    return JSON.stringify({ content: this.content(), catalogId: this.catalogId });
+  }
+
+  private isDirty(): boolean {
+    return this.editing() && this.savedState !== this.draftState();
+  }
+
+  canLeave(): boolean {
+    if (this.busy()) {
+      this.status.set(
+        this.uiLanguage.t('Bitte warte, bis der aktuelle Vorgang abgeschlossen ist.'),
+      );
+      return false;
+    }
+    return (
+      !this.isDirty() || window.confirm(this.uiLanguage.t('Ungespeicherte Änderungen verwerfen?'))
+    );
+  }
+
+  closeEditor(): void {
+    if (this.canLeave()) this.editing.set(false);
+  }
+
+  private readonly beforeUnload = (event: BeforeUnloadEvent): void => {
+    if (this.isDirty() || this.busy()) event.preventDefault();
+  };
+
+  private focusEditor(): void {
+    requestAnimationFrame(() => document.getElementById('question-form-title')?.focus());
   }
 
   async refresh(): Promise<void> {
@@ -460,64 +544,9 @@ export class QuestionEditor implements OnInit, OnDestroy {
     }
   }
 
-  async createCatalog(): Promise<void> {
-    const name = this.newCatalog.trim();
-    if (!name) return;
-    const response = await fetch('/api/v1/catalogs/', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name }),
-    });
-    if (!response.ok) {
-      this.status.set('Katalog konnte nicht angelegt werden. Prüfe den Namen.');
-      return;
-    }
-    const catalog = ((await response.json()) as Api<Catalog>).data;
-    this.newCatalog = '';
-    this.catalogId = catalog.id;
-    this.filterCatalog = catalog.id;
-    this.renamedCatalog = catalog.name;
-    await this.refresh();
-  }
-
-  async renameCatalog(): Promise<void> {
-    const catalog = this.activeCatalog();
-    const name = this.renamedCatalog.trim();
-    if (!catalog || !name) return;
-    const response = await fetch(`/api/v1/catalogs/${catalog.id}`, {
-      method: 'PUT',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name }),
-    });
-    this.status.set(response.ok ? 'Katalog umbenannt.' : 'Katalog konnte nicht umbenannt werden.');
-    if (response.ok) await this.refresh();
-  }
-
-  async deleteCatalog(): Promise<void> {
-    const catalog = this.activeCatalog();
-    if (
-      !catalog ||
-      !window.confirm(`Katalog „${catalog.name}“ löschen? Die Fragen bleiben erhalten.`)
-    )
-      return;
-    const response = await fetch(`/api/v1/catalogs/${catalog.id}`, {
-      method: 'DELETE',
-      credentials: 'same-origin',
-    });
-    if (!response.ok) {
-      this.status.set('Katalog konnte nicht gelöscht werden.');
-      return;
-    }
-    if (this.catalogId === catalog.id) this.catalogId = '';
-    this.filterCatalog = 'all';
-    this.renamedCatalog = '';
-    this.status.set('Katalog gelöscht. Die Fragen bleiben privat erhalten.');
-    await this.refresh();
-  }
-
   newDraft(): void {
+    if (!this.canLeave()) return;
+    this.editing.set(true);
     this.questionId.set('');
     this.latestVersion.set(0);
     this.visibility.set('private');
@@ -535,10 +564,14 @@ export class QuestionEditor implements OnInit, OnDestroy {
     this.promptImageAlt = '';
     this.explanation = '';
     this.answers = [this.emptyAnswer(true), this.emptyAnswer(false)];
+    this.savedState = this.draftState();
+    this.focusEditor();
     this.status.set('Neue private Frage.');
   }
 
   editDraft(draft: Draft): void {
+    if (!this.canLeave()) return;
+    this.editing.set(true);
     this.questionId.set(draft.questionId);
     this.latestVersion.set(draft.latestVersion);
     this.visibility.set('private');
@@ -563,6 +596,8 @@ export class QuestionEditor implements OnInit, OnDestroy {
       imageAlt: '',
       isCorrect: answer.isCorrect,
     })) ?? [this.emptyAnswer(true), this.emptyAnswer(false)];
+    this.savedState = this.draftState();
+    this.focusEditor();
     this.status.set('Privaten Entwurf geladen.');
     void this.loadImageDescriptions();
   }
@@ -678,6 +713,8 @@ export class QuestionEditor implements OnInit, OnDestroy {
       }
       const draft = ((await response.json()) as Api<Draft>).data;
       await this.refresh();
+      this.savedState = this.draftState();
+      this.busy.set(false);
       this.editDraft(draft);
       this.status.set(
         'Variante als privater Entwurf angelegt. Formuliere Frage und Antworten neu und prüfe die Lösung vor der Veröffentlichung.',
@@ -691,6 +728,7 @@ export class QuestionEditor implements OnInit, OnDestroy {
 
   async saveDraft(): Promise<boolean> {
     if (this.busy()) return false;
+    const submittedState = this.draftState();
     this.busy.set(true);
     try {
       const id = this.questionId();
@@ -711,6 +749,7 @@ export class QuestionEditor implements OnInit, OnDestroy {
         this.questionId.set(
           ((await response.json()) as Api<{ questionId: string }>).data.questionId,
         );
+      this.savedState = submittedState;
       this.status.set('Entwurf gespeichert. Er bleibt privat.');
       await this.refresh();
       return true;

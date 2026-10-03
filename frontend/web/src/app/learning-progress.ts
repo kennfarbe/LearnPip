@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, inject, input, OnDestroy, OnInit, signal } from '@angular/core';
 import { LanguageService } from './language';
 
 interface Topic {
@@ -66,58 +66,61 @@ interface Progress {
             )
           }}
         </p>
-        @if (data.topics.length) {
-          <h3>{{ language.t('Deine Themen') }}</h3>
-          <ul class="topics">
-            @for (topic of data.topics; track topic.subject + ':' + topic.topic) {
-              <li>
-                <div class="topic-head">
-                  <strong>{{ topic.subject }} · {{ topic.topic }}</strong>
-                  <span>{{ topic.masteredContents }} von {{ topic.totalContents }} sicher</span>
-                </div>
-                <div
-                  class="bar"
-                  role="progressbar"
-                  [attr.aria-valuenow]="topic.masteredContents"
-                  [attr.aria-valuemax]="topic.totalContents"
-                  aria-valuemin="0"
-                  [attr.aria-label]="topic.subject + ' ' + topic.topic"
-                >
-                  <span [style.width.%]="percent(topic)"></span>
-                </div>
-                @if (topic.improvedContents) {
-                  <p class="improved">
-                    {{ topic.improvedContents }} Inhalt(e) nach anfänglicher Unsicherheit besser
-                    beantwortet
-                  </p>
-                }
-              </li>
+        <details [open]="!compact()">
+          <summary>{{ language.t('Fortschritt im Detail') }}</summary>
+          @if (data.topics.length) {
+            <h3>{{ language.t('Deine Themen') }}</h3>
+            <ul class="topics">
+              @for (topic of data.topics; track topic.subject + ':' + topic.topic) {
+                <li>
+                  <div class="topic-head">
+                    <strong>{{ topic.subject }} · {{ topic.topic }}</strong>
+                    <span>{{ topic.masteredContents }} von {{ topic.totalContents }} sicher</span>
+                  </div>
+                  <div
+                    class="bar"
+                    role="progressbar"
+                    [attr.aria-valuenow]="topic.masteredContents"
+                    [attr.aria-valuemax]="topic.totalContents"
+                    aria-valuemin="0"
+                    [attr.aria-label]="topic.subject + ' ' + topic.topic"
+                  >
+                    <span [style.width.%]="percent(topic)"></span>
+                  </div>
+                  @if (topic.improvedContents) {
+                    <p class="improved">
+                      {{ topic.improvedContents }} Inhalt(e) nach anfänglicher Unsicherheit besser
+                      beantwortet
+                    </p>
+                  }
+                </li>
+              }
+            </ul>
+          } @else {
+            <p>
+              {{
+                language.t('Erstelle und veröffentliche eine Frage, um deinen Lernweg zu beginnen.')
+              }}
+            </p>
+          }
+          <h3>{{ language.t('Kurze Einheiten in den letzten vier Wochen') }}</h3>
+          <div class="weeks">
+            @for (week of data.recentWeeks; track week.label) {
+              <div>
+                <span>{{ week.label }}</span>
+                <strong>{{ week.completedSessions }} Einheit(en)</strong>
+                <small>{{ week.activeDays }} Lerntag(e)</small>
+              </div>
             }
-          </ul>
-        } @else {
-          <p>
+          </div>
+          <p class="note">
             {{
-              language.t('Erstelle und veröffentliche eine Frage, um deinen Lernweg zu beginnen.')
+              language.t(
+                'Hier gibt es keine tägliche Serie, die nach einer Pause verloren geht. Deine Ergebnisse bleiben erhalten.'
+              )
             }}
           </p>
-        }
-        <h3>{{ language.t('Kurze Einheiten in den letzten vier Wochen') }}</h3>
-        <div class="weeks">
-          @for (week of data.recentWeeks; track week.label) {
-            <div>
-              <span>{{ week.label }}</span>
-              <strong>{{ week.completedSessions }} Einheit(en)</strong>
-              <small>{{ week.activeDays }} Lerntag(e)</small>
-            </div>
-          }
-        </div>
-        <p class="note">
-          {{
-            language.t(
-              'Hier gibt es keine tägliche Serie, die nach einer Pause verloren geht. Deine Ergebnisse bleiben erhalten.'
-            )
-          }}
-        </p>
+        </details>
       } @else if (error()) {
         <p role="status">{{ error() }}</p>
       }
@@ -126,6 +129,7 @@ interface Progress {
   styleUrl: './learning-progress.css',
 })
 export class LearningProgress implements OnInit, OnDestroy {
+  readonly compact = input(false);
   readonly language = inject(LanguageService);
   readonly progress = signal<Progress | null>(null);
   readonly error = signal('');
