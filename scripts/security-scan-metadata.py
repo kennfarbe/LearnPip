@@ -40,4 +40,4 @@ for scanner, name, scan_target in reports:
                 json.loads((directory / 'trivy-version.json').read_text()), datetime.now(timezone.utc))
     except (OSError, ValueError, KeyError, TypeError):
         complete = False
-    (directory / ('scan-' + name)).write_text(json.dumps({'scanner': scanner, 'target': scan_target, 'report': name, 'complete': complete}))
+    (directory / ('scan-' + name)).write_text(json.dumps({'scanner': scanner, 'target': scan_target, 'report': name, 'complete': complete, 'source_ref': os.environ.get('AUDIT_REF', target)}))

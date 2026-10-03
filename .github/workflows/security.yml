@@ -249,7 +249,8 @@ jobs:
       - name: Record scan and inventory
         if: always()
         env:
-          AUDIT_TARGET: ${{ matrix.ref }}
+          AUDIT_TARGET: published-${{ matrix.label }}
+          AUDIT_REF: ${{ matrix.ref }}
           SCAN_OUTCOME: ${{ steps.scan.outcome }}
         run: python3 scripts/security-scan-metadata.py trivy "$RUNNER_TEMP"
       - name: Retain image report
@@ -274,7 +275,7 @@ jobs:
       fail-fast: false
       matrix:
         arch: [amd64, arm64]
-        component: [api, worker, web, db, proxy]
+        component: [api, worker, web, db, proxy, build-sdk, build-node]
         include:
           - component: api
             dockerfile: backend/Dockerfile
@@ -286,6 +287,10 @@ jobs:
             image: postgres:18-alpine
           - component: proxy
             image: caddy:2-alpine
+          - component: build-sdk
+            image: mcr.microsoft.com/dotnet/sdk:10.0
+          - component: build-node
+            image: node:24-alpine
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:

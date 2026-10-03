@@ -38,5 +38,12 @@ class InventoryTests(unittest.TestCase):
             module.image_targets('v1.0.0', ['linux/arm64'], lambda _: {'manifests': []})
 
 
+class BuildInventoryTests(unittest.TestCase):
+    def test_build_images_are_explicit_and_missing_stages_fail(self):
+        self.assertEqual(module.build_images([('build-sdk', 'FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build\n')]), [('build-sdk', 'mcr.microsoft.com/dotnet/sdk:10.0')])
+        with self.assertRaises(ValueError):
+            module.build_images([('build-sdk', 'FROM missing AS runtime')])
+
+
 if __name__ == '__main__':
     unittest.main()

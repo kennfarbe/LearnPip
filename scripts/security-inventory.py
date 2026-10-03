@@ -50,6 +50,16 @@ def image_targets(tag, platforms, inspect, runtime_images=None):
     return targets
 
 
+def build_images(dockerfiles):
+    images = []
+    for component, text in dockerfiles:
+        match = re.search(r'^FROM ([a-zA-Z0-9./_-]+:[a-zA-Z0-9._-]+) AS build$', text, re.MULTILINE)
+        if not match:
+            raise ValueError("Build image inventory incomplete")
+        images.append((component, match[1]))
+    return images
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--policy", type=Path, default=Path("security/supported-releases.json"))
@@ -91,7 +101,11 @@ def main():
                     found.append((service, image))
             if {item[0] for item in found} != {"db", "proxy"}:
                 raise ValueError("Published runtime inventory incomplete")
-            return found
+            dockerfiles = []
+            for component, path in (("build-sdk", "backend/Dockerfile"), ("build-node", "frontend/web/Dockerfile")):
+                response = json.loads(subprocess.check_output(["gh", "api", "repos/kennfarbe/LearnPip/contents/" + path + "?ref=" + tag], stderr=subprocess.DEVNULL))
+                dockerfiles.append((component, base64.b64decode(response["content"]).decode()))
+            return found + build_images(dockerfiles)
         targets = [target for item in resolved for target in image_targets(item["tag"], policy["platforms"], inspect, runtime_images(item["tag"]))]
     args.output.write_text(json.dumps({"checked_at": datetime.now(timezone.utc).isoformat(), "include": targets}, sort_keys=True))
     # Only non-sensitive inventory metadata enters workflow outputs.

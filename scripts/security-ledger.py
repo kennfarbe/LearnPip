@@ -68,7 +68,8 @@ def main():
             report = json.loads((meta_path.parent / meta['report']).read_text())
             if not meta.get('complete'):
                 raise ValueError('Scanner failed')
-            current.update(findings(meta['scanner'], meta['target'], report))
+            for key, finding in findings(meta['scanner'], meta['target'], report).items():
+                current[key] = finding | {'source_ref': meta.get('source_ref', meta['target'])}
             scanned.add((meta['scanner'], meta['target']))
         except (ValueError, KeyError, OSError, TypeError):
             incomplete.append(meta_path.name)
