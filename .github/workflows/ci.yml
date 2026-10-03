@@ -51,7 +51,7 @@ jobs:
           fi
           python3 scripts/ci-changes.py < "$RUNNER_TEMP/changed-files"
       - name: Test change classification
-        run: python3 -m unittest discover -s tests/ops -p 'test-ci-changes.py' -v
+        run: python3 tests/ops/test-ci-changes.py -v
 
   repository-policy:
     name: Repository policy
