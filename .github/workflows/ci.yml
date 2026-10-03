@@ -320,6 +320,7 @@ jobs:
         working-directory: frontend/web
         run: |
           npm test --if-present
+          npm run docs:screenshots:check
           npm run format:check
           npm run lint
           npm run test:pwa
@@ -328,6 +329,16 @@ jobs:
             echo 'Angular build emitted warnings; warnings are treated as errors.' >&2
             exit 1
           fi
+
+      - name: Install browser for UI regression tests
+        if: hashFiles('frontend/web/package-lock.json') != ''
+        working-directory: frontend/web
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Test workspace navigation and accessibility
+        if: hashFiles('frontend/web/package-lock.json') != ''
+        working-directory: frontend/web
+        run: npm run test:ui
 
   installer-smoke:
     name: Installer smoke

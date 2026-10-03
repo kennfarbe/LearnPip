@@ -79,10 +79,12 @@ test('service worker precaches actual bundles and leaves API/private media alone
       location: { href: 'https://learnpip.test/service-worker.js?build=main-123.js' },
       addEventListener: (k, fn) => (handlers[k] = fn),
     },
-    fetch: async () =>
-      new Response(
-        '<script type="module" src="main-123.js"></script><link rel="stylesheet" href="styles-123.css">',
-      ),
+    fetch: async (url) =>
+      url.endsWith('shell-assets.json')
+        ? new Response(JSON.stringify(['chunk-workspaces.js']))
+        : new Response(
+            '<script type="module" src="main-123.js"></script><link rel="stylesheet" href="styles-123.css">',
+          ),
     caches: { open: async () => cache },
   });
   let installed;
@@ -91,6 +93,8 @@ test('service worker precaches actual bundles and leaves API/private media alone
   assert(added.includes('https://learnpip.test/main-123.js'));
   assert(added.includes('https://learnpip.test/styles-123.css'));
   assert(added.includes('https://learnpip.test/theme-init.js'));
+  assert(added.includes('https://learnpip.test/chunk-workspaces.js'));
+  assert.equal(added.length, new Set(added).size);
   for (const [url, destination] of [
     ['/api/questions', ''],
     ['/media/private.jpg', 'image'],

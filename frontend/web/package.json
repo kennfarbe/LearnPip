@@ -4,11 +4,14 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
+    "build": "ng build && node tools/write-shell-assets.cjs",
     "watch": "ng build --watch --configuration development",
     "format:check": "prettier --check src angular.json tsconfig.json tsconfig.app.json",
     "test:pwa": "node --test tests/pwa.test.cjs",
-    "lint": "eslint . --max-warnings=0"
+    "lint": "eslint . --max-warnings=0",
+    "test:ui": "playwright test",
+    "docs:screenshots": "npm run build && playwright test --config playwright.docs.config.cjs && node tools/docs-screenshots.cjs --record",
+    "docs:screenshots:check": "node tools/docs-screenshots.cjs"
   },
   "private": true,
   "packageManager": "npm@11.9.0",
@@ -26,11 +29,13 @@
     "@angular/build": "^22.2.0",
     "@angular/cli": "^22.2.0",
     "@angular/compiler-cli": "^22.2.0",
-    "prettier": "^3.8.1",
-    "typescript": "~6.0.2",
+    "@axe-core/playwright": "4.13.0",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "1.63.0",
     "angular-eslint": "22.5.0",
     "eslint": "^10.11.0",
+    "prettier": "^3.8.1",
+    "typescript": "~6.0.2",
     "typescript-eslint": "^8.70.1"
   }
 }

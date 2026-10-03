@@ -373,30 +373,6 @@ interface Catalog {
           }
         </ul>
       }
-      @if (admin()) {
-        <details>
-          <summary>{{ language.t('Offiziellen Katalog und Profilfassungen verwalten') }}</summary>
-          <p>
-            {{
-              language.t(
-                'JSON-Import mit Quelle, Lizenz, Urheberangabe, Fassungsdatum und bestätigten Rechten.'
-              )
-            }}
-          </p>
-          <label
-            >{{ language.t('Katalogimport (JSON)') }}<textarea [(ngModel)]="catalogJson"></textarea>
-          </label>
-          <button type="button" (click)="submitAdmin('catalogs/import', catalogJson)">
-            {{ language.t('Katalogfassung importieren') }}
-          </button>
-          <label
-            >{{ language.t('Profilfassung (JSON)') }}<textarea [(ngModel)]="profileJson"></textarea>
-          </label>
-          <button type="button" (click)="submitAdmin('profiles/versions', profileJson)">
-            {{ language.t('Profilfassung speichern') }}
-          </button>
-        </details>
-      }
       @if (message()) {
         <p role="status">{{ message() }}</p>
       }
@@ -444,7 +420,6 @@ export class ExamProfiles implements OnInit {
   readonly powerHistory = signal<RunSummary[]>([]);
   readonly powerTest = signal<PowerTest | null>(null);
   readonly forecast = signal<Forecast | null>(null);
-  readonly admin = signal(false);
   readonly message = signal('');
   readonly creditCodes = ['B', 'V', 'T-N', 'T-E', 'T-A'];
   profileId = '';
@@ -453,8 +428,6 @@ export class ExamProfiles implements OnInit {
   stageSize = 25;
   choices: Record<string, number> = {};
   powerChoices: Record<string, number> = {};
-  catalogJson = '';
-  profileJson = '';
 
   ngOnInit(): void {
     void this.reload();
@@ -473,11 +446,10 @@ export class ExamProfiles implements OnInit {
     } else this.message.set(`Prognose konnte nicht geladen werden (${response.status}).`);
   }
   async reload(): Promise<void> {
-    const [profiles, catalogs, credits, admin, simulations, powerTests] = await Promise.all([
+    const [profiles, catalogs, credits, simulations, powerTests] = await Promise.all([
       fetch('/api/v1/exams/profiles'),
       fetch('/api/v1/exams/catalogs'),
       fetch('/api/v1/exams/credits'),
-      fetch('/api/v1/exams/admin/'),
       fetch('/api/v1/exams/simulations'),
       fetch('/api/v1/exams/power-tests'),
     ]);
@@ -487,7 +459,6 @@ export class ExamProfiles implements OnInit {
       this.credits.set(
         ((await credits.json()) as { data: { code: string }[] }).data.map((item) => item.code),
       );
-    this.admin.set(admin.ok);
     if (simulations.ok)
       this.simulationHistory.set(((await simulations.json()) as { data: RunSummary[] }).data);
     if (powerTests.ok)
@@ -601,16 +572,5 @@ export class ExamProfiles implements OnInit {
     });
     if (response.ok) await this.reload();
     else this.message.set('Selbstauskunft konnte nicht gespeichert werden.');
-  }
-  async submitAdmin(path: string, raw: string): Promise<void> {
-    try {
-      const payload = JSON.parse(raw) as object;
-      const response = await this.post(`/api/v1/exams/admin/${path}`, payload);
-      if (!response.ok) throw new Error(`${response.status}`);
-      this.message.set('Neue Fassung gespeichert.');
-      await this.reload();
-    } catch {
-      this.message.set('Import fehlgeschlagen. Bitte JSON und Berechtigungen prüfen.');
-    }
   }
 }

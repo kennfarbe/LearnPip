@@ -1,94 +1,53 @@
-<main class="page-shell">
+<a class="skip-link" href="#main-content">{{ language.t('Zum Hauptinhalt') }}</a>
+<div class="page-shell">
   <header class="site-header">
-    <a class="brand" href="/" aria-label="LearnPip Startseite">
+    <a class="brand" routerLink="/overview" [attr.aria-label]="language.t('LearnPip Übersicht')">
       <span class="brand-mark" aria-hidden="true">L</span>
-      <span>{{ title }}</span>
+      <span>LearnPip</span>
     </a>
-    <label class="language-control"
-      >{{ language.current() === 'en' ? 'Language' : 'Sprache' }}
-      <select [value]="language.current()" (change)="language.set($any($event.target).value)">
-        <option value="de">Deutsch</option>
-        <option value="en">English</option>
-      </select>
-    </label>
-    <label class="theme-control">
-      {{ language.current() === 'en' ? 'Appearance' : 'Design' }}
-      <select [value]="theme.preference()" (change)="theme.set($any($event.target).value)">
-        <option value="system">System</option>
-        <option value="light">{{ language.current() === 'en' ? 'Light' : 'Hell' }}</option>
-        <option value="dark">{{ language.current() === 'en' ? 'Dark' : 'Dunkel' }}</option>
-      </select>
-    </label>
-    <span class="phase-label">{{ language.t('Technischer Aufbau') }}</span>
+    <button
+      id="navigation-toggle"
+      type="button"
+      class="navigation-toggle"
+      aria-controls="main-navigation"
+      [attr.aria-expanded]="navigationOpen()"
+      (click)="navigationOpen.set(!navigationOpen())"
+    >
+      {{ language.t(navigationOpen() ? 'Menü schließen' : 'Menü öffnen') }}
+    </button>
   </header>
-
-  <section class="hero" aria-labelledby="welcome-title">
-    <p class="eyebrow">Little steps, lasting knowledge</p>
-    <h1 id="welcome-title">{{ language.t('Jeden Tag ein bisschen schlauer.') }}</h1>
-    <p class="intro">
-      {{
-        language.t(
-          'LearnPip entsteht als Ort für kurze, persönliche Lerneinheiten. Das Grundgerüst ist bereit; Erstelle eigene Fragen und übe sie in kurzen Sitzungen.'
-        )
-      }}
-    </p>
-    <div class="status-card" role="status">
-      <span class="status-dot" aria-hidden="true"></span>
-      <span>{{ language.t('Die Anwendung befindet sich im Aufbau.') }}</span>
-    </div>
-  </section>
-
-  <section class="next-steps" aria-label="Geplante Funktionen">
-    <article>
-      <span class="step-number">01</span>
-      <h2>{{ language.t('Fragen sammeln') }}</h2>
-      <p>{{ language.t('Eigene Fragen, Antworten und Erklärungen an einem privaten Ort.') }}</p>
-    </article>
-    <article>
-      <span class="step-number">02</span>
-      <h2>{{ language.t('In kleinen Schritten üben') }}</h2>
-      <p>{{ language.t('Kurze Lerneinheiten, die in den Alltag passen.') }}</p>
-    </article>
-    <article>
-      <span class="step-number">03</span>
-      <h2>{{ language.t('Fortschritt erkennen') }}</h2>
-      <p>{{ language.t('Sehen, was schon sitzt und was noch etwas Übung braucht.') }}</p>
-    </article>
-  </section>
-
-  <app-question-editor />
-
-  <app-photo-draft />
-
-  <app-translations />
-
-  <app-learning-session />
-
-  <app-learning-progress />
-
-  <app-family-space />
-
-  <app-exam-plan />
-
-  <app-exam-profiles />
-
-  <app-ai-assistant />
-
-  <app-group-space />
-
-  <app-moderation-queue />
-
-  <app-community-feedback />
-
-  <app-account-activity />
-
-  <app-admin-updates />
-
-  <app-private-media />
-
+  <nav
+    id="main-navigation"
+    [attr.aria-label]="language.t('Hauptnavigation')"
+    [class.is-collapsed]="!navigationOpen()"
+  >
+    <ul>
+      @for (workspace of workspaces; track workspace.path) {
+        @if (workspace.path !== '/administration' || access.canManage()) {
+          <li>
+            <a
+              [routerLink]="workspace.path"
+              routerLinkActive="active"
+              ariaCurrentWhenActive="page"
+              (keydown.escape)="closeNavigation()"
+            >
+              {{ language.t(workspace.label) }}
+            </a>
+          </li>
+        }
+      }
+    </ul>
+  </nav>
+  <main id="main-content" tabindex="-1" aria-labelledby="page-title">
+    <header class="page-heading">
+      <p class="eyebrow">LearnPip · {{ language.t('Little steps, lasting knowledge') }}</p>
+      <h1 id="page-title" tabindex="-1">{{ language.t(current().label) }}</h1>
+      <p>{{ language.t(current().description) }}</p>
+    </header>
+    <router-outlet />
+  </main>
   <footer class="site-footer">
-    <span>{{ language.t('Ein Open-Source-Projekt in der Aufbauphase') }}</span>
     <span>{{ language.t('Private Inhalte bleiben privat.') }}</span>
+    <a routerLink="/settings">{{ language.t('Einstellungen') }}</a>
   </footer>
-  <router-outlet />
-</main>
+</div>

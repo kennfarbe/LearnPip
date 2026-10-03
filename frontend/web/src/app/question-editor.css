@@ -208,3 +208,21 @@ fieldset {
     width: 100%;
   }
 }
+.editor {
+  margin-top: 1rem;
+}
+aside a {
+  display: inline-block;
+  min-height: 44px;
+  padding: 0.75rem 0;
+  color: var(--accent-text);
+}
+.draft-list button {
+  overflow-wrap: anywhere;
+}
+.draft-list button > small:first-of-type {
+  color: var(--text);
+}
+.editor-disclosure {
+  margin: 0;
+}

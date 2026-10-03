@@ -1,51 +1,48 @@
-import { Component, inject } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-import { PrivateMedia } from './private-media';
-import { QuestionEditor } from './question-editor';
-import { LearningSession } from './learning-session';
-import { LearningProgress } from './learning-progress';
-import { AccountActivity } from './account-activity';
-import { AdminUpdates } from './admin-updates';
-import { GroupSpace } from './group-space';
-import { ModerationQueue } from './moderation-queue';
-import { CommunityFeedback } from './community-feedback';
-import { ExamPlan } from './exam-plan';
-import { ExamProfiles } from './exam-profiles';
-import { AiAssistant } from './ai-assistant';
-import { PhotoDraft } from './photo-draft';
-import { Translations } from './translations';
-import { FamilySpace } from './family-space';
-import { ThemeService } from './theme';
+import { Component, DestroyRef, effect, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs';
+import { ApplicationAccess } from './application-access';
 import { LanguageService } from './language';
+import { workspaces } from './navigation';
+import { ThemeService } from './theme';
 
 @Component({
-  imports: [
-    RouterOutlet,
-    PrivateMedia,
-    QuestionEditor,
-    LearningSession,
-    LearningProgress,
-    AccountActivity,
-    AdminUpdates,
-    GroupSpace,
-    ModerationQueue,
-    CommunityFeedback,
-    ExamPlan,
-    ExamProfiles,
-    AiAssistant,
-    PhotoDraft,
-    Translations,
-    FamilySpace,
-  ],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',
 })
 export class App {
-  protected readonly theme = inject(ThemeService);
-  protected readonly title = 'LearnPip';
+  protected readonly access = inject(ApplicationAccess);
   protected readonly language = inject(LanguageService);
+  protected readonly workspaces = workspaces;
+  protected readonly current = signal<(typeof workspaces)[number]>(workspaces[0]);
+  protected readonly navigationOpen = signal(false);
+  private readonly router = inject(Router);
+
   constructor() {
+    inject(ThemeService);
     this.language.set(this.language.current());
+    void this.access.refresh();
+    this.router.events
+      .pipe(
+        filter((event) => event instanceof NavigationEnd),
+        takeUntilDestroyed(inject(DestroyRef)),
+      )
+      .subscribe((event) => {
+        const path = event.urlAfterRedirects.split(/[?#]/)[0];
+        this.current.set(workspaces.find((item) => item.path === path) ?? workspaces[0]);
+        this.navigationOpen.set(false);
+        requestAnimationFrame(() => document.getElementById('page-title')?.focus());
+      });
+    effect(() => {
+      document.title = `${this.language.t(this.current().label)} · LearnPip`;
+    });
+  }
+
+  protected closeNavigation(): void {
+    this.navigationOpen.set(false);
+    document.getElementById('navigation-toggle')?.focus();
   }
 }
