@@ -19,10 +19,11 @@ on:
       - 'frontend/web/Dockerfile'
       - 'deploy/compose*.yaml'
       - 'deploy/*.Dockerfile'
-      - 'scripts/security-report.py'
+      - 'scripts/security-report.mjs'
       - 'scripts/npm-security-audit.sh'
       - 'scripts/try-security-overrides.sh'
       - 'tests/ops/test_security*.py'
+      - 'tests/ops/test_security*.mjs'
       - 'scripts/security-*.py'
       - 'security/**'
       - 'Directory.Build.props'
@@ -54,6 +55,8 @@ jobs:
           package-manager-cache: false
       - name: Exercise real advisory lookup and controlled scanner failure
         run: python3 scripts/security-scanner-selftest.py
+      - name: Test Node.js aggregate scanner parser
+        run: node --test tests/ops/test_security_report.mjs
       - name: Test inventory, report and ledger failures
         run: python3 -m unittest discover -s tests/ops -p 'test_security*.py' -v
       - name: Resolve sources
@@ -103,6 +106,12 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Set up pinned report runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+
       - name: Fetch audited source as a validated data archive
         env:
           GH_TOKEN: ${{ github.token }}
@@ -110,7 +119,7 @@ jobs:
         run: python3 scripts/security-fetch-source.py --ref "$AUDIT_SOURCE_REF" --output source
 
       - name: Test aggregate scanner parser
-        run: python3 -m unittest discover -s tests/ops -p 'test_security_report.py' -v
+        run: node --test tests/ops/test_security_report.mjs
 
       - name: Audit npm manifests in credential-free sandbox
         id: npm_audit
@@ -193,6 +202,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      - name: Set up pinned report runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
       - name: Scan published image by immutable platform digest
         id: scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
@@ -228,7 +242,7 @@ jobs:
             ${{ runner.temp }}/scan-trivy.json
           retention-days: 14
       - name: Enforce production findings
-        run: python3 scripts/security-report.py trivy "$RUNNER_TEMP/trivy.json"
+        run: node scripts/security-report.mjs trivy "$RUNNER_TEMP/trivy.json"
 
   candidate-images:
     name: Release image gate (${{ matrix.component }}, ${{ matrix.arch }})
@@ -261,6 +275,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      - name: Set up pinned report runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
       - name: Set up emulation
         uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1
       - name: Set up Buildx
@@ -311,7 +330,7 @@ jobs:
             ${{ runner.temp }}/scan-trivy.json
           retention-days: 14
       - name: Enforce release gate
-        run: python3 scripts/security-report.py trivy "$RUNNER_TEMP/trivy.json"
+        run: node scripts/security-report.mjs trivy "$RUNNER_TEMP/trivy.json"
 
   ledger:
     name: Deduplicate and verify security findings

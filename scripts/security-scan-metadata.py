@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import subprocess
 from datetime import datetime, timezone
 
 
@@ -26,7 +27,9 @@ for scanner, name, scan_target in reports:
     complete = False
     try:
         document = json.loads((directory / name).read_text())
-        load('security-report').evaluate(scanner, document)
+        validation = subprocess.run(['node', str(Path(__file__).with_name('security-report.mjs')), scanner, str(directory / name)], capture_output=True, timeout=30)
+        if validation.returncode not in (0, 1):
+            raise ValueError('Invalid scanner report')
         complete = True
         if scanner == 'npm':
             component = scan_target.split(':')[-2]
@@ -38,6 +41,6 @@ for scanner, name, scan_target in reports:
         if scanner == 'trivy':
             complete = os.environ.get('SCAN_OUTCOME') == 'success' and load('security-db-age').fresh(
                 json.loads((directory / 'trivy-version.json').read_text()), datetime.now(timezone.utc))
-    except (OSError, ValueError, KeyError, TypeError):
+    except (OSError, ValueError, KeyError, TypeError, subprocess.TimeoutExpired):
         complete = False
     (directory / ('scan-' + name)).write_text(json.dumps({'scanner': scanner, 'target': scan_target, 'report': name, 'complete': complete, 'source_ref': os.environ.get('AUDIT_REF', target)}))

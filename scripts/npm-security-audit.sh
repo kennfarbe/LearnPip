@@ -21,7 +21,7 @@ if (( status > 1 )); then
   exit 2
 fi
 result=0
-python3 scripts/security-report.py npm "$report" || result=$?
+node scripts/security-report.mjs npm "$report" || result=$?
 if [ "$result" -eq 0 ]; then
   echo "$label: dependency audit passed."
   exit 0
@@ -51,7 +51,7 @@ if (( post_status > 1 )); then
   echo "$label: post-fix audit incomplete; private triage required." >&2
   exit 1
 fi
-if python3 scripts/security-report.py npm "$private_dir/npm-after-fix-private.json"; then
+if node scripts/security-report.mjs npm "$private_dir/npm-after-fix-private.json"; then
   if ! cmp -s "$directory/package-lock.json" "$trial/package-lock.json" || ! cmp -s "$directory/package.json" "$trial/package.json"; then
     echo "$label: safe npm audit fix is available. Commit the reviewed package and lockfile updates; checkout was not changed." >&2
   else

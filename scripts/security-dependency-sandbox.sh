@@ -23,6 +23,6 @@ docker run --rm --user "$(id -u):$(id -g)" \
   "$image" bash /trusted-scripts/security-sandbox-entry.sh "$kind" || status=$?
 python3 scripts/security-copy-reports.py "$kind" "$raw" "$RUNNER_TEMP"
 if [[ $kind == nuget && $status -eq 0 ]]; then
-  python3 scripts/security-report.py nuget "$RUNNER_TEMP/nuget.json" || status=$?
+  node scripts/security-report.mjs nuget "$RUNNER_TEMP/nuget.json" || status=$?
 fi
 exit "$status"
