@@ -25,7 +25,7 @@ public static class OidcSetup
     /// </summary>
     public const string LinkSessionKey = "link_session_id";
 
-    private static readonly string[] ProviderNames = ["apple", "microsoft", "github", "facebook"];
+    private static readonly string[] ProviderNames = ["apple", "microsoft"];
 
     /// <summary>Returns configured OIDC names without exposing credentials.</summary>
     /// <param name="configuration">The application configuration.</param>
