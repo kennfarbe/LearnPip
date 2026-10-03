@@ -67,15 +67,21 @@ def is_safe_path(path: str) -> bool:
             and "." in parts[-1])
 
 
+def known_fields(item: object, allowed: set[str], label: str) -> None:
+    require(isinstance(item, dict), "Invalid " + label)
+    require(not (set(item) - allowed), "Unknown " + label + " fields")
+
+
 def check_license(item: object) -> None:
-    require(isinstance(item, dict), "Missing license details")
+    known_fields(item, {"id", "holder", "attribution", "license_url"}, "license")
     for key in ("id", "holder", "attribution"):
         require(isinstance(item.get(key), str) and bool(item[key].strip()),
                 "Missing license field: " + key)
 
 
 def check_provenance(item: object) -> None:
-    require(isinstance(item, dict), "Missing provenance details")
+    known_fields(item, {"kind", "source_url", "source_revision", "modification_note"},
+                 "provenance")
     kind = item.get("kind")
     require(kind in ("original", "adapted", "verbatim"), "Invalid provenance kind")
     if kind != "original":
@@ -121,6 +127,10 @@ def validate(filename: str) -> tuple[str, int]:
                     "manifest.json must be the first ZIP entry")
             require(REQUIRED <= entries.keys(), "Missing mandatory catalog file")
             manifest = parse_json(archive.read("manifest.json"))
+            known_fields(manifest, {"format_id", "schema_version", "package_id",
+                                    "catalog_version", "source_revision", "title",
+                                    "description", "language", "publisher", "created_at",
+                                    "exporter_app_version", "license", "files"}, "manifest")
             require(manifest.get("format_id") == FORMAT_ID, "Unsupported format_id")
             require(manifest.get("schema_version") == VERSION,
                     "Unsupported schema_version; do not downgrade or partially import")
@@ -139,7 +149,7 @@ def validate(filename: str) -> tuple[str, int]:
             require(isinstance(files, list), "Manifest files must be an array")
             declared = {}
             for item in files:
-                require(isinstance(item, dict), "Invalid file record")
+                known_fields(item, {"path", "sha256", "size", "media_type"}, "file record")
                 path = item.get("path")
                 require(isinstance(path, str) and is_safe_path(path), "Invalid declared path")
                 require(path not in declared, "Duplicate declared file")
@@ -164,7 +174,10 @@ def validate(filename: str) -> tuple[str, int]:
             question_ids = set()
             referenced_media = set()
             for question in questions:
-                require(isinstance(question, dict), "Question must be an object")
+                known_fields(question, {"id", "language", "prompt", "answers",
+                                        "correct_answer_ids", "explanation", "topics",
+                                        "difficulty", "age_band", "license", "provenance",
+                                        "media"}, "question")
                 question_id = question.get("id")
                 require(isinstance(question_id, str) and
                         SAFE_ID.fullmatch(question_id) is not None, "Invalid question ID")
@@ -187,6 +200,7 @@ def validate(filename: str) -> tuple[str, int]:
                         "Invalid answer count")
                 answer_ids = []
                 for answer in answers:
+                    known_fields(answer, {"id", "text"}, "answer")
                     require(isinstance(answer, dict) and isinstance(answer.get("id"), str)
                             and bool(answer["id"].strip()) and
                             isinstance(answer.get("text"), str) and
@@ -200,7 +214,7 @@ def validate(filename: str) -> tuple[str, int]:
                 media = question.get("media")
                 require(isinstance(media, list) and len(media) <= 20, "Invalid media")
                 for asset in media:
-                    require(isinstance(asset, dict), "Invalid asset")
+                    known_fields(asset, {"path", "alt", "license", "provenance"}, "asset")
                     path = asset.get("path")
                     require(isinstance(path, str) and SAFE_MEDIA.fullmatch(path) is not None
                             and is_safe_path(path) and path in declared, "Missing media asset")
