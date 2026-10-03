@@ -531,6 +531,9 @@ jobs:
             dockerfile: frontend/web/Dockerfile
           - component: db
             dockerfile: deploy/postgres.Dockerfile
+          - component: build-node
+            dockerfile: frontend/web/Dockerfile
+            target: node-toolchain
     steps:
       - name: Check out released source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -551,6 +554,7 @@ jobs:
         with:
           context: .
           file: ${{ matrix.dockerfile }}
+          target: ${{ matrix.target }}
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |

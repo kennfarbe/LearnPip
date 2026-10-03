@@ -277,7 +277,8 @@ jobs:
           - component: build-sdk
             image: mcr.microsoft.com/dotnet/sdk:10.0
           - component: build-node
-            image: node:24.21.0-alpine3.24
+            dockerfile: frontend/web/Dockerfile
+            target: node-toolchain
           - component: build-go
             image: golang:1.26.8-alpine3.24
     steps:
@@ -298,9 +299,14 @@ jobs:
           DOCKERFILE: ${{ matrix.dockerfile }}
           IMAGE: ${{ matrix.image }}
           ARCH: ${{ matrix.arch }}
+          BUILD_TARGET: ${{ matrix.target }}
         run: |
           if [ -n "$DOCKERFILE" ]; then
-            docker buildx build --platform "linux/$ARCH" --load -f "$DOCKERFILE" -t learnpip-security:candidate .
+            target_args=()
+            if [ -n "$BUILD_TARGET" ]; then
+              target_args+=(--target "$BUILD_TARGET")
+            fi
+            docker buildx build --platform "linux/$ARCH" --load -f "$DOCKERFILE" "${target_args[@]}" -t learnpip-security:candidate .
           else
             docker pull --platform "linux/$ARCH" "$IMAGE"
             docker tag "$IMAGE" learnpip-security:candidate

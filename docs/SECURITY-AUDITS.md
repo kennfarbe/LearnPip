@@ -55,3 +55,9 @@ Die aggregierte Auswertung der npm-, NuGet- und Trivy-Berichte erfolgt mit `scri
 Vom Projektverantwortlichen am 4. Oktober 2026 freigegeben: Bei Pull Requests werden Befunde in bereits veröffentlichten, unveränderlichen Image-Digests vollständig im Scanbericht und Befundregister dokumentiert. Diese Befunde verhindern nicht die Prüfung und Veröffentlichung einer korrigierten Folgeversion. Sie bleiben offen, behalten Verantwortlichen und Behebungsfrist und werden nicht allein durch diese Regel als behoben markiert. Planmäßige und manuelle Prüfungen blockieren weiterhin bei HIGH-/CRITICAL-Befunden in diesen Images.
 
 Ungültige oder unvollständige Scans, fehlende Ziele und veraltete Datenbanken bleiben auch bei Pull Requests blockierend. Neue Release-Kandidaten einschließlich sämtlicher Build-Images bleiben strikt gesperrt, solange HIGH-/CRITICAL-Befunde vorliegen. Für npm-Bibliotheken im Node-Build-Werkzeug ist keine Ausnahme freigegeben.
+
+## Korrigiertes Node-Build-Werkzeug
+
+Der Web-Build ersetzt den mit Node gebündelten npm-Paketmanager durch pnpm 12.9.1. npm und seine Bibliotheken werden aus der verwendeten Werkzeugstufe entfernt; die Prüfung wird nicht ausgenommen. pnpm importiert die eingecheckte `package-lock.json` und installiert anschließend mit unveränderlicher pnpm-Lockdatei ohne Installationsskripte. Die npm-Lockdatei bleibt für die vorhandenen Entwickler- und Audit-Abläufe maßgeblich. Der Angular-Build wird mit pnpm ausgeführt.
+
+Der Kandidaten-Audit prüft die tatsächlich verwendete Docker-Stufe `node-toolchain` für AMD64 und ARM64. Diese Stufe wird mit jedem Release zusätzlich als `build-node-vX.Y.Z` und `build-node-latest` veröffentlicht, einschließlich SBOM. Das Inventar neuer Releases prüft deren konkrete Plattform-Digests. Alte Releases behalten ihre bisherigen Inventarziele.

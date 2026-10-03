@@ -53,6 +53,15 @@ class LookupTests(unittest.TestCase):
 
 
 class BuildInventoryTests(unittest.TestCase):
+    def test_actual_node_toolchain_is_scanned_for_new_releases(self):
+        text = 'FROM node:24.21.0-alpine3.24 AS node-toolchain\nFROM node-toolchain AS build\n'
+        self.assertEqual(module.build_images([('build-node', text)], 'v1.13.0'),
+                         [('build-node', 'kennfarbe/learnpip:build-node-v1.13.0')])
+        with self.assertRaises(ValueError):
+            module.build_images([('build-node', text)])
+        self.assertEqual(module.build_images([('build-node', 'FROM node:24-alpine AS build\n')], 'v1.12.0'),
+                         [('build-node', 'node:24-alpine')])
+
     def test_build_images_are_explicit_and_missing_stages_fail(self):
         self.assertEqual(module.build_images([('build-sdk', 'FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build\n')]), [('build-sdk', 'mcr.microsoft.com/dotnet/sdk:10.0')])
         self.assertEqual(module.build_images([('build-go', 'FROM --platform=$BUILDPLATFORM golang:1.26.8-alpine3.24 AS build\n')]), [('build-go', 'golang:1.26.8-alpine3.24')])

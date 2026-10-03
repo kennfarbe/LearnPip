@@ -62,9 +62,14 @@ def image_targets(tag, platforms, inspect, runtime_images=None):
     return targets
 
 
-def build_images(dockerfiles):
+def build_images(dockerfiles, tag=None):
     images = []
     for component, text in dockerfiles:
+        if component == "build-node" and re.search(r'^FROM node-toolchain AS build$', text, re.MULTILINE):
+            if not tag or not re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", tag) or not re.search(r'^FROM node:[a-zA-Z0-9._-]+ AS node-toolchain$', text, re.MULTILINE):
+                raise ValueError("Published Node toolchain cannot be resolved")
+            images.append((component, "kennfarbe/learnpip:build-node-" + tag))
+            continue
         match = re.search(r'^FROM (?:--platform=\$BUILDPLATFORM )?([a-zA-Z0-9./_-]+:[a-zA-Z0-9._-]+) AS build$', text, re.MULTILINE)
         if not match:
             raise ValueError("Build image inventory incomplete")
@@ -120,7 +125,7 @@ def main():
             if any(component == "db" and image.startswith("kennfarbe/learnpip:db-") for component, image in found):
                 response = command_json(["gh", "api", "repos/kennfarbe/LearnPip/contents/deploy/postgres.Dockerfile?ref=" + tag])
                 dockerfiles.append(("build-go", base64.b64decode(response["content"]).decode()))
-            return found + build_images(dockerfiles)
+            return found + build_images(dockerfiles, tag)
         targets = [target for item in resolved for target in image_targets(item["tag"], policy["platforms"], inspect, runtime_images(item["tag"]))]
     args.output.write_text(json.dumps({"checked_at": datetime.now(timezone.utc).isoformat(), "include": targets}, sort_keys=True))
     # Only non-sensitive inventory metadata enters workflow outputs.
