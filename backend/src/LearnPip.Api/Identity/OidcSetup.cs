@@ -116,7 +116,8 @@ public static class OidcSetup
             return uri.Host.Equals("login.microsoftonline.com", StringComparison.OrdinalIgnoreCase) &&
                 uri.IsDefaultPort && segments.Length == 2 &&
                 segments[1].Equals("v2.0", StringComparison.Ordinal) &&
-                segments[0] is not ("common" or "organizations" or "consumers");
+                (Guid.TryParseExact(segments[0], "D", out _) ||
+                    segments[0] is "organizations" or "consumers");
         }
 
         return false;
@@ -157,6 +158,7 @@ public static class OidcSetup
                     options.CorrelationCookie.SameSite = SameSiteMode.None;
                     options.NonceCookie.SameSite = SameSiteMode.None;
                 }
+
                 options.UsePkce = true;
                 options.SaveTokens = false;
                 options.MapInboundClaims = false;
@@ -165,6 +167,11 @@ public static class OidcSetup
                 options.CallbackPath = callback;
                 options.Scope.Clear();
                 options.Scope.Add("openid");
+                if (scheme == Scheme + "-apple")
+                {
+                    options.Scope.Add("email");
+                }
+
                 options.Events.OnTicketReceived = async context =>
                 {
                     context.HandleResponse();
@@ -191,8 +198,4 @@ public static class OidcSetup
             });
     }
 
-    private static bool IsSafePath(string? path) =>
-        !string.IsNullOrWhiteSpace(path) &&
-        path.StartsWith('/') && !path.StartsWith("//", StringComparison.Ordinal) &&
-        !path.Contains('\r') && !path.Contains('\n');
 }
