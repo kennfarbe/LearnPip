@@ -26,6 +26,7 @@ ARCHIVE_LIMIT = 25 * 1024 * 1024
 SINGLE_LIMIT = 20 * 1024 * 1024
 QUESTION_LIMIT = 10000
 SAFE_MEDIA = re.compile(r"^media/[A-Za-z0-9._/-]+$")
+SAFE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".txt", ".pdf"}
 SAFE_ID = re.compile(r"^[a-z0-9][a-z0-9._:-]{2,127}$")
 
 
@@ -61,7 +62,9 @@ def is_safe_path(path: str) -> bool:
     if not SAFE_MEDIA.fullmatch(path):
         return False
     parts = path.split("/")
-    return len(parts) >= 2 and all(part not in ("", ".", "..") for part in parts)
+    return (len(parts) >= 2 and all(part not in ("", ".", "..") for part in parts)
+            and "." + parts[-1].rsplit(".", 1)[-1].lower() in SAFE_EXTENSIONS
+            and "." in parts[-1])
 
 
 def check_license(item: object) -> None:
@@ -114,6 +117,8 @@ def validate(filename: str) -> tuple[str, int]:
                 entries[name] = info
 
             require("manifest.json" in entries, "Missing manifest")
+            require(infos[0].filename == "manifest.json",
+                    "manifest.json must be the first ZIP entry")
             require(REQUIRED <= entries.keys(), "Missing mandatory catalog file")
             manifest = parse_json(archive.read("manifest.json"))
             require(manifest.get("format_id") == FORMAT_ID, "Unsupported format_id")
