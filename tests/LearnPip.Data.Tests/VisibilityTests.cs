@@ -178,6 +178,45 @@ public sealed class VisibilityTests
             Assert.Equal(
                 expectedResult19,
                 actualResult20);
+            var moderationReason = "Pruefung einer privaten Frage im Moderationskontext";
+            var unauthorizedBrowse = await outsiderClient.PostAsJsonAsync(
+                "/api/v1/moderation/questions/browse",
+                new { reason = moderationReason, page = 0 });
+            Assert.Equal(HttpStatusCode.Forbidden, unauthorizedBrowse.StatusCode);
+
+            var invalidBrowse = await moderatorClient.PostAsJsonAsync(
+                "/api/v1/moderation/questions/browse",
+                new { reason = "kurz", page = 0 });
+            Assert.Equal(HttpStatusCode.BadRequest, invalidBrowse.StatusCode);
+
+            var browse = await moderatorClient.PostAsJsonAsync(
+                "/api/v1/moderation/questions/browse",
+                new { reason = moderationReason, page = 0 });
+            Assert.Equal(HttpStatusCode.OK, browse.StatusCode);
+            var inspectUnauthorized = await outsiderClient.PostAsJsonAsync(
+                $"/api/v1/moderation/questions/{firstId}/inspect",
+                new { reason = moderationReason });
+            Assert.Equal(HttpStatusCode.Forbidden, inspectUnauthorized.StatusCode);
+
+            var inspected = await moderatorClient.PostAsJsonAsync(
+                $"/api/v1/moderation/questions/{firstId}/inspect",
+                new { reason = moderationReason });
+            Assert.Equal(HttpStatusCode.OK, inspected.StatusCode);
+            var adminInspected = await adminClient.PostAsJsonAsync(
+                $"/api/v1/moderation/questions/{firstId}/inspect",
+                new { reason = moderationReason });
+            Assert.Equal(HttpStatusCode.OK, adminInspected.StatusCode);
+            await using (var audit = new LearnPipDbContext(options))
+            {
+                Assert.True(await audit.AdministrationAuditEvents.AnyAsync(item =>
+                    item.ActorAccountId == moderator.AccountId &&
+                    item.Action == "moderation.questions.browse"));
+                Assert.True(await audit.QuestionModerationEvents.AnyAsync(item =>
+                    item.QuestionVersionId == firstId &&
+                    item.ModeratorAccountId == moderator.AccountId &&
+                    item.Action == "inspect"));
+            }
+
             var expectedResult21 = HttpStatusCode.OK;
             var actualResult22 = (await ownerClient.GetAsync(
                 $"/api/v1/questions/{questionId}/versions/1")).StatusCode;
