@@ -92,9 +92,35 @@ public static class OidcSetup
     }
 
     private static bool IsConfigured(IConfiguration configuration, string name) =>
-        HasHttpsAuthority(configuration[$"Oidc:Providers:{name}:Authority"]) &&
+        HasProviderAuthority(name, configuration[$"Oidc:Providers:{name}:Authority"]) &&
         !string.IsNullOrWhiteSpace(configuration[$"Oidc:Providers:{name}:ClientId"]) &&
         !string.IsNullOrWhiteSpace(configuration[$"Oidc:Providers:{name}:ClientSecret"]);
+
+    private static bool HasProviderAuthority(string name, string? authority)
+    {
+        if (!HasHttpsAuthority(authority) ||
+            !Uri.TryCreate(authority, UriKind.Absolute, out var uri))
+        {
+            return false;
+        }
+
+        if (name == "apple")
+        {
+            return uri.Host.Equals("appleid.apple.com", StringComparison.OrdinalIgnoreCase) &&
+                uri.IsDefaultPort && uri.AbsolutePath is "/";
+        }
+
+        if (name == "microsoft")
+        {
+            var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            return uri.Host.Equals("login.microsoftonline.com", StringComparison.OrdinalIgnoreCase) &&
+                uri.IsDefaultPort && segments.Length == 2 &&
+                segments[1].Equals("v2.0", StringComparison.Ordinal) &&
+                segments[0] is not ("common" or "organizations" or "consumers");
+        }
+
+        return false;
+    }
 
     private static bool HasHttpsAuthority(string? authority) =>
         Uri.TryCreate(authority, UriKind.Absolute, out var uri) &&
