@@ -1,0 +1,156 @@
+"""Regression tests for the offline draft catalog interchange contract."""
+
+from __future__ import annotations
+
+import hashlib
+import io
+import json
+from pathlib import Path
+import runpy
+import tempfile
+import unittest
+import zipfile
+
+
+MODULE = runpy.run_path(str(Path(__file__).resolve().parents[2] /
+                            "scripts" / "validate-catalog.py"))
+validate = MODULE["validate"]
+InvalidPackage = MODULE["InvalidPackage"]
+
+
+def license_details():
+    return {"id": "CC0-1.0", "holder": "Synthetic test author",
+            "attribution": "Synthetic fixture; not a real question catalog"}
+
+
+def base_files():
+    question = {
+        "id": "example:synthetic-01",
+        "language": "de-DE",
+        "prompt": "Welche Antwort ist in diesem synthetischen Test markiert?",
+        "answers": [{"id": "a", "text": "Erste Antwort"},
+                    {"id": "b", "text": "Zweite Antwort"}],
+        "correct_answer_ids": ["b"],
+        "explanation": "Synthetischer Test, kein veröffentlichter Fragenkatalog.",
+        "topics": ["Technischer Vertragstest"],
+        "difficulty": "unknown",
+        "license": license_details(),
+        "provenance": {"kind": "original"},
+        "media": [{"path": "media/test.txt", "alt": "Synthetische Mediendatei",
+                   "license": license_details(), "provenance": {"kind": "original"}}],
+    }
+    questions = {"questions": [question]}
+    files = {
+        "questions.json": json.dumps(questions, ensure_ascii=False).encode("utf-8"),
+        "LICENSES.md": b"CC0-1.0 synthetic data only\n",
+        "NOTICE": b"Synthetic data for CI contract tests\n",
+        "ATTRIBUTION": b"Synthetic test author\n",
+        "media/test.txt": b"synthetic media fixture\n",
+    }
+    manifest = {
+        "format_id": "org.learnpip.catalog.zip",
+        "schema_version": "0.1.0",
+        "package_id": "example.synthetic",
+        "catalog_version": "0.1.0",
+        "source_revision": "synthetic-fixture-1",
+        "title": "Synthetisches Testpaket",
+        "description": "Kein offizieller Fragenkatalog",
+        "language": "de-DE",
+        "publisher": "Synthetic test author",
+        "created_at": "2026-10-03T00:00:00Z",
+        "license": license_details(),
+        "files": [
+            {"path": path, "sha256": hashlib.sha256(content).hexdigest(),
+             "size": len(content)}
+            for path, content in files.items()
+        ],
+    }
+    return manifest, files, questions
+
+
+def make_zip(manifest, files, extra=None):
+    payload = io.BytesIO()
+    with zipfile.ZipFile(payload, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("manifest.json",
+                         json.dumps(manifest, ensure_ascii=False).encode("utf-8"))
+        for path, content in files.items():
+            archive.writestr(path, content)
+        for path, content in extra or []:
+            archive.writestr(path, content)
+    return payload.getvalue()
+
+
+class CatalogContractTests(unittest.TestCase):
+    def setUp(self):
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tempdir.cleanup)
+        self.filename = str(Path(self.tempdir.name) / "sample.zip")
+        self.manifest, self.files, self.questions = base_files()
+
+    def check(self, data):
+        Path(self.filename).write_bytes(data)
+        return validate(self.filename)
+
+    def test_synthetic_package_with_media_and_umlauts(self):
+        self.assertEqual(self.check(make_zip(self.manifest, self.files)),
+                         ("example.synthetic", 1))
+
+    def test_unsupported_schema_is_not_silently_downgraded(self):
+        self.manifest["schema_version"] = "9.0.0"
+        with self.assertRaisesRegex(InvalidPackage, "Unsupported schema_version"):
+            self.check(make_zip(self.manifest, self.files))
+
+    def test_changed_contents_are_rejected(self):
+        self.files["NOTICE"] = b"modified after manifest creation"
+        with self.assertRaisesRegex(InvalidPackage, "checksum mismatch|size mismatch"):
+            self.check(make_zip(self.manifest, self.files))
+
+    def test_traversal_path_is_rejected(self):
+        with self.assertRaisesRegex(InvalidPackage, "Unsafe"):
+            self.check(make_zip(self.manifest, self.files, [("../outside", b"bad")]))
+
+    def test_duplicate_path_is_rejected(self):
+        with self.assertWarns(UserWarning):
+            data = make_zip(self.manifest, self.files, [("NOTICE", b"duplicate")])
+        with self.assertRaisesRegex(InvalidPackage, "Duplicate ZIP"):
+            self.check(data)
+
+    def test_correct_answer_must_refer_to_existing_option(self):
+        self.questions["questions"][0]["correct_answer_ids"] = ["absent"]
+        self.files["questions.json"] = json.dumps(self.questions).encode("utf-8")
+        self.update_question_record()
+        with self.assertRaisesRegex(InvalidPackage, "correct answer"):
+            self.check(make_zip(self.manifest, self.files))
+
+    def test_media_requires_independent_attribution(self):
+        del self.questions["questions"][0]["media"][0]["license"]["holder"]
+        self.files["questions.json"] = json.dumps(self.questions).encode("utf-8")
+        self.update_question_record()
+        with self.assertRaisesRegex(InvalidPackage, "license"):
+            self.check(make_zip(self.manifest, self.files))
+
+    def test_adapted_content_requires_source_revision_and_change_note(self):
+        self.questions["questions"][0]["provenance"] = {
+            "kind": "adapted", "source_url": "https://example.org/source",
+            "source_revision": "rev-1"
+        }
+        self.files["questions.json"] = json.dumps(self.questions).encode("utf-8")
+        self.update_question_record()
+        with self.assertRaisesRegex(InvalidPackage, "modification note"):
+            self.check(make_zip(self.manifest, self.files))
+
+    def test_duplicate_json_keys_are_rejected(self):
+        self.files["questions.json"] = b'{"questions":[],"questions":[]}'
+        self.update_question_record()
+        with self.assertRaisesRegex(InvalidPackage, "Duplicate JSON"):
+            self.check(make_zip(self.manifest, self.files))
+
+    def update_question_record(self):
+        record = next(item for item in self.manifest["files"]
+                      if item["path"] == "questions.json")
+        record["sha256"] = hashlib.sha256(self.files["questions.json"]).hexdigest()
+        record["size"] = len(self.files["questions.json"])
+
+
+if __name__ == "__main__":
+    unittest.main()
