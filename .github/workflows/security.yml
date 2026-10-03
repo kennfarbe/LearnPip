@@ -19,6 +19,7 @@ on:
       - 'deploy/compose*.yaml'
       - 'scripts/security-report.py'
       - 'scripts/npm-security-audit.sh'
+      - 'scripts/try-security-overrides.sh'
       - 'tests/ops/test_security_report.py'
 
 permissions:
@@ -64,6 +65,23 @@ jobs:
           bash scripts/npm-security-audit.sh . root || status=1
           bash scripts/npm-security-audit.sh frontend/web web || status=1
           exit "$status"
+
+      - name: Trial targeted transitive overrides without changing checkout
+        if: always()
+        shell: bash
+        run: bash scripts/try-security-overrides.sh
+
+      - name: Upload override trial candidate for review
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: npm-override-trial
+          path: |
+            ${{ runner.temp }}/learnpip-override-trial/package.json
+            ${{ runner.temp }}/learnpip-override-trial/package-lock.json
+            ${{ runner.temp }}/learnpip-override-trial/override-audit.json
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Restore NuGet graph
         shell: bash
