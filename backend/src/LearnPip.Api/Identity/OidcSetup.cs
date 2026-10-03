@@ -252,5 +252,4 @@ public static class OidcSetup
                 };
             });
     }
-
 }
