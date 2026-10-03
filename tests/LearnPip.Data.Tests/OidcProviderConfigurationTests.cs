@@ -30,7 +30,7 @@ public sealed class OidcProviderConfigurationTests
             ["Oidc:Providers:unknown:ClientSecret"] = "secret",
         });
 
-        Assert.Equal(["github"], OidcSetup.EnabledProviders(configuration));
+        Assert.Equal(new[] { "github" }, OidcSetup.EnabledProviders(configuration));
         Assert.Null(OidcSetup.ProviderScheme(configuration, "apple"));
         Assert.Null(OidcSetup.ProviderScheme(configuration, "unknown"));
         Assert.Null(OidcSetup.ProviderScheme(configuration, "GitHub"));
@@ -58,7 +58,7 @@ public sealed class OidcProviderConfigurationTests
         });
 
         Assert.True(OidcSetup.IsEnabled(configuration));
-        Assert.Equal(["apple", "microsoft"], OidcSetup.EnabledProviders(configuration));
+        Assert.Equal(new[] { "apple", "microsoft" }, OidcSetup.EnabledProviders(configuration));
         Assert.NotEqual(OidcSetup.ProviderScheme(configuration, "apple"),
             OidcSetup.ProviderScheme(configuration, "microsoft"));
         Assert.Null(OidcSetup.ProviderScheme(configuration, "facebook"));
