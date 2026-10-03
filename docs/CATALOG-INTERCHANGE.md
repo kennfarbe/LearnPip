@@ -51,3 +51,5 @@ Unter `tests/fixtures/catalog/0.1.0/provenance.json` liegt ein zweites eigenstä
 ## Unbekannte Felder im Entwurf
 
 Der Offline-Validator weist zusätzliche, nicht im Schema 0.1.0 definierte Felder in Manifest, Fragen, Antworten, Lizenz- und Herkunftsangaben sowie Medien zurück. Damit werden Daten nicht stillschweigend ignoriert. Zukünftige Erweiterungen benötigen einen ausdrücklich versionierten Vertrag; der derzeitige Reader und Writer dürfen unbekannte Versionen weiterhin nicht als alte Fassung behandeln. Eine vollständige automatische JSON-Schema-Prüfung ist damit noch nicht ersetzt.
+
+Auch das Wurzelobjekt von `questions.json` darf im Entwurf 0.1.0 ausschließlich `questions` enthalten. Zusätzliche Metadaten wie private Kennungen oder Exportinformationen werden nicht stillschweigend übernommen, sondern bereits bei der Offline-Prüfung zurückgewiesen. Eine spätere Erweiterung benötigt einen ausdrücklich neuen Formatvertrag.

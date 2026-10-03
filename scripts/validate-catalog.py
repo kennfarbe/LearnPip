@@ -168,6 +168,7 @@ def validate(filename: str) -> tuple[str, int]:
                         "File checksum mismatch: " + path)
 
             questions_root = parse_json(archive.read("questions.json"))
+            known_fields(questions_root, {"questions"}, "questions document")
             questions = questions_root.get("questions")
             require(isinstance(questions, list) and 0 < len(questions) <= QUESTION_LIMIT,
                     "Invalid question count")
