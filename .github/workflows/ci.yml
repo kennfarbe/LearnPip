@@ -66,6 +66,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Test offline catalog interchange contract
+        run: python3 -m unittest discover -s tests/ops -p 'test_catalog_contract.py' -v
+
       - name: Reject tab characters in tracked text files
         run: |
           python3 - <<'PY'
