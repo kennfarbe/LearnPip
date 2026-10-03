@@ -15,6 +15,44 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect affected components
+    runs-on: ubuntu-latest
+    outputs:
+      markdown: ${{ steps.paths.outputs.markdown }}
+      backend: ${{ steps.paths.outputs.backend }}
+      web: ${{ steps.paths.outputs.web }}
+      installer: ${{ steps.paths.outputs.installer }}
+      restore: ${{ steps.paths.outputs.restore }}
+      integration: ${{ steps.paths.outputs.integration }}
+      release: ${{ steps.paths.outputs.release }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Classify changed files (fail closed)
+        id: paths
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = pull_request ]; then
+            git diff --no-renames --name-only -z "$BASE_SHA...$PR_HEAD_SHA" > "$RUNNER_TEMP/changed-files"
+          elif [ "$EVENT_NAME" = push ] && [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != 0000000000000000000000000000000000000000 ] && git cat-file -e "$BEFORE_SHA^{commit}"; then
+            git diff --no-renames --name-only -z "$BEFORE_SHA..$AFTER_SHA" > "$RUNNER_TEMP/changed-files"
+          else
+            export CI_FORCE_ALL=true
+            : > "$RUNNER_TEMP/changed-files"
+          fi
+          python3 scripts/ci-changes.py < "$RUNNER_TEMP/changed-files"
+      - name: Test change classification
+        run: python3 -m unittest discover -s tests/ops -p 'test-ci-changes.py' -v
+
   repository-policy:
     name: Repository policy
     runs-on: ubuntu-latest
@@ -155,6 +193,8 @@ jobs:
           PY
 
   markdown:
+    needs: [changes]
+    if: needs.changes.outputs.markdown == 'true'
     name: Markdown lint (de-DE)
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -177,6 +217,8 @@ jobs:
         run: npx --no-install cspell lint README.md --no-progress --no-summary
 
   backend:
+    needs: [changes]
+    if: needs.changes.outputs.backend == 'true'
     name: Backend build
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -255,6 +297,8 @@ jobs:
           dotnet format analyzers "$solution" --verify-no-changes --no-restore --severity error
 
   web:
+    needs: [changes]
+    if: needs.changes.outputs.web == 'true'
     name: Web build
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -341,6 +385,8 @@ jobs:
         run: npm run test:ui
 
   installer-smoke:
+    needs: [changes]
+    if: needs.changes.outputs.installer == 'true'
     name: Installer smoke
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -354,12 +400,48 @@ jobs:
           bash -n scripts/install-release.sh
           sudo python3 tests/ops/install-release-smoke.py
 
+  integration-smoke:
+    name: Combined Web/API integration smoke
+    needs: [changes, backend, web]
+    if: always() && needs.changes.result == 'success' && needs.changes.outputs.integration == 'true' && (needs.backend.result == 'success' || needs.backend.result == 'skipped') && (needs.web.result == 'success' || needs.web.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Verify integrated Docker stack
+        run: bash tests/ops/integration-smoke.sh
+
+  ci-result:
+    name: CI result
+    if: always()
+    needs: [changes, repository-policy, markdown, backend, web, installer-smoke, restore-smoke, integration-smoke]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all selected checks to pass
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          results = json.loads(os.environ['NEEDS_JSON'])
+          invalid = {name: item['result'] for name, item in results.items()
+                     if item['result'] not in ('success', 'skipped')}
+          if results['changes']['result'] != 'success' or results['repository-policy']['result'] != 'success':
+              invalid['required'] = 'change detection and repository policy must succeed'
+          if invalid:
+              raise SystemExit(f'CI checks failed or were cancelled: {invalid}')
+          print('All selected CI checks succeeded; inapplicable jobs were skipped.')
+          PY
+
   release:
     name: Semantic release
     outputs:
       release_tag: ${{ steps.released.outputs.release_tag }}
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [repository-policy, markdown, backend, web, restore-smoke, installer-smoke]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.ci-result.result == 'success'
+    needs: [ci-result]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -457,6 +539,8 @@ jobs:
           sbom: true
 
   restore-smoke:
+    needs: [changes]
+    if: needs.changes.outputs.restore == 'true'
     name: Backup restore smoke
     runs-on: ubuntu-latest
     timeout-minutes: 10
