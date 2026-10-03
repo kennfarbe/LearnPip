@@ -12,6 +12,9 @@ namespace LearnPip.Data.Tests;
 /// </summary>
 public sealed class OidcProviderConfigurationTests
 {
+    private static readonly string[] GithubOnly = ["github"];
+    private static readonly string[] AppleAndMicrosoft = ["apple", "microsoft"];
+
     /// <summary>
     /// Unvollständige und unbekannte Anbieter bleiben deaktiviert.
     /// </summary>
@@ -30,7 +33,7 @@ public sealed class OidcProviderConfigurationTests
             ["Oidc:Providers:unknown:ClientSecret"] = "secret",
         });
 
-        Assert.Equal(new[] { "github" }, OidcSetup.EnabledProviders(configuration));
+        Assert.Equal(GithubOnly, OidcSetup.EnabledProviders(configuration));
         Assert.Null(OidcSetup.ProviderScheme(configuration, "apple"));
         Assert.Null(OidcSetup.ProviderScheme(configuration, "unknown"));
         Assert.Null(OidcSetup.ProviderScheme(configuration, "GitHub"));
@@ -58,8 +61,9 @@ public sealed class OidcProviderConfigurationTests
         });
 
         Assert.True(OidcSetup.IsEnabled(configuration));
-        Assert.Equal(new[] { "apple", "microsoft" }, OidcSetup.EnabledProviders(configuration));
-        Assert.NotEqual(OidcSetup.ProviderScheme(configuration, "apple"),
+        Assert.Equal(AppleAndMicrosoft, OidcSetup.EnabledProviders(configuration));
+        Assert.NotEqual(
+            OidcSetup.ProviderScheme(configuration, "apple"),
             OidcSetup.ProviderScheme(configuration, "microsoft"));
         Assert.Null(OidcSetup.ProviderScheme(configuration, "facebook"));
     }
