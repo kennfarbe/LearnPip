@@ -110,13 +110,19 @@ async function api(page, options = {}) {
       data = snapshot();
     } else if (path.endsWith('/admin/updates')) {
       if (!options.capabilities.administration) return route.fulfill({ status: 403, json: {} });
-      data = {
-        installedVersion: 'v1.0.0',
-        interval: 'daily',
-        latest: null,
-        job: null,
-        state: 'idle',
-      };
+      return route.fulfill({
+        json: {
+          installedVersion: 'v1.0.0',
+          latestVersion: null,
+          interval: 'daily',
+          lastCheckedAtUtc: null,
+          nextCheckAtUtc: null,
+          error: null,
+          release: null,
+          job: null,
+          state: 'idle',
+        },
+      });
     }
     await route.fulfill({ json: { data } });
   });
@@ -233,6 +239,16 @@ test('administration fails closed and refreshes permissions on entry', async ({ 
     page.getByRole('heading', { name: 'Öffentliche Einreichungen prüfen' }),
   ).toBeVisible();
   await expect(page.locator('app-admin-updates, app-exam-administration')).toHaveCount(0);
+  options.capabilities = { administration: true, moderation: true };
+  await page.goto('/administration');
+  await expect(page.getByRole('heading', { name: 'LearnPip-Updates', exact: true })).toBeVisible();
+  await expect(page.getByText('v1.0.0', { exact: true })).toBeVisible();
+  await page.getByText('Offizielle Kataloge und Prüfungsprofile', { exact: true }).click();
+  await expect(page.getByLabel('Katalogimport (JSON)', { exact: true })).toBeVisible();
+  const accessibility = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  expect(accessibility.violations.map((item) => item.id)).toEqual([]);
   await navigate(page, 'Übersicht');
   options.capabilities = { administration: false, moderation: false };
   await page.getByRole('navigation').getByRole('link', { name: 'Verwaltung', exact: true }).click();
@@ -318,6 +334,24 @@ test('language and theme persist; core pages pass accessible-name, structure and
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Settings');
   await page.reload();
   await expect(page.getByLabel('Language', { exact: true })).toHaveValue('en');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+});
+
+test('system theme responds before settings is visited and respects an explicit choice', async ({
+  page,
+}) => {
+  await api(page);
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.goto('/overview');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await navigate(page, 'Einstellungen');
+  await page.getByLabel('Design', { exact: true }).selectOption('light');
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.getByLabel('Design', { exact: true }).selectOption('system');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 });
 

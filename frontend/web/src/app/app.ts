@@ -5,6 +5,7 @@ import { filter } from 'rxjs';
 import { ApplicationAccess } from './application-access';
 import { LanguageService } from './language';
 import { workspaces } from './navigation';
+import { ThemeService } from './theme';
 
 @Component({
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
@@ -21,6 +22,7 @@ export class App {
   private readonly router = inject(Router);
 
   constructor() {
+    inject(ThemeService);
     this.language.set(this.language.current());
     void this.access.refresh();
     this.router.events
