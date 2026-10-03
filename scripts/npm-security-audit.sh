@@ -20,9 +20,15 @@ if (( status > 1 )); then
   echo "$label: npm audit failed to complete; inspect privately." >&2
   exit 2
 fi
-if python3 scripts/security-report.py npm "$report"; then
+result=0
+python3 scripts/security-report.py npm "$report" || result=$?
+if [ "$result" -eq 0 ]; then
   echo "$label: dependency audit passed."
   exit 0
+fi
+if [ "$result" -ne 1 ]; then
+  echo "$label: audit report invalid; scanner failure is blocking." >&2
+  exit 2
 fi
 if [ "$mode" = development ]; then
   echo "$label: development findings are informational; review uploaded report for updates."
