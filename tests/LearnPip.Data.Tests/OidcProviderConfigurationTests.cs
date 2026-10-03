@@ -56,10 +56,10 @@ public sealed class OidcProviderConfigurationTests
             ["Oidc:Authority"] = "https://legacy.example.invalid",
             ["Oidc:ClientId"] = "legacy",
             ["Oidc:ClientSecret"] = "legacy-secret",
-            ["Oidc:Providers:apple:Authority"] = "https://apple.example.invalid",
+            ["Oidc:Providers:apple:Authority"] = "https://appleid.apple.com",
             ["Oidc:Providers:apple:ClientId"] = "apple",
             ["Oidc:Providers:apple:ClientSecret"] = "apple-secret",
-            ["Oidc:Providers:microsoft:Authority"] = "https://microsoft.example.invalid",
+            ["Oidc:Providers:microsoft:Authority"] = "https://login.microsoftonline.com/11111111-1111-1111-1111-111111111111/v2.0",
             ["Oidc:Providers:microsoft:ClientId"] = "microsoft",
             ["Oidc:Providers:microsoft:ClientSecret"] = "microsoft-secret",
         });
@@ -93,6 +93,29 @@ public sealed class OidcProviderConfigurationTests
 
         Assert.Empty(OidcSetup.EnabledProviders(configuration));
         Assert.Null(OidcSetup.ProviderScheme(configuration, "microsoft"));
+    }
+
+    /// <summary>
+    /// Fremde Issuer dürfen nicht unter dem Namen eines bekannten Anbieters auftreten.
+    /// </summary>
+    /// <param name="provider">Der deklarierte Anbieter.</param>
+    /// <param name="authority">Der zu prüfende Issuer.</param>
+    [Theory]
+    [InlineData("apple", "https://issuer.example.invalid")]
+    [InlineData("apple", "https://appleid.apple.com.evil.invalid")]
+    [InlineData("microsoft", "https://issuer.example.invalid")]
+    [InlineData("microsoft", "https://login.microsoftonline.com/common/v2.0")]
+    [InlineData("microsoft", "https://login.microsoftonline.com/organizations/v2.0")]
+    public void ProviderAuthorityMustMatchDeclaredProvider(string provider, string authority)
+    {
+        var configuration = CreateConfiguration(new Dictionary<string, string?>
+        {
+            [$"Oidc:Providers:{provider}:Authority"] = authority,
+            [$"Oidc:Providers:{provider}:ClientId"] = "client",
+            [$"Oidc:Providers:{provider}:ClientSecret"] = "secret",
+        });
+
+        Assert.Null(OidcSetup.ProviderScheme(configuration, provider));
     }
 
     private static IConfiguration CreateConfiguration(Dictionary<string, string?> values) =>
