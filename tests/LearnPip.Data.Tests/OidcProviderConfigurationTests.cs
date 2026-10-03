@@ -118,6 +118,35 @@ public sealed class OidcProviderConfigurationTests
         Assert.Null(OidcSetup.ProviderScheme(configuration, provider));
     }
 
+    /// <summary>
+    /// OAuth credentials do not activate a generic OIDC provider.
+    /// </summary>
+    [Fact]
+    public void IndependentOAuthProvidersRequireCompleteCredentials()
+    {
+        var configuration = CreateConfiguration(new Dictionary<string, string?>
+        {
+            ["GithubOAuth:ClientId"] = "github-id",
+            ["FacebookOAuth:ClientId"] = "facebook-id",
+            ["Oidc:Providers:github:Authority"] = "https://github.com",
+            ["Oidc:Providers:github:ClientId"] = "incorrect",
+            ["Oidc:Providers:github:ClientSecret"] = "incorrect",
+        });
+
+        Assert.False(GithubOAuthSetup.IsEnabled(configuration));
+        Assert.False(FacebookOAuthSetup.IsEnabled(configuration));
+        Assert.Null(OidcSetup.ProviderScheme(configuration, "github"));
+        Assert.Null(OidcSetup.ProviderScheme(configuration, "facebook"));
+
+        configuration["GithubOAuth:ClientSecret"] = "github-secret";
+        configuration["FacebookOAuth:ClientSecret"] = "facebook-secret";
+
+        Assert.True(GithubOAuthSetup.IsEnabled(configuration));
+        Assert.True(FacebookOAuthSetup.IsEnabled(configuration));
+        Assert.Null(OidcSetup.ProviderScheme(configuration, "github"));
+        Assert.Null(OidcSetup.ProviderScheme(configuration, "facebook"));
+    }
+
     private static IConfiguration CreateConfiguration(Dictionary<string, string?> values) =>
         new ConfigurationBuilder().AddInMemoryCollection(values).Build();
 }
