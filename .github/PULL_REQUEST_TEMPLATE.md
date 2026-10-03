@@ -1,4 +1,4 @@
-## Änderung
+# Änderung
 
 Beschreibe kurz, was sich ändert und warum.
 
