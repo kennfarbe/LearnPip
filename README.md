@@ -82,7 +82,7 @@ Eine **optionale individuelle kommerzielle Lizenz** kann für Code angeboten wer
 
 Die [Lizenzübersicht](docs/LICENSING.md) grenzt Programmcode von Dokumentation, Marke, Abhängigkeiten und Nutzerinhalten ab. Aufgaben, Antworten, Fotos und andere Nutzerinhalte werden durch die Code-Lizenz nicht automatisch an LearnPip lizenziert. Eine öffentliche Inhaltslizenz muss separat gewählt und vor einer Veröffentlichung angezeigt werden.
 
-Du möchtest mithelfen? Sieh dir die [offenen Issues](https://github.com/kennfarbe/LearnPip/issues) an und diskutiere eine Idee dort, bevor du größere Änderungen beginnst. Vor externen Codebeiträgen muss der in [Issue #3](https://github.com/kennfarbe/LearnPip/issues/3) vorgesehene CLA-Prozess geklärt sein. Sicherheitslücken bitte über den privaten Meldeweg in [SECURITY.md](SECURITY.md) einreichen.
+Du möchtest mithelfen? Sieh dir die [offenen Issues](https://github.com/kennfarbe/LearnPip/issues) an und diskutiere eine Idee dort, bevor du größere Änderungen beginnst. Bis zur rechtlichen Freigabe der CLA-Erstfassung und einer verpflichtenden, geprüften CLA-Statuskontrolle dürfen externe Codebeiträge nicht übernommen werden. Siehe [Issue #3](https://github.com/kennfarbe/LearnPip/issues/3) und [Prüfliste](docs/CLA-ROLLOUT.md). Sicherheitslücken bitte über den privaten Meldeweg in [SECURITY.md](SECURITY.md) einreichen.
 
 ## Lizenzhinweis für spätere gehostete Installationen
 
