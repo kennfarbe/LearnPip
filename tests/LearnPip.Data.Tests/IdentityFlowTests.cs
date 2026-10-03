@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using LearnPip.Api;
+using LearnPip.Api.Administration;
 using LearnPip.Api.Identity;
 using LearnPip.Data;
 using LearnPip.Data.Domain;
@@ -96,6 +97,46 @@ public sealed class IdentityFlowTests
             using var first = ClientFor(factory, created.Session.Token);
             Assert.Equal(HttpStatusCode.OK, (await first.GetAsync("/api/v1/auth/me")).StatusCode);
 
+            using var unsigned = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+            var unsignedCapabilities = await unsigned.GetAsync("/api/v1/auth/capabilities");
+            Assert.Equal(HttpStatusCode.Unauthorized, unsignedCapabilities.StatusCode);
+            var capabilities = await first.GetFromJsonAsync<ApiResponse<ApplicationCapabilities>>("/api/v1/auth/capabilities");
+            Assert.Equal(new ApplicationCapabilities(false, false), capabilities!.Data);
+            await using (var db = new LearnPipDbContext(options))
+            {
+                await new AdministrationService(db).BootstrapAsync(created.AccountId);
+            }
+
+            capabilities = await first.GetFromJsonAsync<ApiResponse<ApplicationCapabilities>>("/api/v1/auth/capabilities");
+            Assert.Equal(new ApplicationCapabilities(true, true), capabilities!.Data);
+            await using (var db = new LearnPipDbContext(options))
+            {
+                var session = await db.AccountSessions.SingleAsync();
+                session.CreatedAtUtc = DateTimeOffset.UtcNow.AddMinutes(-16);
+                await db.SaveChangesAsync();
+            }
+
+            capabilities = await first.GetFromJsonAsync<ApiResponse<ApplicationCapabilities>>("/api/v1/auth/capabilities");
+            Assert.Equal(new ApplicationCapabilities(false, true), capabilities!.Data);
+            await using (var db = new LearnPipDbContext(options))
+            {
+                db.AccountRoles.RemoveRange(await db.AccountRoles.ToListAsync());
+                await db.SaveChangesAsync();
+            }
+
+            capabilities = await first.GetFromJsonAsync<ApiResponse<ApplicationCapabilities>>("/api/v1/auth/capabilities");
+            Assert.Equal(new ApplicationCapabilities(false, false), capabilities!.Data);
+            await using (var db = new LearnPipDbContext(options))
+            {
+                var moderator = new RoleDefinition { Scope = "system", Code = "moderator", Name = "Moderator" };
+                db.Roles.Add(moderator);
+                db.AccountRoles.Add(new AccountRole { AccountId = created.AccountId, RoleDefinitionId = moderator.Id });
+                await db.SaveChangesAsync();
+            }
+
+            capabilities = await first.GetFromJsonAsync<ApiResponse<ApplicationCapabilities>>("/api/v1/auth/capabilities");
+            Assert.Equal(new ApplicationCapabilities(false, true), capabilities!.Data);
+
             await using (var db = new LearnPipDbContext(options))
             {
                 Assert.NotEqual(
@@ -154,6 +195,8 @@ public sealed class IdentityFlowTests
             Assert.Equal(
                 HttpStatusCode.Unauthorized,
                 (await first.GetAsync("/api/v1/auth/me")).StatusCode);
+            var revokedCapabilities = await first.GetAsync("/api/v1/auth/capabilities");
+            Assert.Equal(HttpStatusCode.Unauthorized, revokedCapabilities.StatusCode);
             using var current = ClientFor(factory, recovered.Token);
             Assert.Equal(HttpStatusCode.OK, (await current.GetAsync("/api/v1/auth/me")).StatusCode);
 

@@ -61,6 +61,10 @@ public static class AuthEndpoints
             "/me",
             GetMe)
             .Produces<ApiResponse<AccountInfo>>();
+        secured.MapGet(
+            "/capabilities",
+            GetCapabilities)
+            .Produces<ApiResponse<ApplicationCapabilities>>();
         secured.MapPost(
             "/logout",
             Logout)
@@ -216,6 +220,16 @@ public static class AuthEndpoints
                 item.DisabledAtUtc))
             .SingleAsync(cancellationToken);
         return Results.Ok(new ApiResponse<AccountInfo>(account));
+    }
+
+    private static async Task<IResult> GetCapabilities(
+        ClaimsPrincipal principal,
+        IAuthorizationService authorization)
+    {
+        var administration = await authorization.AuthorizeAsync(principal, null, ApiPolicies.Admin);
+        var moderation = await authorization.AuthorizeAsync(principal, null, ApiPolicies.Moderation);
+        return Results.Ok(new ApiResponse<ApplicationCapabilities>(
+            new ApplicationCapabilities(administration.Succeeded, moderation.Succeeded)));
     }
 
     private static async Task<IResult> Logout(
