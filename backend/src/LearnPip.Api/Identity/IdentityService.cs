@@ -405,6 +405,51 @@ public sealed class IdentityService(
         return accountId;
     }
 
+    /// <summary>
+    /// Removes a linked provider only when another durable sign-in or recovery path remains.
+    /// </summary>
+    /// <param name="issuer">The configured provider issuer.</param>
+    /// <param name="accountId">The active LearnPip account.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>Whether a linked identity was removed.</returns>
+    public async Task<bool> UnlinkOidcAsync(
+        string issuer,
+        Guid accountId,
+        CancellationToken cancellationToken)
+    {
+        var provider = "oidc:" + SessionAuthentication.Hash(issuer).ToLowerInvariant();
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        if (await this.ReactivateAsync(accountId, cancellationToken) != 1)
+        {
+            throw new IdentityConflictException();
+        }
+
+        var identity = await dbContext.ExternalIdentities.SingleOrDefaultAsync(
+            item => item.AccountId == accountId && item.Provider == provider,
+            cancellationToken);
+        if (identity == null)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return false;
+        }
+
+        var hasRecoveryCredential = await dbContext.RecoveryCredentials.AnyAsync(
+            item => item.AccountId == accountId,
+            cancellationToken);
+        var hasOtherIdentity = await dbContext.ExternalIdentities.AnyAsync(
+            item => item.AccountId == accountId && item.Provider != provider,
+            cancellationToken);
+        if (!hasRecoveryCredential && !hasOtherIdentity)
+        {
+            throw new IdentityConflictException();
+        }
+
+        dbContext.ExternalIdentities.Remove(identity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return true;
+    }
+
     private static string HashCode(byte[] key, Guid id, string code) =>
         Convert.ToHexString(HMACSHA256.HashData(key, Encoding.UTF8.GetBytes($"{id:N}:{code}")));
 
