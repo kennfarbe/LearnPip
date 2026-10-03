@@ -2,14 +2,28 @@
 set -euo pipefail
 
 # Synthetic CI-only credentials. Never use production data.
+if [[ -e deploy/.env ]]; then
+  echo 'Refusing to overwrite an existing deploy/.env in the CI workspace.' >&2
+  exit 1
+fi
 cp deploy/.env.example deploy/.env
-printf '\nPOSTGRES_PASSWORD=%s\n' "$(openssl rand -hex 32)" >> deploy/.env
+password="$(openssl rand -hex 32)"
+sed -i "s/^POSTGRES_PASSWORD=$/POSTGRES_PASSWORD=$password/" deploy/.env
+unset password
 chmod 600 deploy/.env
 
 compose=(docker compose --project-name learnpip-ci --env-file deploy/.env --file deploy/compose.yaml)
 cleanup() {
+  result=$?
+  trap - EXIT
+  if (( result != 0 )); then
+    echo 'Integration smoke failed: container status and diagnostic logs:' >&2
+    "${compose[@]}" ps || true
+    "${compose[@]}" logs --tail 150 db migrate api web || true
+  fi
   "${compose[@]}" down --volumes --remove-orphans || true
   rm -f deploy/.env
+  exit "$result"
 }
 trap cleanup EXIT
 
