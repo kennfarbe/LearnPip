@@ -56,10 +56,10 @@ public sealed class OidcProviderConfigurationTests
             ["Oidc:Authority"] = "https://legacy.example.invalid",
             ["Oidc:ClientId"] = "legacy",
             ["Oidc:ClientSecret"] = "legacy-secret",
-            ["Oidc:Providers:apple:Authority"] = "https://apple.example.invalid",
+            ["Oidc:Providers:apple:Authority"] = "https://appleid.apple.com",
             ["Oidc:Providers:apple:ClientId"] = "apple",
             ["Oidc:Providers:apple:ClientSecret"] = "apple-secret",
-            ["Oidc:Providers:microsoft:Authority"] = "https://microsoft.example.invalid",
+            ["Oidc:Providers:microsoft:Authority"] = "https://login.microsoftonline.com/11111111-1111-1111-1111-111111111111/v2.0",
             ["Oidc:Providers:microsoft:ClientId"] = "microsoft",
             ["Oidc:Providers:microsoft:ClientSecret"] = "microsoft-secret",
         });
@@ -93,6 +93,116 @@ public sealed class OidcProviderConfigurationTests
 
         Assert.Empty(OidcSetup.EnabledProviders(configuration));
         Assert.Null(OidcSetup.ProviderScheme(configuration, "microsoft"));
+    }
+
+    /// <summary>
+    /// Microsoft tenant strategies are explicit and support organization or consumer accounts.
+    /// </summary>
+    /// <param name="authority">The Microsoft authority to test.</param>
+    [Theory]
+    [InlineData("https://login.microsoftonline.com/organizations/v2.0")]
+    [InlineData("https://login.microsoftonline.com/consumers/v2.0")]
+    [InlineData("https://login.microsoftonline.com/11111111-1111-1111-1111-111111111111/v2.0")]
+    public void MicrosoftSupportsExplicitTenantStrategies(string authority)
+    {
+        var configuration = CreateConfiguration(new Dictionary<string, string?>
+        {
+            ["Oidc:Providers:microsoft:Authority"] = authority,
+            ["Oidc:Providers:microsoft:ClientId"] = "client",
+            ["Oidc:Providers:microsoft:ClientSecret"] = "secret",
+        });
+
+        Assert.Equal("LearnPipOidc-microsoft", OidcSetup.ProviderScheme(configuration, "microsoft"));
+    }
+
+    /// <summary>
+    /// Microsoft tokens must match the exact tenant strategy selected by the operator.
+    /// </summary>
+    /// <param name="authority">The configured Microsoft authority.</param>
+    /// <param name="issuer">The issuer returned in the identity token.</param>
+    /// <param name="expected">Whether the issuer should be accepted.</param>
+    [Theory]
+    [InlineData(
+        "https://login.microsoftonline.com/organizations/v2.0",
+        "https://login.microsoftonline.com/11111111-1111-1111-1111-111111111111/v2.0",
+        true)]
+    [InlineData(
+        "https://login.microsoftonline.com/organizations/v2.0",
+        "https://attacker.example/11111111-1111-1111-1111-111111111111/v2.0",
+        false)]
+    [InlineData(
+        "https://login.microsoftonline.com/organizations/v2.0",
+        "https://login.microsoftonline.com/not-a-tenant/v2.0",
+        false)]
+    [InlineData(
+        "https://login.microsoftonline.com/consumers/v2.0",
+        "https://login.microsoftonline.com/9188040d-6c67-4c5b-b112-36a304b66dad/v2.0",
+        true)]
+    [InlineData(
+        "https://login.microsoftonline.com/consumers/v2.0",
+        "https://login.microsoftonline.com/11111111-1111-1111-1111-111111111111/v2.0",
+        false)]
+    [InlineData(
+        "https://login.microsoftonline.com/11111111-1111-1111-1111-111111111111/v2.0",
+        "https://login.microsoftonline.com/22222222-2222-2222-2222-222222222222/v2.0",
+        false)]
+    public void MicrosoftIssuerMustMatchConfiguredTenantStrategy(
+        string authority,
+        string issuer,
+        bool expected)
+    {
+        Assert.Equal(expected, OidcSetup.IsTrustedMicrosoftIssuer(authority, issuer));
+    }
+
+    /// <summary>
+    /// Fremde Issuer dürfen nicht unter dem Namen eines bekannten Anbieters auftreten.
+    /// </summary>
+    /// <param name="provider">Der deklarierte Anbieter.</param>
+    /// <param name="authority">Der zu prüfende Issuer.</param>
+    [Theory]
+    [InlineData("apple", "https://issuer.example.invalid")]
+    [InlineData("apple", "https://appleid.apple.com.evil.invalid")]
+    [InlineData("microsoft", "https://issuer.example.invalid")]
+    [InlineData("microsoft", "https://login.microsoftonline.com/common/v2.0")]
+    public void ProviderAuthorityMustMatchDeclaredProvider(string provider, string authority)
+    {
+        var configuration = CreateConfiguration(new Dictionary<string, string?>
+        {
+            [$"Oidc:Providers:{provider}:Authority"] = authority,
+            [$"Oidc:Providers:{provider}:ClientId"] = "client",
+            [$"Oidc:Providers:{provider}:ClientSecret"] = "secret",
+        });
+
+        Assert.Null(OidcSetup.ProviderScheme(configuration, provider));
+    }
+
+    /// <summary>
+    /// OAuth credentials do not activate a generic OIDC provider.
+    /// </summary>
+    [Fact]
+    public void IndependentOAuthProvidersRequireCompleteCredentials()
+    {
+        var configuration = CreateConfiguration(new Dictionary<string, string?>
+        {
+            ["GithubOAuth:ClientId"] = "github-id",
+            ["FacebookOAuth:ClientId"] = "facebook-id",
+            ["Oidc:Providers:github:Authority"] = "https://github.com",
+            ["Oidc:Providers:github:ClientId"] = "incorrect",
+            ["Oidc:Providers:github:ClientSecret"] = "incorrect",
+        });
+
+        Assert.False(GithubOAuthSetup.IsEnabled(configuration));
+        Assert.False(FacebookOAuthSetup.IsEnabled(configuration));
+        Assert.Null(OidcSetup.ProviderScheme(configuration, "github"));
+        Assert.Null(OidcSetup.ProviderScheme(configuration, "facebook"));
+
+        configuration["GithubOAuth:ClientSecret"] = "github-secret";
+        configuration["FacebookOAuth:ClientSecret"] = "facebook-secret";
+
+        Assert.True(GithubOAuthSetup.IsEnabled(configuration));
+        Assert.True(FacebookOAuthSetup.IsEnabled(configuration));
+        Assert.Null(OidcSetup.ProviderScheme(configuration, "github"));
+        Assert.Null(OidcSetup.ProviderScheme(configuration, "facebook"));
     }
 
     private static IConfiguration CreateConfiguration(Dictionary<string, string?> values) =>

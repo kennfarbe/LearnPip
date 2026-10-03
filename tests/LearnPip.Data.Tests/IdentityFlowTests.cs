@@ -275,14 +275,14 @@ public sealed class IdentityFlowTests
             {
                 var identity = scope.ServiceProvider.GetRequiredService<IdentityService>();
                 var oidcAccount = await identity.ResolveOidcAsync(
-                    "https://identity.example.org",
+                    "https://appleid.apple.com",
                     "subject-1",
                     created.AccountId,
                     CancellationToken.None);
                 Assert.Equal(created.AccountId, oidcAccount);
                 var expectedResult2 = created.AccountId;
                 var actualResult3 = await identity.ResolveOidcAsync(
-                    "https://identity.example.org",
+                    "https://appleid.apple.com",
                     "subject-1",
                     null,
                     CancellationToken.None);
@@ -291,10 +291,43 @@ public sealed class IdentityFlowTests
                     actualResult3);
                 await Assert.ThrowsAsync<IdentityConflictException>(() =>
                     identity.ResolveOidcAsync(
-                        "https://identity.example.org",
+                        "https://appleid.apple.com",
                         "subject-1",
                         Guid.NewGuid(),
                         CancellationToken.None));
+
+                var providerOnlyAccount = await identity.ResolveOidcAsync(
+                    "https://github.com",
+                    "subject-only",
+                    null,
+                    CancellationToken.None);
+                await Assert.ThrowsAsync<IdentityConflictException>(() =>
+                    identity.UnlinkOidcAsync(
+                        "https://github.com",
+                        providerOnlyAccount,
+                        CancellationToken.None));
+                await identity.RotateRecoveryAsync(providerOnlyAccount, CancellationToken.None);
+                Assert.True(await identity.UnlinkOidcAsync(
+                    "https://github.com",
+                    providerOnlyAccount,
+                    CancellationToken.None));
+            }
+
+            Assert.Equal(
+                HttpStatusCode.NoContent,
+                (await linked.DeleteAsync("/api/v1/auth/providers/apple/link")).StatusCode);
+            Assert.Equal(
+                HttpStatusCode.NotFound,
+                (await linked.DeleteAsync("/api/v1/auth/providers/apple/link")).StatusCode);
+
+            using (var scope = factory.Services.CreateScope())
+            {
+                var identity = scope.ServiceProvider.GetRequiredService<IdentityService>();
+                await identity.ResolveOidcAsync(
+                    "https://appleid.apple.com",
+                    "subject-1",
+                    created.AccountId,
+                    CancellationToken.None);
             }
 
             await using (var db = new LearnPipDbContext(options))
@@ -307,7 +340,7 @@ public sealed class IdentityFlowTests
                 Assert.Equal(
                     1,
                     actualResult4);
-                Assert.Equal(1, await db.Accounts.CountAsync());
+                Assert.Equal(2, await db.Accounts.CountAsync());
                 Assert.All(
                     await db.EmailLoginCodes.ToListAsync(),
                     item =>

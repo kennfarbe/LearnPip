@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace LearnPip.Api.Identity;
 
@@ -32,6 +33,51 @@ public static class OidcSetup
     /// <returns>Enabled provider names.</returns>
     public static string[] EnabledProviders(IConfiguration configuration) =>
         ProviderNames.Where(name => IsConfigured(configuration, name)).ToArray();
+
+    /// <summary>Validates a Microsoft issuer against the configured tenant strategy.</summary>
+    /// <param name="authority">The configured Microsoft authority.</param>
+    /// <param name="issuer">The issuer from the validated identity token.</param>
+    /// <returns>Whether the issuer belongs to the configured tenant strategy.</returns>
+    public static bool IsTrustedMicrosoftIssuer(string authority, string issuer)
+    {
+        if (!Uri.TryCreate(authority, UriKind.Absolute, out var configured) ||
+            !Uri.TryCreate(issuer, UriKind.Absolute, out var actual) ||
+            !configured.Host.Equals("login.microsoftonline.com", StringComparison.OrdinalIgnoreCase) ||
+            !actual.Host.Equals(configured.Host, StringComparison.OrdinalIgnoreCase) ||
+            configured.Scheme != Uri.UriSchemeHttps ||
+            actual.Scheme != Uri.UriSchemeHttps ||
+            !configured.IsDefaultPort || !actual.IsDefaultPort ||
+            !string.IsNullOrEmpty(actual.Query) || !string.IsNullOrEmpty(actual.Fragment))
+        {
+            return false;
+        }
+
+        var configuredSegments = configured.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var actualSegments = actual.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (configuredSegments.Length != 2 ||
+            !configuredSegments[1].Equals("v2.0", StringComparison.Ordinal) ||
+            actualSegments.Length != 2 ||
+            !actualSegments[1].Equals("v2.0", StringComparison.Ordinal) ||
+            !Guid.TryParseExact(actualSegments[0], "D", out _))
+        {
+            return false;
+        }
+
+        if (configuredSegments[0] == "organizations")
+        {
+            return true;
+        }
+
+        if (configuredSegments[0] == "consumers")
+        {
+            return actualSegments[0].Equals(
+                "9188040d-6c67-4c5b-b112-36a304b66dad",
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        return Guid.TryParseExact(configuredSegments[0], "D", out _) &&
+            configuredSegments[0].Equals(actualSegments[0], StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>Returns the authentication scheme for a validated configured provider.</summary>
     /// <param name="configuration">The application configuration.</param>
@@ -92,9 +138,36 @@ public static class OidcSetup
     }
 
     private static bool IsConfigured(IConfiguration configuration, string name) =>
-        HasHttpsAuthority(configuration[$"Oidc:Providers:{name}:Authority"]) &&
+        HasProviderAuthority(name, configuration[$"Oidc:Providers:{name}:Authority"]) &&
         !string.IsNullOrWhiteSpace(configuration[$"Oidc:Providers:{name}:ClientId"]) &&
         !string.IsNullOrWhiteSpace(configuration[$"Oidc:Providers:{name}:ClientSecret"]);
+
+    private static bool HasProviderAuthority(string name, string? authority)
+    {
+        if (!HasHttpsAuthority(authority) ||
+            !Uri.TryCreate(authority, UriKind.Absolute, out var uri))
+        {
+            return false;
+        }
+
+        if (name == "apple")
+        {
+            return uri.Host.Equals("appleid.apple.com", StringComparison.OrdinalIgnoreCase) &&
+                uri.IsDefaultPort && uri.AbsolutePath is "/";
+        }
+
+        if (name == "microsoft")
+        {
+            var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            return uri.Host.Equals("login.microsoftonline.com", StringComparison.OrdinalIgnoreCase) &&
+                uri.IsDefaultPort && segments.Length == 2 &&
+                segments[1].Equals("v2.0", StringComparison.Ordinal) &&
+                (Guid.TryParseExact(segments[0], "D", out _) ||
+                    segments[0] is "organizations" or "consumers");
+        }
+
+        return false;
+    }
 
     private static bool HasHttpsAuthority(string? authority) =>
         Uri.TryCreate(authority, UriKind.Absolute, out var uri) &&
@@ -124,14 +197,36 @@ public static class OidcSetup
                 options.ClientId = configuration[section + ":ClientId"]!;
                 options.ClientSecret = configuration[section + ":ClientSecret"]!;
                 options.ResponseType = "code";
+                if (scheme == Scheme + "-apple")
+                {
+                    // Apple delivers its web authorization response via cross-site form POST.
+                    options.ResponseMode = "form_post";
+                    options.CorrelationCookie.SameSite = SameSiteMode.None;
+                    options.NonceCookie.SameSite = SameSiteMode.None;
+                }
+
                 options.UsePkce = true;
                 options.SaveTokens = false;
                 options.MapInboundClaims = false;
                 options.RequireHttpsMetadata = true;
+                if (scheme == Scheme + "-microsoft")
+                {
+                    options.TokenValidationParameters.IssuerValidator = (issuer, _, _) =>
+                        IsTrustedMicrosoftIssuer(authority, issuer)
+                            ? issuer
+                            : throw new SecurityTokenInvalidIssuerException(
+                                "The Microsoft issuer is outside the configured tenant strategy.");
+                }
+
                 options.SignInScheme = "oidc-temporary";
                 options.CallbackPath = callback;
                 options.Scope.Clear();
                 options.Scope.Add("openid");
+                if (scheme == Scheme + "-apple")
+                {
+                    options.Scope.Add("email");
+                }
+
                 options.Events.OnTicketReceived = async context =>
                 {
                     context.HandleResponse();
@@ -142,50 +237,12 @@ public static class OidcSetup
                         return;
                     }
 
-                    Guid? linkingAccountId = null;
-                    if (context.Properties?.Items.TryGetValue(LinkSessionKey, out var value) == true)
-                    {
-                        if (!Guid.TryParse(value, out var sessionId))
-                        {
-                            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                            return;
-                        }
-
-                        var dbContext = context.HttpContext.RequestServices
-                            .GetRequiredService<LearnPipDbContext>();
-                        var now = DateTimeOffset.UtcNow;
-                        linkingAccountId = await dbContext.AccountSessions.AsNoTracking()
-                            .Where(session => session.Id == sessionId &&
-                                              session.RevokedAtUtc == null &&
-                                              session.ExpiresAtUtc > now &&
-                                              session.Account.DeletedAtUtc == null)
-                            .Select(session => (Guid?)session.AccountId)
-                            .SingleOrDefaultAsync(context.HttpContext.RequestAborted);
-                        if (!linkingAccountId.HasValue)
-                        {
-                            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                            return;
-                        }
-                    }
-
-                    var identity = context.HttpContext.RequestServices.GetRequiredService<IdentityService>();
-                    try
-                    {
-                        var accountId = await identity.ResolveOidcAsync(
-                            authority,
-                            subject,
-                            linkingAccountId,
-                            context.HttpContext.RequestAborted);
-                        var sessions = context.HttpContext.RequestServices.GetRequiredService<SessionService>();
-                        var grant = await sessions.CreateAsync(accountId, context.HttpContext.RequestAborted);
-                        SessionAuthentication.SetCookie(context.HttpContext, grant.Token, grant.ExpiresAtUtc);
-                        var path = configuration[section + ":PostLoginPath"];
-                        context.Response.Redirect(IsSafePath(path) ? path! : "/");
-                    }
-                    catch (IdentityConflictException)
-                    {
-                        context.Response.StatusCode = StatusCodes.Status409Conflict;
-                    }
+                    await ExternalLoginCompletion.CompleteAsync(
+                        context.HttpContext,
+                        context.Properties,
+                        authority,
+                        subject,
+                        configuration[section + ":PostLoginPath"]);
                 };
                 options.Events.OnRemoteFailure = context =>
                 {
@@ -195,9 +252,4 @@ public static class OidcSetup
                 };
             });
     }
-
-    private static bool IsSafePath(string? path) =>
-        !string.IsNullOrWhiteSpace(path) &&
-        path.StartsWith('/') && !path.StartsWith("//", StringComparison.Ordinal) &&
-        !path.Contains('\r') && !path.Contains('\n');
 }

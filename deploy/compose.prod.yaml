@@ -72,6 +72,8 @@ services:
       Oidc__Providers__apple__ClientId: ${LEARNPIP_APPLE_OIDC_CLIENT_ID:-}
       Oidc__Providers__microsoft__Authority: ${LEARNPIP_MICROSOFT_OIDC_AUTHORITY:-}
       Oidc__Providers__microsoft__ClientId: ${LEARNPIP_MICROSOFT_OIDC_CLIENT_ID:-}
+      GithubOAuth__ClientId: ${LEARNPIP_GITHUB_OAUTH_CLIENT_ID:-}
+      FacebookOAuth__ClientId: ${LEARNPIP_FACEBOOK_OAUTH_CLIENT_ID:-}
       Ai__AllowedModes: ${LEARNPIP_AI_ALLOWED_MODES:-off}
       Ai__CloudEndpoint: ${LEARNPIP_AI_CLOUD_ENDPOINT:-}
       Ai__CloudModel: ${LEARNPIP_AI_CLOUD_MODEL:-}
@@ -93,6 +95,8 @@ services:
       - Oidc__ClientSecret
       - Oidc__Providers__apple__ClientSecret
       - Oidc__Providers__microsoft__ClientSecret
+      - GithubOAuth__ClientSecret
+      - FacebookOAuth__ClientSecret
       - Ai__CloudKey
       - Ai__KeyEncryptionKey
     networks:
@@ -211,6 +215,10 @@ secrets:
     file: ./secrets/Oidc__Providers__apple__ClientSecret
   Oidc__Providers__microsoft__ClientSecret:
     file: ./secrets/Oidc__Providers__microsoft__ClientSecret
+  GithubOAuth__ClientSecret:
+    file: ./secrets/GithubOAuth__ClientSecret
+  FacebookOAuth__ClientSecret:
+    file: ./secrets/FacebookOAuth__ClientSecret
   Ai__CloudKey:
     file: ./secrets/Ai__CloudKey
   Ai__KeyEncryptionKey:

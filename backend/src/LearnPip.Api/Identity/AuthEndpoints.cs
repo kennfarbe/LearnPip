@@ -50,6 +50,16 @@ public static class AuthEndpoints
             .RequireRateLimiting("auth")
             .Produces<ApiResponse<SessionGrant>>()
             .ProducesProblem(StatusCodes.Status401Unauthorized);
+        auth.MapGet("/facebook/start", (IConfiguration configuration) =>
+            FacebookOAuthSetup.IsEnabled(configuration)
+                ? Results.Challenge(new AuthenticationProperties { RedirectUri = "/" }, [FacebookOAuthSetup.Scheme])
+                : Results.NotFound())
+            .RequireRateLimiting("auth");
+        auth.MapGet("/github/start", (IConfiguration configuration) =>
+            GithubOAuthSetup.IsEnabled(configuration)
+                ? Results.Challenge(new AuthenticationProperties { RedirectUri = "/" }, [GithubOAuthSetup.Scheme])
+                : Results.NotFound())
+            .RequireRateLimiting("auth");
         auth.MapGet("/oidc/providers", (IConfiguration configuration) =>
             Results.Ok(OidcSetup.EnabledProviders(configuration)))
             .Produces<string[]>();
@@ -93,7 +103,41 @@ public static class AuthEndpoints
             CompleteEmailLink)
             .RequireRateLimiting("auth")
             .Produces(StatusCodes.Status204NoContent);
+        secured.MapGet("/facebook/link/start", (IConfiguration configuration, ClaimsPrincipal principal) =>
+        {
+            if (!FacebookOAuthSetup.IsEnabled(configuration))
+            {
+                return Results.NotFound();
+            }
+
+            if (!SessionAuthentication.TryGetSessionId(principal, out var sessionId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var properties = new AuthenticationProperties { RedirectUri = "/" };
+            properties.Items[OidcSetup.LinkSessionKey] = sessionId.ToString();
+            return Results.Challenge(properties, [FacebookOAuthSetup.Scheme]);
+        }).RequireRateLimiting("auth");
+        secured.MapGet("/github/link/start", (IConfiguration configuration, ClaimsPrincipal principal) =>
+        {
+            if (!GithubOAuthSetup.IsEnabled(configuration))
+            {
+                return Results.NotFound();
+            }
+
+            if (!SessionAuthentication.TryGetSessionId(principal, out var sessionId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var properties = new AuthenticationProperties { RedirectUri = "/" };
+            properties.Items[OidcSetup.LinkSessionKey] = sessionId.ToString();
+            return Results.Challenge(properties, [GithubOAuthSetup.Scheme]);
+        }).RequireRateLimiting("auth");
         secured.MapGet("/oidc/{provider}/link/start", StartNamedOidcLink)
+            .RequireRateLimiting("auth");
+        secured.MapDelete("/providers/{provider}/link", UnlinkProvider)
             .RequireRateLimiting("auth");
         secured.MapGet(
             "/oidc/link/start",
@@ -219,6 +263,46 @@ public static class AuthEndpoints
         var properties = new AuthenticationProperties { RedirectUri = "/" };
         properties.Items[OidcSetup.LinkSessionKey] = sessionId.ToString();
         return Results.Challenge(properties, [scheme]);
+    }
+
+    private static async Task<IResult> UnlinkProvider(
+        string provider,
+        IConfiguration configuration,
+        ClaimsPrincipal principal,
+        IdentityService identity,
+        CancellationToken cancellationToken)
+    {
+        if (!AccountIdentity.TryGetAccountId(principal, out var accountId) ||
+            !SessionAuthentication.TryGetSessionId(principal, out _))
+        {
+            return Results.Unauthorized();
+        }
+
+        var issuer = provider switch
+        {
+            "apple" => "https://appleid.apple.com",
+            "microsoft" when !string.IsNullOrWhiteSpace(configuration["Oidc:Providers:microsoft:Authority"]) =>
+                configuration["Oidc:Providers:microsoft:Authority"]!.TrimEnd('/'),
+            "github" => "https://github.com",
+            "facebook" when !string.IsNullOrWhiteSpace(configuration["FacebookOAuth:ClientId"]) =>
+                "https://facebook.com/app/" + configuration["FacebookOAuth:ClientId"],
+            _ => null,
+        };
+        if (issuer == null)
+        {
+            return Results.NotFound();
+        }
+
+        try
+        {
+            return await identity.UnlinkOidcAsync(issuer, accountId, cancellationToken)
+                ? Results.NoContent()
+                : Results.NotFound();
+        }
+        catch (IdentityConflictException)
+        {
+            return Results.Conflict();
+        }
     }
 
     private static IResult StartOidc(IConfiguration configuration)
