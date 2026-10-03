@@ -19,6 +19,20 @@ npm run format:check
 npm run lint
 npm run test:pwa
 npm run build
+npx --no-install playwright install --with-deps chromium
+npm run test:ui
 ```
 
 Die CI verwendet das eingecheckte Lockfile, prüft Prettier, Angular ESLint mit Accessibility-Regeln, den PWA-Test und den Produktionsbuild. ESLint-Warnungen und erkannte Angular-Build-Warnungen führen zum Fehlschlag. Einzelheiten zu Offline-Verhalten und Installation stehen unter [PWA](../../docs/pwa.md).
+
+## Arbeitsbereiche
+
+Die sechs Hauptbereiche besitzen eigene Routen. Verwaltungsrechte werden beim
+Einstieg erneut über die API geprüft. Suche, Editor, Lerneinheit und persönliche
+Einstellungen sind voneinander getrennt. Bedienung, Berechtigungen und die
+noch offene manuelle Screenreader-Abnahme stehen unter
+[Arbeitsbereiche und Navigation](../../docs/UI-WORKSPACES.md).
+
+Die UI-Tests verwenden Chromium, den Produktionsbuild und isolierte API-Fixtures.
+Sie laufen auch in der CI. Für ein bereits installiertes Chromium kann lokal
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` auf dessen Programmdatei gesetzt werden.

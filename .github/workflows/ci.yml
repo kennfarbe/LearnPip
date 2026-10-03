@@ -329,6 +329,16 @@ jobs:
             exit 1
           fi
 
+      - name: Install browser for UI regression tests
+        if: hashFiles('frontend/web/package-lock.json') != ''
+        working-directory: frontend/web
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Test workspace navigation and accessibility
+        if: hashFiles('frontend/web/package-lock.json') != ''
+        working-directory: frontend/web
+        run: npm run test:ui
+
   installer-smoke:
     name: Installer smoke
     runs-on: ubuntu-latest

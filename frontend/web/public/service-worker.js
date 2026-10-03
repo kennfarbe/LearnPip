@@ -25,8 +25,20 @@ self.addEventListener('install', (event) => {
             url.pathname.startsWith(scope.pathname) &&
             /\.(?:js|css)$/.test(url.pathname),
         );
+      const manifest = await fetch(new URL('shell-assets.json', scope).href, { cache: 'reload' });
+      if (!manifest.ok) throw new Error('Could not cache the LearnPip route bundles');
+      const assets = await manifest.json();
+      if (
+        !Array.isArray(assets) ||
+        assets.some(
+          (name) => typeof name !== 'string' || !/^[a-zA-Z0-9_.-]+\.(?:js|css)$/.test(name),
+        )
+      ) {
+        throw new Error('Invalid LearnPip shell asset manifest');
+      }
+      bundles.push(...assets.map((name) => new URL(name, scope)));
       const cache = await caches.open(cacheName);
-      await cache.addAll([...coreAssets, ...bundles].map((url) => url.href));
+      await cache.addAll([...new Set([...coreAssets, ...bundles].map((url) => url.href))]);
       await cache.put(scope.href, page);
     })(),
   );

@@ -1,7 +1,7 @@
 # Mobile Nutzung, Design und PWA
 
 LearnPip passt Kopfbereich, Karten, Formulare und Tabellen an schmale Displays an.
-Im Kopfbereich lässt sich das Design auf **Hell**, **Dunkel** oder **System** stellen.
+Unter **Einstellungen** lässt sich das Design auf **Hell**, **Dunkel** oder **System** stellen.
 Standard ist System. Die Auswahl wird nur lokal im Browser gespeichert. System folgt
 auch einer während der Nutzung geänderten Betriebssystemeinstellung. Ohne Zugriff
 auf den Browserspeicher funktioniert die Auswahl für den aktuellen Besuch.
@@ -18,6 +18,9 @@ Die Verfügbarkeit hängt vom Browser ab; die Webseite bleibt ohne Installation 
 
 Nach dem ersten erfolgreichen Online-Aufruf speichert der Service Worker nur die
 öffentliche Anwendungshülle und statische Skripte, Styles, Fonts und App-Icons.
+Der Build erzeugt `shell-assets.json` mit den statischen Einstiegsskripten und
+verzögert geladenen Routendateien. Diese werden gemeinsam ohne doppelte Einträge
+vorgespeichert, damit auch direkte Arbeitsbereichsaufrufe offline funktionieren.
 API-Antworten und private Medien werden nicht im Service-Worker-Cache gespeichert.
 Offline kann die Oberfläche geöffnet werden; Lernen, Speichern, Anmeldung und andere
 Serverfunktionen benötigen weiterhin eine Verbindung. Es gibt keine Offline-Warteschlange.

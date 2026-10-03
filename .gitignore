@@ -27,3 +27,7 @@ deploy/.env
 Thumbs.db
 deploy/.env.production
 deploy/secrets/
+
+# Browser regression test output
+frontend/web/test-results/
+frontend/web/playwright-report/
