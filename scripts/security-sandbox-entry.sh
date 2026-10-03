@@ -25,4 +25,3 @@ if ! dotnet list source/backend/LearnPip.sln package --vulnerable --include-tran
   echo 'NuGet vulnerability lookup incomplete inside isolated audit sandbox.' >&2
   exit 2
 fi
-python3 scripts/security-report.py nuget /output/nuget.json
