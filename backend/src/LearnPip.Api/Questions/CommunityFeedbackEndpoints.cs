@@ -35,7 +35,107 @@ public static class CommunityFeedbackEndpoints
         moderation.MapGet("/", Inbox);
         moderation.MapGet("/{versionId:guid}", Detail);
         moderation.MapPost("/{versionId:guid}/actions", Act);
+
+        // Sensitive questions stay separate from ordinary learning endpoints.
+        var questions = app.MapGroup("/api/v1/moderation/questions")
+            .WithTags("Private question moderation").RequireAuthorization(ApiPolicies.Moderation);
+        questions.MapPost("/browse", BrowseForModeration).RequireRateLimiting("content-write");
+        questions.MapPost("/{versionId:guid}/inspect", InspectForModeration)
+            .RequireRateLimiting("content-write");
         return app;
+    }
+
+    private static bool ValidModerationReason(string? reason) =>
+        !string.IsNullOrWhiteSpace(reason) &&
+        reason.Trim().Length is >= 10 and <= 500;
+
+    // The browse call is explicit and audited; it discloses only a bounded index.
+    private static async Task<IResult> BrowseForModeration(
+        ModerationBrowseInput input,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
+    {
+        if (!AccountIdentity.TryGetAccountId(user, out var moderatorId))
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!ValidModerationReason(input.Reason) || input.Page is < 0 or > 1000)
+        {
+            return Invalid("reason", "Provide a moderation purpose (10-500 characters) and page 0-1000.");
+        }
+
+        var items = await db.QuestionVersions.AsNoTracking()
+            .Where(version => version.Question.DeletedAtUtc == null &&
+                !db.QuestionVersions.Any(other =>
+                    other.QuestionId == version.QuestionId &&
+                    other.VersionNumber > version.VersionNumber))
+            .OrderBy(version => version.QuestionId)
+            .Select(version => new
+            {
+                version.QuestionId,
+                VersionId = version.Id,
+                version.VersionNumber,
+                version.Visibility,
+                version.Subject,
+                version.Topic,
+            })
+            .Skip(input.Page * 50)
+            .Take(50)
+            .ToListAsync(cancellationToken);
+
+        db.AdministrationAuditEvents.Add(new AdministrationAuditEvent
+        {
+            ActorAccountId = moderatorId,
+            Action = "moderation.questions.browse",
+            Target = $"questions:page:{input.Page}",
+            NewValue = input.Reason.Trim(),
+        });
+        await db.SaveChangesAsync(cancellationToken);
+        return Results.Ok(new ApiResponse<object>(items));
+    }
+
+    // The ordinary question read policy is not broadened by this endpoint.
+    private static async Task<IResult> InspectForModeration(
+        Guid versionId,
+        ModerationInspectInput input,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
+    {
+        if (!AccountIdentity.TryGetAccountId(user, out var moderatorId))
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!ValidModerationReason(input.Reason))
+        {
+            return Invalid("reason", "Provide a moderation purpose of 10-500 characters.");
+        }
+
+        if (!await db.QuestionVersions.AsNoTracking().AnyAsync(version =>
+            version.Id == versionId && version.Question.DeletedAtUtc == null,
+            cancellationToken))
+        {
+            return Results.NotFound();
+        }
+
+        var result = await QuestionEndpoints.LoadVersion(db, versionId, cancellationToken);
+        if (result == null)
+        {
+            return Results.NotFound();
+        }
+
+        db.QuestionModerationEvents.Add(new QuestionModerationEvent
+        {
+            QuestionVersionId = versionId,
+            ModeratorAccountId = moderatorId,
+            Action = "inspect",
+            Note = input.Reason.Trim(),
+        });
+        await db.SaveChangesAsync(cancellationToken);
+        return Results.Ok(new ApiResponse<PublishedQuestionVersion>(result));
     }
 
     private static async Task<Guid?> ReadableVersion(
