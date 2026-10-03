@@ -25,21 +25,21 @@ public static class OidcSetup
     /// </summary>
     public const string LinkSessionKey = "link_session_id";
 
-    private static readonly string[] ProviderNames = ["apple", "microsoft", "github", "facebook"]; 
+    private static readonly string[] ProviderNames = ["apple", "microsoft", "github", "facebook"];
 
     /// <summary>Returns configured OIDC names without exposing credentials.</summary>
+    /// <param name="configuration">The application configuration.</param>
+    /// <returns>Enabled provider names.</returns>
     public static string[] EnabledProviders(IConfiguration configuration) =>
         ProviderNames.Where(name => IsConfigured(configuration, name)).ToArray();
 
     /// <summary>Returns the authentication scheme for a validated configured provider.</summary>
+    /// <param name="configuration">The application configuration.</param>
+    /// <param name="name">The allowed provider name.</param>
+    /// <returns>The scheme, or null for an unavailable provider.</returns>
     public static string? ProviderScheme(IConfiguration configuration, string name) =>
         ProviderNames.Contains(name, StringComparer.Ordinal) && IsConfigured(configuration, name)
             ? Scheme + "-" + name : null;
-
-    private static bool IsConfigured(IConfiguration configuration, string name) =>
-        !string.IsNullOrWhiteSpace(configuration[$"Oidc:Providers:{name}:Authority"]) &&
-        !string.IsNullOrWhiteSpace(configuration[$"Oidc:Providers:{name}:ClientId"]) &&
-        !string.IsNullOrWhiteSpace(configuration[$"Oidc:Providers:{name}:ClientSecret"]);
 
     /// <summary>
     /// Prüft, ob die OIDC-Anmeldung vollständig konfiguriert ist.
@@ -80,15 +80,28 @@ public static class OidcSetup
 
         foreach (var name in providers)
         {
-            AddProvider(authentication, configuration, $"Oidc:Providers:{name}", Scheme + "-" + name,
+            AddProvider(
+                authentication,
+                configuration,
+                $"Oidc:Providers:{name}",
+                Scheme + "-" + name,
                 "/signin-oidc-" + name);
         }
 
         return authentication;
     }
 
-    private static void AddProvider(AuthenticationBuilder authentication, IConfiguration configuration,
-        string section, string scheme, string callback)
+    private static bool IsConfigured(IConfiguration configuration, string name) =>
+        !string.IsNullOrWhiteSpace(configuration[$"Oidc:Providers:{name}:Authority"]) &&
+        !string.IsNullOrWhiteSpace(configuration[$"Oidc:Providers:{name}:ClientId"]) &&
+        !string.IsNullOrWhiteSpace(configuration[$"Oidc:Providers:{name}:ClientSecret"]);
+
+    private static void AddProvider(
+        AuthenticationBuilder authentication,
+        IConfiguration configuration,
+        string section,
+        string scheme,
+        string callback)
     {
         var authority = configuration[section + ":Authority"]!.TrimEnd('/');
         if (!Uri.TryCreate(authority, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)
