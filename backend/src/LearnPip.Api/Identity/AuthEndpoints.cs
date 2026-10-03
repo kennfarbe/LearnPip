@@ -103,6 +103,22 @@ public static class AuthEndpoints
             CompleteEmailLink)
             .RequireRateLimiting("auth")
             .Produces(StatusCodes.Status204NoContent);
+        secured.MapGet("/facebook/link/start", (IConfiguration configuration, ClaimsPrincipal principal) =>
+        {
+            if (!FacebookOAuthSetup.IsEnabled(configuration))
+            {
+                return Results.NotFound();
+            }
+
+            if (!SessionAuthentication.TryGetSessionId(principal, out var sessionId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var properties = new AuthenticationProperties { RedirectUri = "/" };
+            properties.Items[OidcSetup.LinkSessionKey] = sessionId.ToString();
+            return Results.Challenge(properties, [FacebookOAuthSetup.Scheme]);
+        }).RequireRateLimiting("auth");
         secured.MapGet("/github/link/start", (IConfiguration configuration, ClaimsPrincipal principal) =>
         {
             if (!GithubOAuthSetup.IsEnabled(configuration))
