@@ -2,6 +2,8 @@ root = true
 
 [*]
 charset = utf-8
+indent_style = space
+indent_size = 2
 end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
@@ -10,10 +12,10 @@ trim_trailing_whitespace = true
 indent_style = space
 indent_size = 4
 dotnet_sort_system_directives_first = true
-dotnet_style_qualification_for_field = false:suggestion
-dotnet_style_qualification_for_property = false:suggestion
-dotnet_style_qualification_for_method = false:suggestion
-dotnet_style_qualification_for_event = false:suggestion
+dotnet_style_qualification_for_field = true:warning
+dotnet_style_qualification_for_property = true:warning
+dotnet_style_qualification_for_method = true:warning
+dotnet_style_qualification_for_event = true:warning
 csharp_style_namespace_declarations = file_scoped:suggestion
 csharp_style_var_for_built_in_types = true:suggestion
 csharp_style_var_when_type_is_apparent = true:suggestion
@@ -25,6 +27,3 @@ indent_size = 2
 
 [*.md]
 trim_trailing_whitespace = false
-
-[Makefile]
-indent_style = tab

@@ -18,4 +18,4 @@ LearnPip soll als selbst betreibbare Anwendung mit API, Hintergrunddienst und mo
 
 - Gemeinsame Pull Requests können API-Verträge und Oberfläche zusammen ändern; getrennte CI-Jobs zeigen Fehler pro Komponente.
 - Aktualisierungen von Angular/.NET benötigen passende Runtime- und CI-Versionen. Dependabot und reguläre Wartung halten die Versionen aktuell.
-- Der Worker enthält zunächst nur ein startbares Gerüst; konkrete Aufgaben kommen in späteren Issues.
+- Der Worker übernimmt inzwischen den Kontolebenszyklus und die dazugehörigen Warnungen.

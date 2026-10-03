@@ -3,23 +3,23 @@
 **Little steps, lasting knowledge.**  
 *Jeden Tag ein bisschen schlauer.*
 
-LearnPip ist ein geplantes Open-Source-Projekt für kurze, regelmäßige Lerneinheiten. Lernende sollen eigene Fragen erstellen, in kleinen Schritten üben und ihren Fortschritt nachvollziehen können. Der Quellcode und die Entwicklung finden öffentlich in diesem Repository statt.
+LearnPip ist ein Open-Source-Projekt für kurze, regelmäßige Lerneinheiten. Lernende sollen eigene Fragen erstellen, in kleinen Schritten üben und ihren Fortschritt nachvollziehen können. Der Quellcode und die Entwicklung finden öffentlich in diesem Repository statt.
 
-> **Projektstatus:** Konzept- und Aufbauphase. Das Repository enthält inzwischen ein startbares technisches Grundgerüst, aber noch keine nutzbare Lernfunktion. Die hier beschriebenen Produktfunktionen sind Ziele, keine bereits verfügbaren Funktionen.
+> **Projektstatus (2. Oktober 2026):** LearnPip besitzt ein startbares Backend und eine responsive Angular-Weboberfläche mit privaten Fragen und Medien, Lernsitzungen, Fortschritt, Gruppen, Prüfungsübungen, Identitätswegen und optionalen KI-Betriebsarten. Der Release-/Installationsweg ist vorhanden. Die Admin-Web-Updates aus Issues #75–#77 befinden sich in PR #91 und benötigen nach Veröffentlichung einen gesondert eingerichteten Host-Operator. Einzelne rechtliche, betriebliche und Freigabeprozesse sind weiterhin offen.
 
 ## Für wen ist LearnPip gedacht?
 
-LearnPip richtet sich an Menschen, die Schulstoff, Ausbildungsthemen oder Prüfungsinhalte in ihrem eigenen Tempo üben möchten. Später sollen auch Lehrende und Gruppenverantwortliche gemeinsame Fragen und Lernräume verwalten können. Die erste Version konzentriert sich auf den persönlichen Lernbereich.
+LearnPip richtet sich an Menschen, die Schulstoff, Ausbildungsthemen oder Prüfungsinhalte in ihrem eigenen Tempo üben möchten. Neben dem persönlichen Lernbereich gibt es bereits gruppenbezogene Funktionen; spätere Erweiterungen bleiben im Issue-Tracker dokumentiert.
 
-Der geplante Kernablauf lautet:
+Der Kernablauf lautet:
 
 1. **Frage erstellen:** Eine eigene Frage mit Antwort und Erklärung anlegen.
 2. **Kurz üben:** In einer kleinen Lerneinheit Fragen beantworten und die Lösung verstehen.
 3. **Fortschritt sehen:** Erkennen, was schon klappt und was noch Übung braucht.
 
-## Geplanter Umfang der ersten nutzbaren Version
+## Verfügbare Funktionen und Grenzen
 
-Der erste Meilenstein für Nutzerinnen und Nutzer (MVP) soll Folgendes ermöglichen:
+Der aktuelle Code umfasst unter anderem:
 
 - ohne verpflichtende E-Mail-Adresse beginnen und einen Zugang wiederherstellen;
 - eigene Textfragen und Bildfragen als private Inhalte anlegen;
@@ -28,23 +28,23 @@ Der erste Meilenstein für Nutzerinnen und Nutzer (MVP) soll Folgendes ermöglic
 - die Weboberfläche auch auf einem Smartphone verwenden;
 - LearnPip mit Docker Compose und PostgreSQL selbst betreiben.
 
-Automatische KI-Auswertung, Gruppen, öffentliche Fragenkataloge und Prüfungssimulationen gehören **nicht** zum ersten nutzbaren Umfang. Auch ohne KI soll LearnPip verwendbar sein. Die konkrete Umsetzung und Reihenfolge stehen in den [GitHub-Issues](https://github.com/kennfarbe/LearnPip/issues) und [Meilensteinen](https://github.com/kennfarbe/LearnPip/milestones).
+Die Umsetzung enthält inzwischen optionale KI-Betriebsarten (standardmäßig `off`), Gruppen, einen moderierten Freigabeablauf und Prüfungssimulationen. Nicht jede Funktion ist damit bereits rechtlich oder betrieblich für eine öffentliche Instanz freigegeben. Aktuelle Arbeiten und offene Punkte stehen in den [GitHub-Issues](https://github.com/kennfarbe/LearnPip/issues) und [Meilensteinen](https://github.com/kennfarbe/LearnPip/milestones).
 
 ## Inhalte und Sichtbarkeit
 
-Die folgenden Bereiche sind für spätere Ausbaustufen geplant; aktuell gibt es noch keine Freigabe- oder Veröffentlichungsfunktion:
+Für private, gruppenbezogene und öffentliche Inhalte sind unterschiedliche Berechtigungswege im Code vorgesehen. Öffentliche Beiträge unterliegen Moderation und getrennten Inhaltsrechten:
 
-| Bereich | Geplantes Verhalten |
+| Bereich | Berechtigungsprinzip |
 | --- | --- |
 | Private Fragen und Fotos | Nur für die berechtigte Person sichtbar; keine automatische Veröffentlichung. |
-| Geschlossene Gruppen | Für Mitglieder der jeweiligen Gruppe verfügbar, mit eigenen Rollen und Freigaben. |
-| Öffentlicher Fragenpool | Nur nach ausdrücklicher Freigabe und Prüfung von Inhalt und Nutzungsrechten zugänglich. |
+| Geschlossene Gruppen | Nur für Mitglieder der jeweiligen Gruppe mit passender Rolle und Freigabe. |
+| Öffentliche Inhalte | Nur nach ausdrücklicher Einreichung, Rechteentscheidung und Moderation. |
 
 Die Code-Lizenz erteilt keine Rechte an hochgeladenen Aufgaben, Antworten, Erklärungen, Fotos oder anderen Nutzerinhalten. Öffentliche Inhalte benötigen eine gesonderte, verständliche Freigabe und Lizenzentscheidung.
 
 ## Technischer Ansatz
 
-Das gemeinsame Repository enthält getrennte Projekte und Docker-Images für eine ASP.NET-Core-API auf .NET 10, einen Hintergrunddienst und ein Angular-Webfrontend. Stabile Releases veröffentlichen diese Images automatisch unter `kennfarbe/learnpip` auf Docker Hub; Produktionsinstallationen verwenden einen festen Release-Tag. PostgreSQL soll die Daten speichern. Die Anmeldung soll OpenID Connect für externe Identitätsanbieter unterstützen; weitere Zugangswege für die persönliche Nutzung sind vorgesehen. Eine versionierte API soll später auch von einer mobilen App genutzt werden können.
+Das gemeinsame Repository enthält getrennte Projekte und Docker-Images für eine ASP.NET-Core-API auf .NET 10, einen Hintergrunddienst und ein Angular-Webfrontend. Stabile Releases veröffentlichen diese Images automatisch unter `kennfarbe/learnpip` auf Docker Hub; Produktionsinstallationen verwenden einen festen Release-Tag. PostgreSQL speichert die Daten. Zur Anmeldung gibt es unter anderem pseudonyme Konten, E-Mail-Codes und optional OpenID Connect. Die versionierte API kann später auch von einer nativen App genutzt werden.
 
 Der technische Aufbau mit [C1-Systemkontext, C2-Containerübersicht und ADRs](docs/architecture/README.md) beschreibt die Architektur. Den lokalen Stack kannst du mit der [Entwicklungsanleitung](docs/DEVELOPMENT.md) starten; für eine veröffentlichte Version gibt es die [Installation und Aktualisierung aus einem Release](docs/RELEASE-INSTALL.md), für Proxmox die [Schritt-für-Schritt-Installation](docs/PROXMOX.md) und für den laufenden Betrieb die [Betriebsanleitung](docs/OPERATIONS.md). Das [Datenmodell und die Wiederherstellung](docs/DATABASE.md) sind ebenfalls dokumentiert. Der [API-v1-Vertrag](docs/API.md) beschreibt Endpunkte und Berechtigungen; [Konten und Identitätswege](docs/IDENTITY.md) erläutert die Anmeldung.
 
@@ -72,10 +72,10 @@ Eine **optionale individuelle kommerzielle Lizenz** kann für Code angeboten wer
 
 Die [Lizenzübersicht](docs/LICENSING.md) grenzt Programmcode von Dokumentation, Marke, Abhängigkeiten und Nutzerinhalten ab. Aufgaben, Antworten, Fotos und andere Nutzerinhalte werden durch die Code-Lizenz nicht automatisch an LearnPip lizenziert. Eine öffentliche Inhaltslizenz muss separat gewählt und vor einer Veröffentlichung angezeigt werden.
 
-Du möchtest mithelfen? Sieh dir die [offenen Issues](https://github.com/kennfarbe/LearnPip/issues) an und diskutiere eine Idee dort, bevor du größere Änderungen beginnst. Eine ausführliche Beitragsanleitung folgt mit Issue #3. Für Sicherheitsmeldungen wird ein eigener Meldeweg in [Issue #4](https://github.com/kennfarbe/LearnPip/issues/4) eingerichtet.
+Du möchtest mithelfen? Sieh dir die [offenen Issues](https://github.com/kennfarbe/LearnPip/issues) an und diskutiere eine Idee dort, bevor du größere Änderungen beginnst. Vor externen Codebeiträgen muss der in [Issue #3](https://github.com/kennfarbe/LearnPip/issues/3) vorgesehene CLA-Prozess geklärt sein. Sicherheitslücken bitte über den privaten Meldeweg in [SECURITY.md](SECURITY.md) einreichen.
 
 ## Lizenzhinweis für spätere gehostete Installationen
 
-Das Repository enthält noch keine lauffähige Anwendung. Sobald LearnPip über ein Netzwerk betrieben werden kann, soll die Oberfläche einen gut sichtbaren Link zum passenden Quellcode-Stand und zur Lizenz enthalten. Der Link muss zur Version passen, die der Betreiber tatsächlich einsetzt.
+Das Repository enthält eine startbare Anwendung. Bei einem Netzwerkbetrieb müssen die AGPL-Pflichten und der Verweis auf den Quellcode der **tatsächlich installierten Version** berücksichtigt werden. Der Link muss zur Version passen, die der Betreiber tatsächlich einsetzt.
 
 [Datenexport, Selbstlöschung und Missbrauchsschutz](docs/DATA-RIGHTS.md)

@@ -7,10 +7,14 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LearnPip.Data.Migrations;
 
+/// <summary>
+/// Enthält die Schemaänderungen der Datenbankmigration Administration.
+/// </summary>
 [DbContext(typeof(LearnPipDbContext))]
 [Migration("20260929070000_Administration")]
 public sealed class Administration : Migration
 {
+    /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.CreateTable(
@@ -44,6 +48,7 @@ public sealed class Administration : Migration
         migrationBuilder.CreateIndex("IX_AdministrationAuditEvents_CreatedAtUtc", "AdministrationAuditEvents", "CreatedAtUtc");
     }
 
+    /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable("AdministrationAuditEvents");

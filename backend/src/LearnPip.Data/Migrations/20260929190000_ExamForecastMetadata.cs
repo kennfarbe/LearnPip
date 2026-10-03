@@ -4,10 +4,14 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LearnPip.Data.Migrations;
 
+/// <summary>
+/// Enthält die Schemaänderungen der Datenbankmigration ExamForecastMetadata.
+/// </summary>
 [DbContext(typeof(LearnPipDbContext))]
 [Migration("20260929190000_ExamForecastMetadata")]
 public sealed class ExamForecastMetadata : Migration
 {
+    /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.AddColumn<string>("ScheduleJson", "ExamProfileVersions", "text",
@@ -18,6 +22,7 @@ public sealed class ExamForecastMetadata : Migration
             nullable: true);
     }
 
+    /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropColumn("ScheduleJson", "ExamProfileVersions");

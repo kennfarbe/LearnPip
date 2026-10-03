@@ -7,10 +7,14 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LearnPip.Data.Migrations;
 
+/// <summary>
+/// Enthält die Schemaänderungen der Datenbankmigration CommunityFeedback.
+/// </summary>
 [DbContext(typeof(LearnPipDbContext))]
 [Migration("20260929170000_CommunityFeedback")]
 public sealed class CommunityFeedback : Migration
 {
+    /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.CreateTable("QuestionReports", columns: table => new
@@ -95,6 +99,7 @@ public sealed class CommunityFeedback : Migration
             "QuestionModerationEvents", "ModeratorAccountId");
     }
 
+    /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable("QuestionModerationEvents");

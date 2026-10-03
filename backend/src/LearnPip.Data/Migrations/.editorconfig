@@ -1,0 +1,40 @@
+# Entity Framework Core regenerates migrations and the model snapshot.
+# Keep generated C# isolated from hand-written formatting conventions.
+# Compiler, security and Sonar code-quality diagnostics remain enabled.
+root = false
+
+[*.cs]
+indent_style = space
+indent_size = 4
+
+# EF-generated code is not rewritten to satisfy hand-written member qualification.
+dotnet_diagnostic.SA1101.severity = none
+dotnet_diagnostic.IDE0009.severity = none
+
+# StyleCop layout/documentation rules are formatting concerns for generated files.
+dotnet_diagnostic.SA0001.severity = none
+dotnet_diagnostic.SA1116.severity = none
+dotnet_diagnostic.SA1117.severity = none
+dotnet_diagnostic.SA1118.severity = none
+dotnet_diagnostic.SA1122.severity = none
+dotnet_diagnostic.SA1201.severity = none
+dotnet_diagnostic.SA1202.severity = none
+dotnet_diagnostic.SA1204.severity = none
+dotnet_diagnostic.SA1402.severity = none
+dotnet_diagnostic.SA1407.severity = none
+dotnet_diagnostic.SA1408.severity = none
+dotnet_diagnostic.SA1413.severity = none
+dotnet_diagnostic.SA1500.severity = none
+dotnet_diagnostic.SA1501.severity = none
+dotnet_diagnostic.SA1503.severity = none
+dotnet_diagnostic.SA1513.severity = none
+dotnet_diagnostic.SA1515.severity = none
+dotnet_diagnostic.SA1516.severity = none
+dotnet_diagnostic.SA1519.severity = none
+dotnet_diagnostic.SA1520.severity = none
+dotnet_diagnostic.SA1633.severity = none
+dotnet_diagnostic.SA1649.severity = none
+
+# EF generates inline arrays in migration definitions; do not alter generated output.
+# CA1861 stays enabled in every hand-written C# file outside this directory.
+dotnet_diagnostic.CA1861.severity = none

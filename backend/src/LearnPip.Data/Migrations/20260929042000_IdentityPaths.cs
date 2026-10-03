@@ -5,8 +5,12 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LearnPip.Data.Migrations;
 
+/// <summary>
+/// Enthält die Schemaänderungen der Datenbankmigration IdentityPaths.
+/// </summary>
 public partial class IdentityPaths : Migration
 {
+    /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.CreateTable(
@@ -110,6 +114,7 @@ public partial class IdentityPaths : Migration
             columns: new[] { "Email", "Purpose", "CreatedAtUtc" });
     }
 
+    /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable(name: "EmailLoginCodes");

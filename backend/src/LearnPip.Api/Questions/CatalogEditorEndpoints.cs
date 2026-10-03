@@ -1,3 +1,7 @@
+// <copyright file="CatalogEditorEndpoints.cs" company="LearnPip contributors">
+// Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
+// </copyright>
+
 using System.Security.Claims;
 using System.Text.Json;
 using LearnPip.Api.Security;
@@ -8,15 +12,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
 
-public sealed record CatalogInput(string Name);
-public sealed record CatalogView(Guid Id, string Name, int QuestionCount);
-public sealed record DraftSaveRequest(QuestionPublishRequest Content, Guid? CatalogId);
-public sealed record DraftView(Guid QuestionId, Guid? CatalogId, int LatestVersion,
-    DateTimeOffset UpdatedAtUtc, QuestionPublishRequest Content);
-public sealed record CatalogMoveRequest(Guid? CatalogId);
-
+/// <summary>
+/// Registriert HTTP-Endpunkte für die Bearbeitung privater Fragenkataloge.
+/// </summary>
 public static class CatalogEditorEndpoints
 {
+    /// <summary>
+    /// Registriert HTTP-Endpunkte für die Bearbeitung privater Fragenkataloge.
+    /// </summary>
+    /// <param name="app">Der Routen-Builder der API.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     public static IEndpointRouteBuilder MapCatalogEditorEndpoints(this IEndpointRouteBuilder app)
     {
         var catalogs = app.MapGroup("/api/v1/catalogs").WithTags("Private catalogs")
@@ -32,78 +37,210 @@ public static class CatalogEditorEndpoints
         drafts.MapGet("/drafts", ListDrafts);
         drafts.MapPost("/drafts", CreateDraft).RequireRateLimiting("content-write")
             .WithMetadata(new RequestSizeLimitAttribute(70 * 1024));
-        drafts.MapPost("/{id:guid}/variants/drafts", CreateVariantDraft)
+        drafts.MapPost(
+            "/{id:guid}/variants/drafts",
+            CreateVariantDraft)
             .WithMetadata(new RequestSizeLimitAttribute(70 * 1024));
         drafts.MapGet("/{id:guid}/draft", ReadDraft);
-        drafts.MapPut("/{id:guid}/draft", SaveDraft)
+        drafts.MapPut(
+            "/{id:guid}/draft",
+            SaveDraft)
             .WithMetadata(new RequestSizeLimitAttribute(70 * 1024));
         drafts.MapPost("/{id:guid}/publish", PublishDraft);
         drafts.MapPut("/{id:guid}/catalog", MoveQuestion);
         return app;
     }
 
-    private static async Task<IResult> ListCatalogs(LearnPipDbContext db, ClaimsPrincipal user,
+    /// <summary>
+    /// Erstellt einen privaten Fragenentwurf mit optionaler Katalogzuordnung.
+    /// </summary>
+    /// <param name="input">Die zu prüfenden Eingabedaten.</param>
+    /// <param name="db">Der Datenbankkontext.</param>
+    /// <param name="user">Die authentifizierte Benutzeridentität.</param>
+    /// <param name="cancellationToken">Das Token zum Abbrechen der Operation.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
+    internal static async Task<IResult> CreateDraft(
+        DraftSaveRequest input,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
         CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var json = DraftJson(input.Content);
+        if (json == null)
+        {
+            return Results.BadRequest();
+        }
+
+        if (!await OwnsCatalog(db, input.CatalogId, accountId, cancellationToken))
+        {
+            return Results.NotFound();
+        }
+
+        var question = new Question { OwnerAccountId = accountId, PrivateCatalogId = input.CatalogId };
+        var content = new LearningContent
+        {
+            Id = question.Id,
+            OwnerAccountId = accountId,
+            Title = string.IsNullOrWhiteSpace(input.Content.Topic) ? "Lerninhalt" : input.Content.Topic.Trim()[..Math.Min(120, input.Content.Topic.Trim().Length)],
+        };
+        question.LearningContent = content;
+        var draft = new QuestionDraft { QuestionId = question.Id, PayloadJson = json };
+        db.Questions.Add(question);
+        db.QuestionDrafts.Add(draft);
+        await db.SaveChangesAsync(cancellationToken);
+        return Results.Created(
+            $"/api/v1/questions/{question.Id}/draft",
+            new ApiResponse<DraftView>(new DraftView(
+                    question.Id,
+                    question.PrivateCatalogId,
+                    0,
+                    draft.UpdatedAtUtc,
+                    input.Content)));
+    }
+
+    private static async Task<IResult> ListCatalogs(
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
+    {
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         var items = await db.PrivateCatalogs.AsNoTracking()
             .Where(item => item.OwnerAccountId == accountId)
             .OrderBy(item => item.Name)
-            .Select(item => new CatalogView(item.Id, item.Name,
+            .Select(item => new CatalogView(
+                item.Id,
+                item.Name,
                 item.Questions.Count(question => question.DeletedAtUtc == null)))
             .ToListAsync(cancellationToken);
         return Results.Ok(new ApiResponse<IReadOnlyList<CatalogView>>(items));
     }
 
-    private static async Task<IResult> CreateCatalog(CatalogInput input, LearnPipDbContext db,
-        ClaimsPrincipal user, CancellationToken cancellationToken)
+    private static async Task<IResult> CreateCatalog(
+        CatalogInput input,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         var name = input.Name?.Trim();
-        if (string.IsNullOrWhiteSpace(name) || name.Length > 120) return Results.BadRequest();
-        if (await db.PrivateCatalogs.AnyAsync(item => item.OwnerAccountId == accountId &&
-                item.Name == name, cancellationToken)) return Results.Conflict();
+        if (string.IsNullOrWhiteSpace(name) || name.Length > 120)
+        {
+            return Results.BadRequest();
+        }
+
+        if (await db.PrivateCatalogs.AnyAsync(
+            item => item.OwnerAccountId == accountId &&
+                item.Name == name,
+            cancellationToken))
+        {
+            return Results.Conflict();
+        }
+
         var catalog = new PrivateCatalog { OwnerAccountId = accountId, Name = name };
         db.PrivateCatalogs.Add(catalog);
         await db.SaveChangesAsync(cancellationToken);
-        return Results.Created($"/api/v1/catalogs/{catalog.Id}",
+        return Results.Created(
+            $"/api/v1/catalogs/{catalog.Id}",
             new ApiResponse<CatalogView>(new CatalogView(catalog.Id, catalog.Name, 0)));
     }
 
-    private static async Task<IResult> RenameCatalog(Guid id, CatalogInput input,
-        LearnPipDbContext db, ClaimsPrincipal user, CancellationToken cancellationToken)
+    private static async Task<IResult> RenameCatalog(
+        Guid id,
+        CatalogInput input,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
-        var catalog = await db.PrivateCatalogs.SingleOrDefaultAsync(item => item.Id == id &&
-            item.OwnerAccountId == accountId, cancellationToken);
-        if (catalog == null) return Results.NotFound();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var catalog = await db.PrivateCatalogs.SingleOrDefaultAsync(
+            item => item.Id == id &&
+            item.OwnerAccountId == accountId,
+            cancellationToken);
+        if (catalog == null)
+        {
+            return Results.NotFound();
+        }
+
         var name = input.Name?.Trim();
-        if (string.IsNullOrWhiteSpace(name) || name.Length > 120) return Results.BadRequest();
-        if (await db.PrivateCatalogs.AnyAsync(item => item.OwnerAccountId == accountId &&
-                item.Name == name && item.Id != id, cancellationToken)) return Results.Conflict();
+        if (string.IsNullOrWhiteSpace(name) || name.Length > 120)
+        {
+            return Results.BadRequest();
+        }
+
+        if (await db.PrivateCatalogs.AnyAsync(
+            item => item.OwnerAccountId == accountId &&
+                item.Name == name && item.Id != id,
+            cancellationToken))
+        {
+            return Results.Conflict();
+        }
+
         catalog.Name = name;
         await db.SaveChangesAsync(cancellationToken);
         return Results.NoContent();
     }
 
-    private static async Task<IResult> DeleteCatalog(Guid id, LearnPipDbContext db,
-        ClaimsPrincipal user, CancellationToken cancellationToken)
+    private static async Task<IResult> DeleteCatalog(
+        Guid id,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
-        var catalog = await db.PrivateCatalogs.SingleOrDefaultAsync(item => item.Id == id &&
-            item.OwnerAccountId == accountId, cancellationToken);
-        if (catalog == null) return Results.NotFound();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var catalog = await db.PrivateCatalogs.SingleOrDefaultAsync(
+            item => item.Id == id &&
+            item.OwnerAccountId == accountId,
+            cancellationToken);
+        if (catalog == null)
+        {
+            return Results.NotFound();
+        }
+
         db.PrivateCatalogs.Remove(catalog);
         await db.SaveChangesAsync(cancellationToken);
         return Results.NoContent();
     }
 
-    private static async Task<IResult> ListCatalogQuestions(Guid id, LearnPipDbContext db,
-        ClaimsPrincipal user, CancellationToken cancellationToken)
+    private static async Task<IResult> ListCatalogQuestions(
+        Guid id,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
-        if (!await db.PrivateCatalogs.AnyAsync(item => item.Id == id &&
-                item.OwnerAccountId == accountId, cancellationToken)) return Results.NotFound();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!await db.PrivateCatalogs.AnyAsync(
+            item => item.Id == id &&
+                item.OwnerAccountId == accountId,
+            cancellationToken))
+        {
+            return Results.NotFound();
+        }
+
         var items = await db.Questions.AsNoTracking()
             .Where(question => question.OwnerAccountId == accountId &&
                 question.PrivateCatalogId == id && question.DeletedAtUtc == null)
@@ -113,16 +250,22 @@ public static class CatalogEditorEndpoints
                 question.Id,
                 question.UpdatedAtUtc,
                 LatestVersion = question.Versions.Max(version => (int?)version.VersionNumber) ?? 0,
-                HasDraft = question.Draft != null
+                HasDraft = question.Draft != null,
             })
             .ToListAsync(cancellationToken);
         return Results.Ok(new ApiResponse<object>(items));
     }
 
-    private static async Task<IResult> ListDrafts(LearnPipDbContext db, ClaimsPrincipal user,
+    private static async Task<IResult> ListDrafts(
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
         CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         var rows = await db.QuestionDrafts.AsNoTracking()
             .Where(item => item.Question.OwnerAccountId == accountId &&
                 item.Question.DeletedAtUtc == null)
@@ -133,73 +276,85 @@ public static class CatalogEditorEndpoints
                 item.Question.PrivateCatalogId,
                 item.UpdatedAtUtc,
                 item.PayloadJson,
-                LatestVersion = item.Question.Versions.Max(version => (int?)version.VersionNumber) ?? 0
+                LatestVersion = item.Question.Versions.Max(version => (int?)version.VersionNumber) ?? 0,
             })
             .ToListAsync(cancellationToken);
-        var views = rows.Select(row => new DraftView(row.QuestionId, row.PrivateCatalogId,
-            row.LatestVersion, row.UpdatedAtUtc, JsonSerializer.Deserialize<QuestionPublishRequest>(row.PayloadJson)!))
+        var views = rows.Select(row => new DraftView(
+                row.QuestionId,
+                row.PrivateCatalogId,
+                row.LatestVersion,
+                row.UpdatedAtUtc,
+                JsonSerializer.Deserialize<QuestionPublishRequest>(row.PayloadJson)!))
             .ToArray();
         return Results.Ok(new ApiResponse<IReadOnlyList<DraftView>>(views));
     }
 
-    internal static async Task<IResult> CreateDraft(DraftSaveRequest input, LearnPipDbContext db,
-        ClaimsPrincipal user, CancellationToken cancellationToken)
+    private static async Task<IResult> CreateVariantDraft(
+        Guid id,
+        DraftSaveRequest input,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
-        var json = DraftJson(input.Content);
-        if (json == null) return Results.BadRequest();
-        if (!await OwnsCatalog(db, input.CatalogId, accountId, cancellationToken)) return Results.NotFound();
-        var question = new Question { OwnerAccountId = accountId, PrivateCatalogId = input.CatalogId };
-        var content = new LearningContent
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
         {
-            Id = question.Id,
-            OwnerAccountId = accountId,
-            Title = string.IsNullOrWhiteSpace(input.Content.Topic) ? "Lerninhalt" : input.Content.Topic.Trim()[..Math.Min(120, input.Content.Topic.Trim().Length)]
-        };
-        question.LearningContent = content;
-        var draft = new QuestionDraft { QuestionId = question.Id, PayloadJson = json };
-        db.Questions.Add(question);
-        db.QuestionDrafts.Add(draft);
-        await db.SaveChangesAsync(cancellationToken);
-        return Results.Created($"/api/v1/questions/{question.Id}/draft",
-            new ApiResponse<DraftView>(new DraftView(question.Id, question.PrivateCatalogId, 0,
-                draft.UpdatedAtUtc, input.Content)));
-    }
+            return Results.Unauthorized();
+        }
 
-    private static async Task<IResult> CreateVariantDraft(Guid id, DraftSaveRequest input,
-        LearnPipDbContext db, ClaimsPrincipal user, CancellationToken cancellationToken)
-    {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
         var original = await db.Questions.AsNoTracking().Where(question => question.Id == id &&
             question.OwnerAccountId == accountId && question.DeletedAtUtc == null &&
             question.Versions.Any()).Select(question => new
             {
-                ContentId = question.LearningContentId ?? question.Id
+                ContentId = question.LearningContentId ?? question.Id,
             }).SingleOrDefaultAsync(cancellationToken);
-        if (original == null || !await db.LearningContents.AnyAsync(item =>
-                item.Id == original.ContentId && item.OwnerAccountId == accountId, cancellationToken))
+        if (original == null || !await db.LearningContents.AnyAsync(
+            item =>
+                item.Id == original.ContentId && item.OwnerAccountId == accountId,
+            cancellationToken))
+        {
             return Results.NotFound();
+        }
+
         var json = DraftJson(input.Content);
-        if (json == null || !await OwnsCatalog(db, input.CatalogId, accountId,
-                cancellationToken)) return Results.BadRequest();
+        if (json == null || !await OwnsCatalog(
+            db,
+            input.CatalogId,
+            accountId,
+            cancellationToken))
+        {
+            return Results.BadRequest();
+        }
+
         var question = new Question
         {
             OwnerAccountId = accountId,
             LearningContentId = original.ContentId,
-            PrivateCatalogId = input.CatalogId
+            PrivateCatalogId = input.CatalogId,
         };
         db.Questions.Add(question);
         db.QuestionDrafts.Add(new QuestionDraft { QuestionId = question.Id, PayloadJson = json });
         await db.SaveChangesAsync(cancellationToken);
-        return Results.Created($"/api/v1/questions/{question.Id}/draft",
-            new ApiResponse<DraftView>(new DraftView(question.Id, question.PrivateCatalogId,
-                0, question.UpdatedAtUtc, input.Content)));
+        return Results.Created(
+            $"/api/v1/questions/{question.Id}/draft",
+            new ApiResponse<DraftView>(new DraftView(
+                    question.Id,
+                    question.PrivateCatalogId,
+                    0,
+                    question.UpdatedAtUtc,
+                    input.Content)));
     }
 
-    private static async Task<IResult> ReadDraft(Guid id, LearnPipDbContext db,
-        ClaimsPrincipal user, CancellationToken cancellationToken)
+    private static async Task<IResult> ReadDraft(
+        Guid id,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         var row = await db.QuestionDrafts.AsNoTracking()
             .Where(item => item.QuestionId == id && item.Question.OwnerAccountId == accountId &&
                 item.Question.DeletedAtUtc == null)
@@ -209,79 +364,137 @@ public static class CatalogEditorEndpoints
                 item.Question.PrivateCatalogId,
                 item.PayloadJson,
                 item.UpdatedAtUtc,
-                LatestVersion = item.Question.Versions.Max(version => (int?)version.VersionNumber) ?? 0
+                LatestVersion = item.Question.Versions.Max(version => (int?)version.VersionNumber) ?? 0,
             })
             .SingleOrDefaultAsync(cancellationToken);
-        if (row == null) return Results.NotFound();
-        return Results.Ok(new ApiResponse<DraftView>(new DraftView(row.QuestionId, row.PrivateCatalogId,
-            row.LatestVersion, row.UpdatedAtUtc,
-            JsonSerializer.Deserialize<QuestionPublishRequest>(row.PayloadJson)!)));
+        if (row == null)
+        {
+            return Results.NotFound();
+        }
+
+        return Results.Ok(new ApiResponse<DraftView>(new DraftView(
+                    row.QuestionId,
+                    row.PrivateCatalogId,
+                    row.LatestVersion,
+                    row.UpdatedAtUtc,
+                    JsonSerializer.Deserialize<QuestionPublishRequest>(row.PayloadJson)!)));
     }
 
-    private static async Task<IResult> SaveDraft(Guid id, DraftSaveRequest input,
-        LearnPipDbContext db, ClaimsPrincipal user, CancellationToken cancellationToken)
+    private static async Task<IResult> SaveDraft(
+        Guid id,
+        DraftSaveRequest input,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         var json = DraftJson(input.Content);
-        if (json == null) return Results.BadRequest();
-        var question = await db.Questions.Include(item => item.Draft).SingleOrDefaultAsync(item =>
+        if (json == null)
+        {
+            return Results.BadRequest();
+        }
+
+        var question = await db.Questions.Include(item => item.Draft).SingleOrDefaultAsync(
+            item =>
             item.Id == id && item.OwnerAccountId == accountId && item.DeletedAtUtc == null,
             cancellationToken);
         if (question == null || !await OwnsCatalog(db, input.CatalogId, accountId, cancellationToken))
+        {
             return Results.NotFound();
+        }
+
         question.PrivateCatalogId = input.CatalogId;
         question.UpdatedAtUtc = DateTimeOffset.UtcNow;
         if (question.Draft == null)
+        {
             db.QuestionDrafts.Add(new QuestionDraft
             {
                 QuestionId = id,
                 PayloadJson = json,
-                UpdatedAtUtc = question.UpdatedAtUtc
+                UpdatedAtUtc = question.UpdatedAtUtc,
             });
+        }
         else
         {
             question.Draft.PayloadJson = json;
             question.Draft.UpdatedAtUtc = question.UpdatedAtUtc;
         }
+
         await db.SaveChangesAsync(cancellationToken);
         return Results.NoContent();
     }
 
-    private static async Task<IResult> PublishDraft(Guid id, LearnPipDbContext db,
-        ClaimsPrincipal user, CancellationToken cancellationToken)
+    private static async Task<IResult> PublishDraft(
+        Guid id,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
         var json = await db.QuestionDrafts.AsNoTracking()
             .Where(item => item.QuestionId == id && item.Question.OwnerAccountId == accountId &&
                 item.Question.DeletedAtUtc == null)
             .Select(item => item.PayloadJson).SingleOrDefaultAsync(cancellationToken);
-        if (json == null) return Results.NotFound();
+        if (json == null)
+        {
+            return Results.NotFound();
+        }
+
         var request = JsonSerializer.Deserialize<QuestionPublishRequest>(json)!;
         return await QuestionEndpoints.Publish(id, request, db, user, cancellationToken);
     }
 
-    private static async Task<IResult> MoveQuestion(Guid id, CatalogMoveRequest input,
-        LearnPipDbContext db, ClaimsPrincipal user, CancellationToken cancellationToken)
+    private static async Task<IResult> MoveQuestion(
+        Guid id,
+        CatalogMoveRequest input,
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
-        var question = await db.Questions.SingleOrDefaultAsync(item => item.Id == id &&
-            item.OwnerAccountId == accountId && item.DeletedAtUtc == null, cancellationToken);
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var question = await db.Questions.SingleOrDefaultAsync(
+            item => item.Id == id &&
+            item.OwnerAccountId == accountId && item.DeletedAtUtc == null,
+            cancellationToken);
         if (question == null || !await OwnsCatalog(db, input.CatalogId, accountId, cancellationToken))
+        {
             return Results.NotFound();
+        }
+
         question.PrivateCatalogId = input.CatalogId;
         question.UpdatedAtUtc = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
         return Results.NoContent();
     }
 
-    private static Task<bool> OwnsCatalog(LearnPipDbContext db, Guid? id, Guid accountId,
+    private static Task<bool> OwnsCatalog(
+        LearnPipDbContext db,
+        Guid? id,
+        Guid accountId,
         CancellationToken cancellationToken) => id == null ? Task.FromResult(true) :
-        db.PrivateCatalogs.AnyAsync(item => item.Id == id && item.OwnerAccountId == accountId,
-            cancellationToken);
+        db.PrivateCatalogs.AnyAsync(
+        item => item.Id == id && item.OwnerAccountId == accountId,
+        cancellationToken);
 
     private static string? DraftJson(QuestionPublishRequest? content)
     {
-        if (content == null) return null;
+        if (content == null)
+        {
+            return null;
+        }
+
         var json = JsonSerializer.Serialize(content);
         return json.Length <= 65536 ? json : null;
     }

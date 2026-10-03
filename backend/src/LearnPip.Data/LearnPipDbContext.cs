@@ -1,61 +1,169 @@
+// <copyright file="LearnPipDbContext.cs" company="LearnPip contributors">
+// Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
+// </copyright>
+
 using LearnPip.Data.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Data;
 
+/// <summary>
+/// Stellt die Datenbanktabellen und das relationale Modell von LearnPip bereit.
+/// </summary>
+/// <param name="options">Optionen für den Datenbankkontext.</param>
 public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> options) : DbContext(options)
 {
-    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
-    public DbSet<AdministrationAuditEvent> AdministrationAuditEvents => Set<AdministrationAuditEvent>();
-    public DbSet<Account> Accounts => Set<Account>();
-    public DbSet<ReminderPreference> ReminderPreferences => Set<ReminderPreference>();
-    public DbSet<FamilyLink> FamilyLinks => Set<FamilyLink>();
-    public DbSet<FamilyLinkEvent> FamilyLinkEvents => Set<FamilyLinkEvent>();
-    public DbSet<FamilyGoal> FamilyGoals => Set<FamilyGoal>();
-    public DbSet<AccountInactivityWarning> AccountInactivityWarnings => Set<AccountInactivityWarning>();
-    public DbSet<ExternalIdentity> ExternalIdentities => Set<ExternalIdentity>();
-    public DbSet<RoleDefinition> Roles => Set<RoleDefinition>();
-    public DbSet<AccountRole> AccountRoles => Set<AccountRole>();
-    public DbSet<PrivateCatalog> PrivateCatalogs => Set<PrivateCatalog>();
-    public DbSet<QuestionDraft> QuestionDrafts => Set<QuestionDraft>();
-    public DbSet<Question> Questions => Set<Question>();
-    public DbSet<LearningContent> LearningContents => Set<LearningContent>();
-    public DbSet<FrequentLearningContent> FrequentLearningContents => Set<FrequentLearningContent>();
-    public DbSet<QuestionVersion> QuestionVersions => Set<QuestionVersion>();
-    public DbSet<QuestionTranslation> QuestionTranslations => Set<QuestionTranslation>();
-    public DbSet<TranslationReport> TranslationReports => Set<TranslationReport>();
-    public DbSet<AnswerOption> AnswerOptions => Set<AnswerOption>();
-    public DbSet<QuestionContentBlock> QuestionContentBlocks => Set<QuestionContentBlock>();
-    public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
-    public DbSet<MediaBlob> MediaBlobs => Set<MediaBlob>();
-    public DbSet<StudySession> StudySessions => Set<StudySession>();
-    public DbSet<StudyAttempt> StudyAttempts => Set<StudyAttempt>();
-    public DbSet<StudyAttemptSelection> StudyAttemptSelections => Set<StudyAttemptSelection>();
-    public DbSet<ExamObjective> ExamObjectives => Set<ExamObjective>();
-    public DbSet<OfficialCatalogEdition> OfficialCatalogEditions => Set<OfficialCatalogEdition>();
-    public DbSet<ExamProfileVersion> ExamProfileVersions => Set<ExamProfileVersion>();
-    public DbSet<ExamSimulation> ExamSimulations => Set<ExamSimulation>();
-    public DbSet<AccountExamCredit> AccountExamCredits => Set<AccountExamCredit>();
-    public DbSet<QuestionObjective> QuestionObjectives => Set<QuestionObjective>();
-    public DbSet<StudyGroup> StudyGroups => Set<StudyGroup>();
-    public DbSet<GroupMembership> GroupMemberships => Set<GroupMembership>();
-    public DbSet<GroupQuestionShare> GroupQuestionShares => Set<GroupQuestionShare>();
-    public DbSet<GroupInvitation> GroupInvitations => Set<GroupInvitation>();
-    public DbSet<GroupCatalogShare> GroupCatalogShares => Set<GroupCatalogShare>();
-    public DbSet<GroupVersionShare> GroupVersionShares => Set<GroupVersionShare>();
-    public DbSet<PublicSubmission> PublicSubmissions => Set<PublicSubmission>();
-    public DbSet<PublicSubmissionPreview> PublicSubmissionPreviews => Set<PublicSubmissionPreview>();
-    public DbSet<PublicSubmissionReview> PublicSubmissionReviews => Set<PublicSubmissionReview>();
-    public DbSet<QuestionReport> QuestionReports => Set<QuestionReport>();
-    public DbSet<QuestionComment> QuestionComments => Set<QuestionComment>();
-    public DbSet<QuestionHelpfulVote> QuestionHelpfulVotes => Set<QuestionHelpfulVote>();
-    public DbSet<QuestionModerationEvent> QuestionModerationEvents => Set<QuestionModerationEvent>();
-    public DbSet<RecoveryCredential> RecoveryCredentials => Set<RecoveryCredential>();
-    public DbSet<AccountSession> AccountSessions => Set<AccountSession>();
-    public DbSet<EmailLoginCode> EmailLoginCodes => Set<EmailLoginCode>();
-    public DbSet<UserAiCredential> UserAiCredentials => Set<UserAiCredential>();
-    public DbSet<AiDailyUsage> AiDailyUsages => Set<AiDailyUsage>();
+    /// <summary>Holt die Datenmenge SystemSettings.</summary>
+    public DbSet<SystemSetting> SystemSettings => this.Set<SystemSetting>();
 
+    /// <summary>Holt die Datenmenge AdministrationAuditEvents.</summary>
+    public DbSet<AdministrationAuditEvent> AdministrationAuditEvents => this.Set<AdministrationAuditEvent>();
+
+    /// <summary>Holt die Datenmenge Accounts.</summary>
+    public DbSet<Account> Accounts => this.Set<Account>();
+
+    /// <summary>Holt die Datenmenge ReminderPreferences.</summary>
+    public DbSet<ReminderPreference> ReminderPreferences => this.Set<ReminderPreference>();
+
+    /// <summary>Holt die Datenmenge FamilyLinks.</summary>
+    public DbSet<FamilyLink> FamilyLinks => this.Set<FamilyLink>();
+
+    /// <summary>Holt die Datenmenge FamilyLinkEvents.</summary>
+    public DbSet<FamilyLinkEvent> FamilyLinkEvents => this.Set<FamilyLinkEvent>();
+
+    /// <summary>Holt die Datenmenge FamilyGoals.</summary>
+    public DbSet<FamilyGoal> FamilyGoals => this.Set<FamilyGoal>();
+
+    /// <summary>Holt die Datenmenge AccountInactivityWarnings.</summary>
+    public DbSet<AccountInactivityWarning> AccountInactivityWarnings => this.Set<AccountInactivityWarning>();
+
+    /// <summary>Holt die Datenmenge ExternalIdentities.</summary>
+    public DbSet<ExternalIdentity> ExternalIdentities => this.Set<ExternalIdentity>();
+
+    /// <summary>Holt die Datenmenge Roles.</summary>
+    public DbSet<RoleDefinition> Roles => this.Set<RoleDefinition>();
+
+    /// <summary>Holt die Datenmenge AccountRoles.</summary>
+    public DbSet<AccountRole> AccountRoles => this.Set<AccountRole>();
+
+    /// <summary>Holt die Datenmenge PrivateCatalogs.</summary>
+    public DbSet<PrivateCatalog> PrivateCatalogs => this.Set<PrivateCatalog>();
+
+    /// <summary>Holt die Datenmenge QuestionDrafts.</summary>
+    public DbSet<QuestionDraft> QuestionDrafts => this.Set<QuestionDraft>();
+
+    /// <summary>Holt die Datenmenge Questions.</summary>
+    public DbSet<Question> Questions => this.Set<Question>();
+
+    /// <summary>Holt die Datenmenge LearningContents.</summary>
+    public DbSet<LearningContent> LearningContents => this.Set<LearningContent>();
+
+    /// <summary>Holt die Datenmenge FrequentLearningContents.</summary>
+    public DbSet<FrequentLearningContent> FrequentLearningContents => this.Set<FrequentLearningContent>();
+
+    /// <summary>Holt die Datenmenge QuestionVersions.</summary>
+    public DbSet<QuestionVersion> QuestionVersions => this.Set<QuestionVersion>();
+
+    /// <summary>Holt die Datenmenge QuestionTranslations.</summary>
+    public DbSet<QuestionTranslation> QuestionTranslations => this.Set<QuestionTranslation>();
+
+    /// <summary>Holt die Datenmenge TranslationReports.</summary>
+    public DbSet<TranslationReport> TranslationReports => this.Set<TranslationReport>();
+
+    /// <summary>Holt die Datenmenge AnswerOptions.</summary>
+    public DbSet<AnswerOption> AnswerOptions => this.Set<AnswerOption>();
+
+    /// <summary>Holt die Datenmenge QuestionContentBlocks.</summary>
+    public DbSet<QuestionContentBlock> QuestionContentBlocks => this.Set<QuestionContentBlock>();
+
+    /// <summary>Holt die Datenmenge MediaAssets.</summary>
+    public DbSet<MediaAsset> MediaAssets => this.Set<MediaAsset>();
+
+    /// <summary>Holt die Datenmenge MediaBlobs.</summary>
+    public DbSet<MediaBlob> MediaBlobs => this.Set<MediaBlob>();
+
+    /// <summary>Holt die Datenmenge StudySessions.</summary>
+    public DbSet<StudySession> StudySessions => this.Set<StudySession>();
+
+    /// <summary>Holt die Datenmenge StudyAttempts.</summary>
+    public DbSet<StudyAttempt> StudyAttempts => this.Set<StudyAttempt>();
+
+    /// <summary>Holt die Datenmenge StudyAttemptSelections.</summary>
+    public DbSet<StudyAttemptSelection> StudyAttemptSelections => this.Set<StudyAttemptSelection>();
+
+    /// <summary>Holt die Datenmenge ExamObjectives.</summary>
+    public DbSet<ExamObjective> ExamObjectives => this.Set<ExamObjective>();
+
+    /// <summary>Holt die Datenmenge OfficialCatalogEditions.</summary>
+    public DbSet<OfficialCatalogEdition> OfficialCatalogEditions => this.Set<OfficialCatalogEdition>();
+
+    /// <summary>Holt die Datenmenge ExamProfileVersions.</summary>
+    public DbSet<ExamProfileVersion> ExamProfileVersions => this.Set<ExamProfileVersion>();
+
+    /// <summary>Holt die Datenmenge ExamSimulations.</summary>
+    public DbSet<ExamSimulation> ExamSimulations => this.Set<ExamSimulation>();
+
+    /// <summary>Holt die Datenmenge AccountExamCredits.</summary>
+    public DbSet<AccountExamCredit> AccountExamCredits => this.Set<AccountExamCredit>();
+
+    /// <summary>Holt die Datenmenge QuestionObjectives.</summary>
+    public DbSet<QuestionObjective> QuestionObjectives => this.Set<QuestionObjective>();
+
+    /// <summary>Holt die Datenmenge StudyGroups.</summary>
+    public DbSet<StudyGroup> StudyGroups => this.Set<StudyGroup>();
+
+    /// <summary>Holt die Datenmenge GroupMemberships.</summary>
+    public DbSet<GroupMembership> GroupMemberships => this.Set<GroupMembership>();
+
+    /// <summary>Holt die Datenmenge GroupQuestionShares.</summary>
+    public DbSet<GroupQuestionShare> GroupQuestionShares => this.Set<GroupQuestionShare>();
+
+    /// <summary>Holt die Datenmenge GroupInvitations.</summary>
+    public DbSet<GroupInvitation> GroupInvitations => this.Set<GroupInvitation>();
+
+    /// <summary>Holt die Datenmenge GroupCatalogShares.</summary>
+    public DbSet<GroupCatalogShare> GroupCatalogShares => this.Set<GroupCatalogShare>();
+
+    /// <summary>Holt die Datenmenge GroupVersionShares.</summary>
+    public DbSet<GroupVersionShare> GroupVersionShares => this.Set<GroupVersionShare>();
+
+    /// <summary>Holt die Datenmenge PublicSubmissions.</summary>
+    public DbSet<PublicSubmission> PublicSubmissions => this.Set<PublicSubmission>();
+
+    /// <summary>Holt die Datenmenge PublicSubmissionPreviews.</summary>
+    public DbSet<PublicSubmissionPreview> PublicSubmissionPreviews => this.Set<PublicSubmissionPreview>();
+
+    /// <summary>Holt die Datenmenge PublicSubmissionReviews.</summary>
+    public DbSet<PublicSubmissionReview> PublicSubmissionReviews => this.Set<PublicSubmissionReview>();
+
+    /// <summary>Holt die Datenmenge QuestionReports.</summary>
+    public DbSet<QuestionReport> QuestionReports => this.Set<QuestionReport>();
+
+    /// <summary>Holt die Datenmenge QuestionComments.</summary>
+    public DbSet<QuestionComment> QuestionComments => this.Set<QuestionComment>();
+
+    /// <summary>Holt die Datenmenge QuestionHelpfulVotes.</summary>
+    public DbSet<QuestionHelpfulVote> QuestionHelpfulVotes => this.Set<QuestionHelpfulVote>();
+
+    /// <summary>Holt die Datenmenge QuestionModerationEvents.</summary>
+    public DbSet<QuestionModerationEvent> QuestionModerationEvents => this.Set<QuestionModerationEvent>();
+
+    /// <summary>Holt die Datenmenge RecoveryCredentials.</summary>
+    public DbSet<RecoveryCredential> RecoveryCredentials => this.Set<RecoveryCredential>();
+
+    /// <summary>Holt die Datenmenge AccountSessions.</summary>
+    public DbSet<AccountSession> AccountSessions => this.Set<AccountSession>();
+
+    /// <summary>Holt die Datenmenge EmailLoginCodes.</summary>
+    public DbSet<EmailLoginCode> EmailLoginCodes => this.Set<EmailLoginCode>();
+
+    /// <summary>Holt die Datenmenge UserAiCredentials.</summary>
+    public DbSet<UserAiCredential> UserAiCredentials => this.Set<UserAiCredential>();
+
+    /// <summary>Holt die Datenmenge AiDailyUsages.</summary>
+    public DbSet<AiDailyUsage> AiDailyUsages => this.Set<AiDailyUsage>();
+
+    /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ReminderPreference>(entity =>
@@ -329,9 +437,12 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
                 .HasForeignKey(x => x.AnswerOptionId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.MediaAsset).WithMany()
                 .HasForeignKey(x => x.MediaAssetId).OnDelete(DeleteBehavior.Restrict);
-            entity.ToTable(table => table.HasCheckConstraint("CK_QuestionContentBlocks_Owner",
+            const string questionContentOwnerConstraint =
                 "(\"QuestionVersionId\" IS NOT NULL AND \"AnswerOptionId\" IS NULL) OR " +
-                "(\"QuestionVersionId\" IS NULL AND \"AnswerOptionId\" IS NOT NULL)"));
+                "(\"QuestionVersionId\" IS NULL AND \"AnswerOptionId\" IS NOT NULL)";
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_QuestionContentBlocks_Owner",
+                questionContentOwnerConstraint));
         });
 
         modelBuilder.Entity<MediaAsset>(entity =>

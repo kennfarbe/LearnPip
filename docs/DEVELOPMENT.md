@@ -44,6 +44,9 @@ The test creates and drops its own PostgreSQL database; it does not touch the lo
 cd frontend/web
 npm ci
 npm test --if-present
+npm run format:check
+npm run lint
+npm run test:pwa
 npm run build
 ```
 

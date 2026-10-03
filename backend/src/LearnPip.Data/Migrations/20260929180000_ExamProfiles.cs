@@ -7,10 +7,14 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LearnPip.Data.Migrations;
 
+/// <summary>
+/// Enthält die Schemaänderungen der Datenbankmigration ExamProfiles.
+/// </summary>
 [DbContext(typeof(LearnPipDbContext))]
 [Migration("20260929180000_ExamProfiles")]
 public sealed class ExamProfiles : Migration
 {
+    /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.CreateTable("OfficialCatalogEditions", columns: table => new
@@ -87,6 +91,7 @@ public sealed class ExamProfiles : Migration
         });
     }
 
+    /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable("AccountExamCredits");

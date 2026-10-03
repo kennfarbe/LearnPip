@@ -1,3 +1,7 @@
+// <copyright file="ProgressEndpoints.cs" company="LearnPip contributors">
+// Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
+// </copyright>
+
 using System.Security.Claims;
 using LearnPip.Api.Security;
 using LearnPip.Data;
@@ -5,27 +9,38 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
 
-public sealed record TopicProgress(string Subject, string Topic, int TotalContents,
-    int MasteredContents, int ImprovedContents);
-public sealed record ProgressWeek(string Label, int CompletedSessions, int ActiveDays);
-public sealed record LearningProgress(int TotalContents, int MasteredContents,
-    int ImprovedContents, int ParticipationPoints, int LearningDays,
-    IReadOnlyList<TopicProgress> Topics, IReadOnlyList<ProgressWeek> RecentWeeks);
-
+/// <summary>
+/// Registriert HTTP-Endpunkte für den persönlichen Lernfortschritt.
+/// </summary>
 public static class ProgressEndpoints
 {
+    /// <summary>
+    /// Registriert die HTTP-Endpunkte für den persönlichen Lernfortschritt.
+    /// </summary>
+    /// <param name="app">Der Routen-Builder der API.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     public static IEndpointRouteBuilder MapProgressEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/v1/learning/progress", Read)
+        app.MapGet(
+            "/api/v1/learning/progress",
+            Read)
             .WithTags("Learning progress").RequireAuthorization(ApiPolicies.ActiveAccount);
         return app;
     }
 
-    private static async Task<IResult> Read(LearnPipDbContext db, ClaimsPrincipal user,
+    private static async Task<IResult> Read(
+        LearnPipDbContext db,
+        ClaimsPrincipal user,
         CancellationToken cancellationToken)
     {
-        if (!AccountIdentity.TryGetAccountId(user, out var accountId)) return Results.Unauthorized();
-        var (overview, candidates) = await ReviewEndpoints.LoadWithCandidates(db, accountId,
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var (overview, candidates) = await ReviewEndpoints.LoadWithCandidates(
+            db,
+            accountId,
             cancellationToken);
         var raw = await db.StudyAttempts.AsNoTracking()
             .Where(item => item.StudySession.AccountId == accountId &&
@@ -38,10 +53,15 @@ public static class ProgressEndpoints
                 item.WasGuessed,
                 item.ExplanationViewedAtUtc,
                 ContentId = item.QuestionVersion.Question.LearningContentId ??
-                    item.QuestionVersion.QuestionId
+                    item.QuestionVersion.QuestionId,
             }).ToListAsync(cancellationToken);
-        var attempts = raw.Select(item => new ProgressAttempt(item.ContentId, item.StudySessionId,
-            item.AnsweredAtUtc, item.IsCorrect, item.WasGuessed, item.ExplanationViewedAtUtc)).ToArray();
+        var attempts = raw.Select(item => new ProgressAttempt(
+                item.ContentId,
+                item.StudySessionId,
+                item.AnsweredAtUtc,
+                item.IsCorrect,
+                item.WasGuessed,
+                item.ExplanationViewedAtUtc)).ToArray();
         var improved = attempts.GroupBy(item => item.ContentId)
             .Where(group => ProgressMetrics.HasImproved(group))
             .Select(group => group.Key).ToHashSet();
@@ -50,7 +70,10 @@ public static class ProgressEndpoints
             var candidate = candidates.First(item => item.ContentId == content.Id);
             return new { candidate.Subject, Topic = content.Title, Content = content };
         }).GroupBy(item => (item.Subject, item.Topic))
-            .Select(group => new TopicProgress(group.Key.Subject, group.Key.Topic, group.Count(),
+            .Select(group => new TopicProgress(
+                group.Key.Subject,
+                group.Key.Topic,
+                group.Count(),
                 group.Count(item => item.Content.Mastered),
                 group.Count(item => improved.Contains(item.Content.Id))))
             .OrderBy(item => item.Subject).ThenBy(item => item.Topic).ToArray();
@@ -70,14 +93,20 @@ public static class ProgressEndpoints
                     item.AnsweredAtUtc <= end)
                 .Select(item => DateOnly.FromDateTime(item.AnsweredAtUtc.UtcDateTime))
                 .Distinct().Count();
-            return new ProgressWeek(index == 0 ? "Letzte 7 Tage" : $"Vor {index} Woche(n)",
-                sessions, days);
+            return new ProgressWeek(
+                    index == 0 ? "Letzte 7 Tage" : $"Vor {index} Woche(n)",
+                    sessions,
+                    days);
         }).Reverse().ToArray();
-        var result = new LearningProgress(overview.TotalContents, overview.MasteredContents,
+        var result = new LearningProgress(
+            overview.TotalContents,
+            overview.MasteredContents,
             overview.Contents.Count(item => improved.Contains(item.Id)),
             ProgressMetrics.ParticipationPoints(attempts),
             attempts.Select(item => DateOnly.FromDateTime(item.AnsweredAtUtc.UtcDateTime))
-                .Distinct().Count(), topics, weeks);
+                .Distinct().Count(),
+            topics,
+            weeks);
         return Results.Ok(new ApiResponse<LearningProgress>(result));
     }
 }

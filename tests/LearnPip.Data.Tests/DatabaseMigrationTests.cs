@@ -1,3 +1,7 @@
+// <copyright file="DatabaseMigrationTests.cs" company="LearnPip contributors">
+// Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
+// </copyright>
+
 using LearnPip.Data;
 using LearnPip.Data.Domain;
 using LearnPip.Data.Services;
@@ -6,10 +10,17 @@ using Npgsql;
 
 namespace LearnPip.Data.Tests;
 
+/// <summary>
+/// Enthält Regressionstests für die Datenbankmigrationen.
+/// </summary>
 public sealed class DatabaseMigrationTests
 {
+    /// <summary>
+    /// Prüft Migrationen einer neuen Datenbank und den Erhalt bestehender Daten.
+    /// </summary>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     [Fact]
-    public async Task Migration_creates_a_fresh_database_and_preserves_existing_data()
+    public async Task MigrationCreatesAFreshDatabaseAndPreservesExistingData()
     {
         var sourceConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__LearnPip");
         if (string.IsNullOrWhiteSpace(sourceConnectionString))
@@ -21,7 +32,7 @@ public sealed class DatabaseMigrationTests
         var databaseName = $"learnpip_migration_test_{Guid.NewGuid():N}";
         var maintenanceConnectionString = new NpgsqlConnectionStringBuilder(sourceConnectionString)
         {
-            Database = "postgres"
+            Database = "postgres",
         };
 
         await using (var maintenanceConnection = new NpgsqlConnection(maintenanceConnectionString.ConnectionString))
@@ -35,7 +46,7 @@ public sealed class DatabaseMigrationTests
         {
             var databaseConnectionString = new NpgsqlConnectionStringBuilder(sourceConnectionString)
             {
-                Database = databaseName
+                Database = databaseName,
             };
             var options = new DbContextOptionsBuilder<LearnPipDbContext>()
                 .UseNpgsql(databaseConnectionString.ConnectionString)
@@ -56,7 +67,7 @@ public sealed class DatabaseMigrationTests
                     OwnerAccountId = ownerId,
                     StorageKey = $"private/{ownerId:N}/{assetId:N}",
                     MediaType = "image/jpeg",
-                    ByteLength = 128
+                    ByteLength = 128,
                 });
                 context.MediaAssets.Add(new MediaAsset
                 {
@@ -65,7 +76,7 @@ public sealed class DatabaseMigrationTests
                     StorageKey = $"private/{ownerId:N}/{deletedAssetId:N}",
                     MediaType = "image/jpeg",
                     ByteLength = 128,
-                    DeletedAtUtc = DateTimeOffset.UtcNow
+                    DeletedAtUtc = DateTimeOffset.UtcNow,
                 });
                 await context.SaveChangesAsync();
 

@@ -1,12 +1,17 @@
-namespace LearnPip.Api.Questions;
+// <copyright file="ReviewSchedule.cs" company="LearnPip contributors">
+// Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
+// </copyright>
 
-public sealed record ReviewEvent(Guid AttemptId, DateTimeOffset AtUtc, string Kind, bool IsCorrect);
-public sealed record ReviewState(int ConfidentStreak, DateTimeOffset? DueAtUtc, int Answers,
-    int Guesses, int ExplanationsViewed, bool Mastered);
+namespace LearnPip.Api.Questions;
 
 /// <summary>Pure replay: the same ordered events always produce the same learning state.</summary>
 public static class ReviewSchedule
 {
+    /// <summary>
+    /// Rekonstruiert den Wiederholungsstand aus den Antwortereignissen.
+    /// </summary>
+    /// <param name="events">Die zur Rekonstruktion des Wiederholungsstands verwendeten Ereignisse.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     public static ReviewState Replay(IEnumerable<ReviewEvent> events)
     {
         var streak = 0;
@@ -34,9 +39,10 @@ public static class ReviewSchedule
                             1 => 1,
                             2 => 3,
                             3 => 7,
-                            _ => 14
+                            _ => 14,
                         });
                     }
+
                     break;
                 case "guess":
                     guesses++;
@@ -50,6 +56,7 @@ public static class ReviewSchedule
                     break;
             }
         }
+
         return new ReviewState(streak, due, answers, guesses, explanations, streak >= 3);
     }
 }

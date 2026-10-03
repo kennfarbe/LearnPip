@@ -6,9 +6,9 @@ Bitte melde Sicherheitslücken **nicht in einem öffentlichen Issue oder Pull Re
 
 ## Geltungsbereich
 
-LearnPip befindet sich im Aufbau und hat noch keine lauffähige Anwendung oder veröffentlichten Releases. Melde Sicherheitsprobleme in diesem Repository, seinen Workflows und später in den offiziellen LearnPip-Komponenten.
+LearnPip verfügt inzwischen über ein startbares Backend, eine Angular-Weboberfläche, einen Worker, Installations- und Update-Skripte sowie veröffentlichte Release-Artefakte. Bitte melde Sicherheitsprobleme im Quellcode, in Workflows, Docker-Images, Deployment-Dateien, dem Update-Operator und in den offiziell ausgelieferten Komponenten. Gib soweit möglich die **betroffene Version bzw. den Release-Tag** an.
 
-Bitte gib eine Beschreibung, betroffene Datei oder Version, mögliche Auswirkungen und – falls vorhanden – sichere Schritte zur Reproduktion an. Teile einen Exploit oder sensible Daten nur soweit nötig und über den privaten Meldeweg.
+Bitte beschreibe den Fehler, die betroffene Datei oder Version, mögliche Auswirkungen und – falls vorhanden – sichere Schritte zur Reproduktion. Teile Exploits oder sensible Daten nur soweit nötig über einen privaten Kanal.
 
 ## Bearbeitung
 

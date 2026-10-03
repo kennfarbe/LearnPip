@@ -1,3 +1,7 @@
+// <copyright file="Program.cs" company="LearnPip contributors">
+// Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
+// </copyright>
+
 using LearnPip.Data;
 using LearnPip.Worker;
 using Microsoft.EntityFrameworkCore;
@@ -31,4 +35,5 @@ if (runOnce)
         .RunOnceAsync(DateTimeOffset.UtcNow);
     return;
 }
-host.Run();
+
+await host.RunAsync();

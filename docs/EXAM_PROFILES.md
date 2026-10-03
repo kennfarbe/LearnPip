@@ -1,10 +1,12 @@
-# Versioned exam profiles and catalog editions (LP-24)
+# Versionierte Prüfungsprofile und Katalogfassungen (LP-24)
 
-An administrator imports a catalog edition with `POST /api/v1/exams/admin/catalogs/import` and publishes an immutable profile version with `POST /api/v1/exams/admin/profiles/versions`. Both operations require a fresh admin session. The import accepts normalized JSON, not arbitrary remote URLs or executable archives. A new edition uses the same catalog code with a new revision; existing editions cannot be overwritten. The stored source URL, attribution, license, revision and change date appear in the catalog listing.
+Administrierende importieren eine Katalogfassung über `POST /api/v1/exams/admin/catalogs/import` und veröffentlichen eine unveränderliche Profilfassung über `POST /api/v1/exams/admin/profiles/versions`. Beide Aktionen erfordern eine frische Administratorsitzung. Der Import akzeptiert normalisiertes JSON, keine beliebigen fremden URLs oder ausführbaren Archive. Neue Fassungen verwenden denselben Katalogcode mit neuer Revision; bestehende Fassungen können nicht überschrieben werden. Quell-URL, Namensnennung, Lizenz, Revision und Änderungsdatum werden in der Katalogliste angezeigt.
 
-The Bundesnetzagentur publishes N/E/A questions as PDF and machine-readable ZIP under **DL-DE BY 2.0**. The import must be prepared from an authorized source and retain the attribution. The site does not claim official examination status. Do not copy another provider's questions merely because they cover the same material. [Bundesnetzagentur source](https://www.bundesnetzagentur.de/Amateurfunk), [license terms](https://www.govdata.de/dl-de/by-2-0). An administrator confirms reuse rights; imports accept DL-DE-BY-2.0, CC-BY-4.0 and CC0-1.0. There is no bundled copy of official questions.
+Die Bundesnetzagentur veröffentlicht Fragen der Amateurfunkklassen N/E/A als PDF und maschinenlesbares ZIP unter **DL-DE BY 2.0**. Importe müssen aus einer berechtigten Quelle erstellt und mit der vorgeschriebenen Namensnennung versehen werden. LearnPip beansprucht keinen offiziellen Prüfungsstatus. Fragebestände anderer Anbieter dürfen nicht allein wegen derselben Themen übernommen werden. Siehe [Bundesnetzagentur](https://www.bundesnetzagentur.de/Amateurfunk) und [Lizenzbedingungen](https://www.govdata.de/dl-de/by-2-0). Die Administration bestätigt die Wiederverwendungsrechte; als Inhaltslizenzen akzeptiert der Import DL-DE-BY-2.0, CC-BY-4.0 und CC0-1.0. Offizielle Fragen werden nicht mitgeliefert.
 
-Example normalized catalog payload (replace the example text and include enough questions for every profile section):
+## Beispiel für einen normalisierten Katalogimport
+
+Beispieltexte ersetzen und für jeden Profilteil genügend Fragen bereitstellen:
 
 ```json
 {
@@ -19,12 +21,14 @@ Example normalized catalog payload (replace the example text and include enough 
 }
 ```
 
-A profile version pins an edition ID and a list of section rules; required correct answers and time limits are configured by an admin and should be checked against the applicable examination rules before publication. Each section has a distinct question pool code. For Amateurfunk class N, E or A, the profile requires **B**, **V** and the corresponding **T-N**, **T-E** or **T-A** credit codes. N/E/A here model the class and eligible previously passed sections; actual official requirements may change and are not hard-coded as a score threshold. The source says every required part must pass individually and the technical part varies by class. [Bundesnetzagentur](https://www.bundesnetzagentur.de/Amateurfunk).
+## Profilfassung und Prüfungsteile
+
+Eine Profilfassung bindet die Kennung der Katalogfassung und Regeln für einzelne Prüfungsteile fest ein. Notwendige richtige Antworten und Zeitlimits werden von der Administration konfiguriert und müssen vor der Veröffentlichung anhand der jeweils geltenden Prüfungsregeln überprüft werden. Jeder Teil besitzt einen eigenen Fragenpool-Code. Für die Amateurfunkklassen N, E und A werden **B**, **V** und jeweils **T-N**, **T-E** oder **T-A** verwendet. Bereits bestandene Teile können gemäß den anwendbaren Regeln angerechnet werden; die tatsächlichen amtlichen Anforderungen können sich ändern und sind nicht als unveränderliche Schwellenwerte anzusehen.
 
 ```json
 {
   "code": "AFU-N", "title": "Amateurfunk Klasse N", "amateurClass": "N",
-  "catalogEditionId": "<id from catalog import>",
+  "catalogEditionId": "<Kennung aus dem Katalogimport>",
   "parts": [
     { "code": "B", "title": "Betriebliche Kenntnisse", "catalogPartCode": "B",
       "questionCount": 25, "timeLimitMinutes": 45, "requiredCorrect": 19, "creditCode": "B" },
@@ -36,4 +40,6 @@ A profile version pins an edition ID and a list of section rules; required corre
 }
 ```
 
-The numbers in this example are *illustrative configuration data* and must be verified by the operator; they are not an assertion of current official examination thresholds. `PUT /api/v1/exams/credits` stores a user's **self-reported** already passed section code. It is not an official certificate and only an exact matching profile section is credited. A simulation pins the profile version and copies its selected question text, options and correct indices into a snapshot. Only the active section's prompt/options are sent before completion; correct answers stay server-side. Each required section is scored separately. Finished results remain attached to their saved version and snapshot even after subsequent catalog imports. Deleting an account removes its simulations and credits.
+**Die Zahlen sind ausschließlich beispielhafte Konfigurationswerte**, keine Aussage zu derzeit amtlich geltenden Bestehensgrenzen. `PUT /api/v1/exams/credits` speichert vom Nutzer selbst angegebene bestandene Teile; dies ist kein amtlicher Nachweis. Nur ein exakt zu einem Profilteil passender Code wird berücksichtigt.
+
+Eine Simulation bindet sich an eine feste Profilfassung und speichert die gewählten Fragetexte, Antwortoptionen und richtigen Indizes als Snapshot. Vor dem Abschluss liefert die API nur Aufgaben und Optionen des aktiven Teils; die Lösung verbleibt serverseitig. Jeder notwendige Teil wird separat bewertet. Ergebnisse bleiben ihrer gespeicherten Profilfassung zugeordnet, auch wenn später neue Katalogfassungen importiert werden. Bei der Kontolöschung werden Simulationen und angerechnete Teile entfernt.

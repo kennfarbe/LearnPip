@@ -5,7 +5,9 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LearnPip.Data.Migrations
 {
-    /// <inheritdoc />
+    /// <summary>
+    /// Enthält die Schemaänderungen der Datenbankmigration InitialSchema.
+    /// </summary>
     public partial class InitialSchema : Migration
     {
         /// <inheritdoc />

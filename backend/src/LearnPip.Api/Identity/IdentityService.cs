@@ -1,3 +1,7 @@
+// <copyright file="IdentityService.cs" company="LearnPip contributors">
+// Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
+// </copyright>
+
 using System.Globalization;
 using System.Net;
 using System.Net.Mail;
@@ -10,52 +14,28 @@ using Npgsql;
 
 namespace LearnPip.Api.Identity;
 
-public sealed class IdentityConflictException : Exception;
-
-public interface IEmailCodeSender
-{
-    bool IsAvailable { get; }
-    Task SendAsync(string email, string code, CancellationToken cancellationToken);
-}
-
-public sealed class SmtpEmailCodeSender(IConfiguration configuration) : IEmailCodeSender
-{
-    public bool IsAvailable =>
-        !string.IsNullOrWhiteSpace(configuration["Mail:Host"]) &&
-        !string.IsNullOrWhiteSpace(configuration["Mail:From"]) &&
-        !string.IsNullOrWhiteSpace(configuration["Mail:Username"]) &&
-        !string.IsNullOrWhiteSpace(configuration["Mail:Password"]);
-
-    public async Task SendAsync(string email, string code, CancellationToken cancellationToken)
-    {
-        if (!IsAvailable)
-        {
-            throw new InvalidOperationException("Mail transport is not configured.");
-        }
-
-        var host = configuration["Mail:Host"]!;
-        var port = int.TryParse(configuration["Mail:Port"], out var configuredPort)
-            ? configuredPort : 587;
-        using var client = new SmtpClient(host, port)
-        {
-            EnableSsl = true,
-            Credentials = new NetworkCredential(
-                configuration["Mail:Username"], configuration["Mail:Password"])
-        };
-        using var message = new MailMessage(configuration["Mail:From"]!, email)
-        {
-            Subject = "LearnPip Anmeldecode",
-            Body = $"Dein einmaliger LearnPip-Code lautet: {code}\nEr ist 10 Minuten gültig."
-        };
-        await client.SendMailAsync(message, cancellationToken);
-    }
-}
-
+/// <summary>
+/// Verwaltet pseudonyme Konten, Wiederherstellung und E-Mail- oder OIDC-Anmeldung.
+/// </summary>
+/// <param name="dbContext">Der Datenbankkontext.</param>
+/// <param name="sender">Der Dienst zum Versand von Anmeldecodes.</param>
+/// <param name="configuration">Die Anwendungskonfiguration.</param>
 public sealed class IdentityService(
-    LearnPipDbContext dbContext,
-    IEmailCodeSender sender,
-    IConfiguration configuration)
+        LearnPipDbContext dbContext,
+        IEmailCodeSender sender,
+        IConfiguration configuration)
 {
+    /// <summary>
+    /// Holt einen Wert, der angibt, ob die E-Mail-Anmeldung verfügbar ist.
+    /// </summary>
+    public bool EmailEnabled =>
+        sender.IsAvailable && this.TryGetCodeKey() != null;
+
+    /// <summary>
+    /// Normalisiert eine gültige E-Mail-Adresse für den Identitätsvergleich.
+    /// </summary>
+    /// <param name="input">Die zu prüfenden Eingabedaten.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     public static string? NormalizeEmail(string? input)
     {
         if (string.IsNullOrWhiteSpace(input))
@@ -70,6 +50,11 @@ public sealed class IdentityService(
             ? email : null;
     }
 
+    /// <summary>
+    /// Erstellt ein pseudonymes Konto mit Wiederherstellungsgeheimnis.
+    /// </summary>
+    /// <param name="cancellationToken">Das Token zum Abbrechen der Operation.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     public async Task<(Guid AccountId, string Secret)> CreatePseudonymousAsync(
         CancellationToken cancellationToken)
     {
@@ -79,13 +64,21 @@ public sealed class IdentityService(
         dbContext.RecoveryCredentials.Add(new RecoveryCredential
         {
             AccountId = account.Id,
-            SecretHash = SessionAuthentication.Hash(secret)
+            SecretHash = SessionAuthentication.Hash(secret),
         });
         await dbContext.SaveChangesAsync(cancellationToken);
         return (account.Id, secret);
     }
 
-    public async Task<Guid?> RecoverAsync(string? secret, CancellationToken cancellationToken)
+    /// <summary>
+    /// Prüft ein Wiederherstellungsgeheimnis und löst das Konto auf.
+    /// </summary>
+    /// <param name="secret">Das unverarbeitete Geheimnis.</param>
+    /// <param name="cancellationToken">Das Token zum Abbrechen der Operation.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
+    public async Task<Guid?> RecoverAsync(
+        string? secret,
+        CancellationToken cancellationToken)
     {
         if (secret is not { Length: 43 } ||
             secret.Any(character => !char.IsAsciiLetterOrDigit(character) &&
@@ -100,22 +93,23 @@ public sealed class IdentityService(
                                  credential.Account.DeletedAtUtc == null)
             .Select(credential => (Guid?)credential.AccountId)
             .SingleOrDefaultAsync(cancellationToken);
-        if (accountId.HasValue) await ReactivateAsync(accountId.Value, cancellationToken);
+        if (accountId.HasValue)
+        {
+            await this.ReactivateAsync(accountId.Value, cancellationToken);
+        }
+
         return accountId;
     }
 
-    private Task<int> ReactivateAsync(Guid accountId, CancellationToken cancellationToken)
-    {
-        var now = DateTimeOffset.UtcNow;
-        return dbContext.Accounts.Where(account => account.Id == accountId &&
-                account.DeletedAtUtc == null)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(account => account.DisabledAtUtc, (DateTimeOffset?)null)
-                .SetProperty(account => account.LastActivityAtUtc, now)
-                .SetProperty(account => account.UpdatedAtUtc, now), cancellationToken);
-    }
-
-    public async Task<string> RotateRecoveryAsync(Guid accountId, CancellationToken cancellationToken)
+    /// <summary>
+    /// Ersetzt das Wiederherstellungsgeheimnis eines Kontos.
+    /// </summary>
+    /// <param name="accountId">Die Kennung des betroffenen Kontos.</param>
+    /// <param name="cancellationToken">Das Token zum Abbrechen der Operation.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
+    public async Task<string> RotateRecoveryAsync(
+        Guid accountId,
+        CancellationToken cancellationToken)
     {
         var secret = SessionAuthentication.NewSecret();
         var credential = await dbContext.RecoveryCredentials
@@ -125,7 +119,7 @@ public sealed class IdentityService(
             dbContext.RecoveryCredentials.Add(new RecoveryCredential
             {
                 AccountId = accountId,
-                SecretHash = SessionAuthentication.Hash(secret)
+                SecretHash = SessionAuthentication.Hash(secret),
             });
         }
         else
@@ -138,14 +132,23 @@ public sealed class IdentityService(
         return secret;
     }
 
-    public bool EmailEnabled =>
-        sender.IsAvailable && TryGetCodeKey() != null;
-
+    /// <summary>
+    /// Erstellt einen kurzlebigen E-Mail-Anmeldecode und versendet ihn.
+    /// </summary>
+    /// <param name="email">Die E-Mail-Adresse des Kontos.</param>
+    /// <param name="purpose">Der Verwendungszweck des Anmeldecodes.</param>
+    /// <param name="accountId">Die Kennung des betroffenen Kontos.</param>
+    /// <param name="sessionId">Die Kennung der Sitzung.</param>
+    /// <param name="cancellationToken">Das Token zum Abbrechen der Operation.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     public async Task StartEmailCodeAsync(
-        string email, string purpose, Guid? accountId, Guid? sessionId,
+        string email,
+        string purpose,
+        Guid? accountId,
+        Guid? sessionId,
         CancellationToken cancellationToken)
     {
-        var key = TryGetCodeKey() ?? throw new InvalidOperationException("Email code key is not configured.");
+        var key = this.TryGetCodeKey() ?? throw new InvalidOperationException("Email code key is not configured.");
         if (!sender.IsAvailable)
         {
             throw new InvalidOperationException("Mail transport is not configured.");
@@ -159,8 +162,9 @@ public sealed class IdentityService(
             .Select(item => item.CreatedAtUtc)
             .Take(5)
             .ToListAsync(cancellationToken);
+
         // Silent throttling keeps the same response for known and unknown addresses.
-        if (recent.Count >= 5 || recent.Count > 0 && recent[0] > now.AddMinutes(-1))
+        if (recent.Count >= 5 || (recent.Count > 0 && recent[0] > now.AddMinutes(-1)))
         {
             return;
         }
@@ -168,8 +172,11 @@ public sealed class IdentityService(
         await dbContext.EmailLoginCodes
             .Where(item => item.Email == email && item.Purpose == purpose &&
                            item.ConsumedAtUtc == null)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(
-                item => item.ConsumedAtUtc, now), cancellationToken);
+            .ExecuteUpdateAsync(
+            setters => setters.SetProperty(
+                item => item.ConsumedAtUtc,
+                now),
+            cancellationToken);
 
         var code = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6", CultureInfo.InvariantCulture);
         var challenge = new EmailLoginCode
@@ -178,7 +185,7 @@ public sealed class IdentityService(
             Purpose = purpose,
             AccountId = accountId,
             InitiatingSessionId = sessionId,
-            ExpiresAtUtc = now.AddMinutes(10)
+            ExpiresAtUtc = now.AddMinutes(10),
         };
         challenge.CodeHash = HashCode(key, challenge.Id, code);
         dbContext.EmailLoginCodes.Add(challenge);
@@ -192,17 +199,34 @@ public sealed class IdentityService(
         {
             await dbContext.EmailLoginCodes
                 .Where(item => item.Id == challenge.Id)
-                .ExecuteUpdateAsync(setters => setters.SetProperty(
-                    item => item.ConsumedAtUtc, DateTimeOffset.UtcNow), cancellationToken);
+                .ExecuteUpdateAsync(
+                setters => setters.SetProperty(
+                    item => item.ConsumedAtUtc,
+                    DateTimeOffset.UtcNow),
+                cancellationToken);
             throw;
         }
     }
 
+    /// <summary>
+    /// Prüft einen E-Mail-Anmeldecode und löst das zugehörige Konto auf.
+    /// </summary>
+    /// <param name="email">Die E-Mail-Adresse des Kontos.</param>
+    /// <param name="code">Der Rollen-, Einladungs- oder Bestätigungscode.</param>
+    /// <param name="purpose">Der Verwendungszweck des Anmeldecodes.</param>
+    /// <param name="accountId">Die Kennung des betroffenen Kontos.</param>
+    /// <param name="sessionId">Die Kennung der Sitzung.</param>
+    /// <param name="cancellationToken">Das Token zum Abbrechen der Operation.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     public async Task<Guid?> CompleteEmailCodeAsync(
-        string email, string code, string purpose, Guid? accountId, Guid? sessionId,
+        string email,
+        string code,
+        string purpose,
+        Guid? accountId,
+        Guid? sessionId,
         CancellationToken cancellationToken)
     {
-        var key = TryGetCodeKey();
+        var key = this.TryGetCodeKey();
         if (key == null || code.Length != 6 || code.Any(character => character is < '0' or > '9'))
         {
             return null;
@@ -216,8 +240,8 @@ public sealed class IdentityService(
             .FirstOrDefaultAsync(cancellationToken);
         if (challenge == null || challenge.ExpiresAtUtc <= now ||
             challenge.FailedAttempts >= 5 ||
-            purpose == "link" && (challenge.AccountId != accountId ||
-                                  challenge.InitiatingSessionId != sessionId))
+            (purpose == "link" && (challenge.AccountId != accountId ||
+                                  challenge.InitiatingSessionId != sessionId)))
         {
             return null;
         }
@@ -229,8 +253,11 @@ public sealed class IdentityService(
             await dbContext.EmailLoginCodes
                 .Where(item => item.Id == challenge.Id && item.ConsumedAtUtc == null &&
                                item.FailedAttempts < 5)
-                .ExecuteUpdateAsync(setters => setters.SetProperty(
-                    item => item.FailedAttempts, item => item.FailedAttempts + 1), cancellationToken);
+                .ExecuteUpdateAsync(
+                setters => setters.SetProperty(
+                    item => item.FailedAttempts,
+                    item => item.FailedAttempts + 1),
+                cancellationToken);
             return null;
         }
 
@@ -238,22 +265,26 @@ public sealed class IdentityService(
         var consumed = await dbContext.EmailLoginCodes
             .Where(item => item.Id == challenge.Id && item.ConsumedAtUtc == null &&
                            item.FailedAttempts < 5 && item.ExpiresAtUtc > now)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(
-                item => item.ConsumedAtUtc, now), cancellationToken);
+            .ExecuteUpdateAsync(
+            setters => setters.SetProperty(
+                item => item.ConsumedAtUtc,
+                now),
+            cancellationToken);
         if (consumed != 1)
         {
             return null;
         }
 
         var identity = await dbContext.ExternalIdentities
-            .SingleOrDefaultAsync(item => item.Provider == "email" && item.Subject == email,
-                cancellationToken);
+            .SingleOrDefaultAsync(
+            item => item.Provider == "email" && item.Subject == email,
+            cancellationToken);
         Guid resolved;
         if (identity != null)
         {
             if (!await dbContext.Accounts.AsNoTracking().AnyAsync(
-                    account => account.Id == identity.AccountId && account.DeletedAtUtc == null,
-                    cancellationToken))
+                account => account.Id == identity.AccountId && account.DeletedAtUtc == null,
+                cancellationToken))
             {
                 return null;
             }
@@ -282,14 +313,14 @@ public sealed class IdentityService(
             {
                 AccountId = resolved,
                 Provider = "email",
-                Subject = email
+                Subject = email,
             });
         }
 
         try
         {
             await dbContext.SaveChangesAsync(cancellationToken);
-            await ReactivateAsync(resolved, cancellationToken);
+            await this.ReactivateAsync(resolved, cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
         catch (DbUpdateException exception) when
@@ -301,8 +332,19 @@ public sealed class IdentityService(
         return resolved;
     }
 
+    /// <summary>
+    /// Löst eine externe OIDC-Identität auf oder verknüpft sie mit einem Konto.
+    /// </summary>
+    /// <param name="issuer">Der Aussteller der OIDC-Identität.</param>
+    /// <param name="subject">Die externe OIDC-Kennung innerhalb des Ausstellers.</param>
+    /// <param name="linkingAccountId">Die Kennung des zu verknüpfenden Kontos, sofern vorhanden.</param>
+    /// <param name="cancellationToken">Das Token zum Abbrechen der Operation.</param>
+    /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     public async Task<Guid> ResolveOidcAsync(
-        string issuer, string subject, Guid? linkingAccountId, CancellationToken cancellationToken)
+        string issuer,
+        string subject,
+        Guid? linkingAccountId,
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(subject) || subject.Length > 255)
         {
@@ -311,13 +353,14 @@ public sealed class IdentityService(
 
         var provider = "oidc:" + SessionAuthentication.Hash(issuer).ToLowerInvariant();
         var identity = await dbContext.ExternalIdentities
-            .SingleOrDefaultAsync(item => item.Provider == provider && item.Subject == subject,
-                cancellationToken);
+            .SingleOrDefaultAsync(
+            item => item.Provider == provider && item.Subject == subject,
+            cancellationToken);
         if (identity != null)
         {
             if (!await dbContext.Accounts.AsNoTracking().AnyAsync(
-                    account => account.Id == identity.AccountId && account.DeletedAtUtc == null,
-                    cancellationToken))
+                account => account.Id == identity.AccountId && account.DeletedAtUtc == null,
+                cancellationToken))
             {
                 throw new IdentityConflictException();
             }
@@ -327,7 +370,7 @@ public sealed class IdentityService(
                 throw new IdentityConflictException();
             }
 
-            await ReactivateAsync(identity.AccountId, cancellationToken);
+            await this.ReactivateAsync(identity.AccountId, cancellationToken);
             return identity.AccountId;
         }
 
@@ -347,7 +390,7 @@ public sealed class IdentityService(
         {
             AccountId = accountId,
             Provider = provider,
-            Subject = subject
+            Subject = subject,
         });
         try
         {
@@ -360,6 +403,28 @@ public sealed class IdentityService(
         }
 
         return accountId;
+    }
+
+    private static string HashCode(byte[] key, Guid id, string code) =>
+        Convert.ToHexString(HMACSHA256.HashData(key, Encoding.UTF8.GetBytes($"{id:N}:{code}")));
+
+    private Task<int> ReactivateAsync(
+        Guid accountId,
+        CancellationToken cancellationToken)
+    {
+        var now = DateTimeOffset.UtcNow;
+        return dbContext.Accounts.Where(account => account.Id == accountId &&
+                account.DeletedAtUtc == null)
+            .ExecuteUpdateAsync(
+            setters => setters
+                .SetProperty(
+                account => account.DisabledAtUtc,
+                (DateTimeOffset?)null)
+                .SetProperty(
+                account => account.LastActivityAtUtc,
+                now)
+                .SetProperty(account => account.UpdatedAtUtc, now),
+            cancellationToken);
     }
 
     private byte[]? TryGetCodeKey()
@@ -380,7 +445,4 @@ public sealed class IdentityService(
             return null;
         }
     }
-
-    private static string HashCode(byte[] key, Guid id, string code) =>
-        Convert.ToHexString(HMACSHA256.HashData(key, Encoding.UTF8.GetBytes($"{id:N}:{code}")));
 }

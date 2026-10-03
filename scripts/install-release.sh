@@ -207,7 +207,7 @@ PY
   printf '%s\n' "$version" > "$source_dir/.learnpip-release"
   mv "$source_dir" "$target"
 fi
-install -d -m 700 "$shared/secrets"
+install -d -m 700 "$shared/secrets" "$shared/update-queue" "$shared/update-status"
 if [[ ! -e $shared/.env.production ]]; then
   cp "$target/deploy/.env.production.example" "$shared/.env.production"
 fi
@@ -220,11 +220,11 @@ for link in secrets .env.production; do
   fi
 done
 if [[ -z $current ]]; then bash "$target/scripts/prod-init.sh"; fi
-python3 - "$shared/.env.production" "$version" "$domain" "$internal" "$rootless_standard_ports" <<'PY'
+python3 - "$shared/.env.production" "$version" "$domain" "$internal" "$rootless_standard_ports" "$shared" <<'PY'
 import sys
 from pathlib import Path
 p = Path(sys.argv[1])
-version, domain, internal, standard_ports = sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5]
+version, domain, internal, standard_ports, shared_dir = sys.argv[2:]
 lines = p.read_text().splitlines()
 existing_internal = next(
     (line.split('=', 1)[1] for line in lines if line.startswith('LEARNPIP_INTERNAL=')),
@@ -232,10 +232,11 @@ existing_internal = next(
 )
 existing_http_port = next((line.split('=', 1)[1] for line in lines if line.startswith('LEARNPIP_HTTP_PORT=')), '8080')
 existing_https_port = next((line.split('=', 1)[1] for line in lines if line.startswith('LEARNPIP_HTTPS_PORT=')), '8443')
-lines = [line for line in lines if not line.startswith(('LEARNPIP_VERSION=', 'LEARNPIP_INTERNAL=', 'LEARNPIP_HTTP_PORT=', 'LEARNPIP_HTTPS_PORT='))]
+lines = [line for line in lines if not line.startswith(('LEARNPIP_VERSION=', 'LEARNPIP_INTERNAL=', 'LEARNPIP_HTTP_PORT=', 'LEARNPIP_HTTPS_PORT=', 'LEARNPIP_SHARED_DIR='))]
 if domain:
     lines = [line for line in lines if not line.startswith('LEARNPIP_DOMAIN=')]
 lines.append('LEARNPIP_VERSION=' + version)
+lines.append('LEARNPIP_SHARED_DIR=' + shared_dir)
 internal_mode = 'true' if internal == 'true' else existing_internal
 lines.append('LEARNPIP_INTERNAL=' + internal_mode)
 if standard_ports == 'true':

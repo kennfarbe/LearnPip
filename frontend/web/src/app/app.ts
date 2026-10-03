@@ -5,6 +5,7 @@ import { QuestionEditor } from './question-editor';
 import { LearningSession } from './learning-session';
 import { LearningProgress } from './learning-progress';
 import { AccountActivity } from './account-activity';
+import { AdminUpdates } from './admin-updates';
 import { GroupSpace } from './group-space';
 import { ModerationQueue } from './moderation-queue';
 import { CommunityFeedback } from './community-feedback';
@@ -25,6 +26,7 @@ import { LanguageService } from './language';
     LearningSession,
     LearningProgress,
     AccountActivity,
+    AdminUpdates,
     GroupSpace,
     ModerationQueue,
     CommunityFeedback,

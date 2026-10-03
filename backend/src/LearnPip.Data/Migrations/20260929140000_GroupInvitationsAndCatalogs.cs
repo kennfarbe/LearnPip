@@ -7,10 +7,14 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LearnPip.Data.Migrations;
 
+/// <summary>
+/// Enthält die Schemaänderungen der Datenbankmigration GroupInvitationsAndCatalogs.
+/// </summary>
 [DbContext(typeof(LearnPipDbContext))]
 [Migration("20260929140000_GroupInvitationsAndCatalogs")]
 public sealed class GroupInvitationsAndCatalogs : Migration
 {
+    /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.CreateTable("GroupInvitations", columns: table => new
@@ -56,6 +60,7 @@ public sealed class GroupInvitationsAndCatalogs : Migration
         migrationBuilder.CreateIndex("IX_GroupCatalogShares_SharedByAccountId", "GroupCatalogShares", "SharedByAccountId");
     }
 
+    /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable("GroupCatalogShares");

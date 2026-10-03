@@ -1,5 +1,7 @@
 # LearnPip auf Proxmox VE installieren
 
+**Stand: 2. Oktober 2026.** Diese Anleitung beschreibt den stabilen Release-Installationsweg. Die in PR #91 ergänzten webbasierten Admin-Updates sind erst nach Merge, Veröffentlichung und Einrichtung des [separaten Rootless-Update-Operators](admin-web-updates.md) nutzbar. Ein manuelles Update über das Installationsskript bleibt unabhängig davon möglich.
+
 Diese Anleitung installiert den produktiven Compose-Stack in einer **Debian-13-VM** auf Proxmox VE. Sie unterstützt sowohl eine öffentlich erreichbare Domain als auch den internen LAN-/VPN-Modus mit Caddys lokaler CA. Die vorhandene Host-Kernelkennung `7.0.14-14-pve` ist kein Debian-Versionsname und wird **nicht** in der VM installiert. Auf dem Proxmox-Host mit `uname -r` und `pveversion -v` Kernel und VE-Version getrennt prüfen. Docker läuft in der VM, nicht auf dem Proxmox-Host oder in einem LXC-Container. Die Proxmox-[FAQ](https://pve.proxmox.com/pve-docs/chapter-pve-faq.html) empfiehlt eine QEMU-VM für Docker-Anwendungen.
 
 Alle folgenden Linux-Befehle, außer den ausdrücklich als Proxmox-Host bezeichneten, werden **in der Debian-VM** ausgeführt. Beispielwerte `learn.example.org`, `192.168.1.50` und VM-ID `125` ersetzen. Die Ressourcenvorschläge sind Ausgangswerte, keine gemessenen Mindestanforderungen.

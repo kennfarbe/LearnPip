@@ -151,23 +151,26 @@ type Mode = {
           <div (input)="savedDraftId.set('')">
             <h3>{{ language.t('Frage und Antworten') }}</h3>
             @for (block of data.prompt; track $index; let i = $index) {
-              <label
-                >{{ language.current() === 'en' ? 'Question block' : 'Frageblock' }} {{ i + 1 }}
-                @if (block.kind === 'text') {
+              @if (block.kind === 'text') {
+                <label
+                  >{{ language.current() === 'en' ? 'Question block' : 'Frageblock' }} {{ i + 1 }}
                   <textarea [(ngModel)]="block.text" maxlength="4000" rows="3"></textarea>
-                } @else {
+                </label>
+              } @else {
+                <label
+                  >{{ language.current() === 'en' ? 'Question block' : 'Frageblock' }} {{ i + 1 }}
                   <textarea
                     [(ngModel)]="block.altText"
                     maxlength="300"
                     rows="2"
                     [attr.aria-label]="language.t('Bildbeschreibung')"
                   ></textarea>
-                  <img
-                    [src]="'/api/v1/media/' + block.mediaId + '/content'"
-                    [alt]="block.altText ?? ''"
-                  />
-                }
-              </label>
+                </label>
+                <img
+                  [src]="'/api/v1/media/' + block.mediaId + '/content'"
+                  [alt]="block.altText ?? ''"
+                />
+              }
             }
             @for (answer of data.answers; track answer.optionId; let i = $index) {
               <fieldset>

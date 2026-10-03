@@ -28,6 +28,35 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Reject tab characters in tracked text files
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          files = subprocess.check_output(["git", "ls-files", "-z"]).split(b"\0")
+          violations = []
+          for raw_path in files:
+              if not raw_path:
+                  continue
+              path = Path(raw_path.decode("utf-8"))
+              content = path.read_bytes()
+              if b"\0" in content:
+                  continue
+              try:
+                  text = content.decode("utf-8")
+              except UnicodeDecodeError:
+                  continue
+              for number, line in enumerate(text.splitlines(), 1):
+                  if "\t" in line:
+                      violations.append(f"{path}:{number}: tab character; use spaces")
+          if violations:
+              print("\n".join(violations), file=sys.stderr)
+              raise SystemExit(1)
+          print("Tracked UTF-8 text files contain no tab characters.")
+          PY
+
       - name: Check whitespace errors
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -125,6 +154,28 @@ jobs:
           print("Local Markdown links resolve and external actions use full commit SHAs.")
           PY
 
+  markdown:
+    name: Markdown lint (de-DE)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24
+      - name: Install pinned Markdown tooling
+        run: npm install --no-save --package-lock=false --ignore-scripts markdownlint-cli2@0.23.2 cspell@10.3.3 @cspell/dict-de-de@4.1.2
+      - name: Lint Markdown structure
+        run: npx --no-install markdownlint-cli2 "**/*.md"
+      - name: Check German spelling in German project introduction
+        run: npx --no-install cspell lint README.md --no-progress --no-summary
+
   backend:
     name: Backend build
     runs-on: ubuntu-latest
@@ -200,7 +251,8 @@ jobs:
         run: |
           solution="$(find backend -type f \( -name '*.sln' -o -name '*.slnx' \) -print -quit)"
           dotnet test "$solution" --configuration Release
-          dotnet format "$solution" --verify-no-changes --no-restore
+          dotnet format whitespace "$solution" --verify-no-changes --no-restore
+          dotnet format analyzers "$solution" --verify-no-changes --no-restore --severity error
 
   web:
     name: Web build
@@ -269,8 +321,13 @@ jobs:
         run: |
           npm test --if-present
           npm run format:check
+          npm run lint
           npm run test:pwa
-          npm run build --if-present
+          npm run build --if-present 2>&1 | tee angular-build.log
+          if grep -Eiq '(^|[[:space:]])(warning:|\\[WARNING\\])' angular-build.log; then
+            echo 'Angular build emitted warnings; warnings are treated as errors.' >&2
+            exit 1
+          fi
 
   installer-smoke:
     name: Installer smoke
@@ -291,7 +348,7 @@ jobs:
     outputs:
       release_tag: ${{ steps.released.outputs.release_tag }}
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [repository-policy, backend, web, restore-smoke, installer-smoke]
+    needs: [repository-policy, markdown, backend, web, restore-smoke, installer-smoke]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

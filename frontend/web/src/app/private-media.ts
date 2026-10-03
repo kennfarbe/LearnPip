@@ -56,7 +56,7 @@ interface MediaResponse {
         </figure>
         <button type="button" (click)="remove()">{{ language.t('Bild löschen') }}</button>
       }
-      <dialog #viewer aria-label="Bild vergrößert anzeigen" (click)="closeViewer()">
+      <dialog #viewer aria-label="Bild vergrößert anzeigen">
         @if (imageUrl()) {
           <img [src]="imageUrl()" [alt]="imageAlt()" />
         }
