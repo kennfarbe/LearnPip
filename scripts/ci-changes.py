@@ -26,15 +26,14 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             continue
 
         if path.endswith(".md"):
+            # Documentation remains documentation even inside backend or web.
             flags["markdown"] = True
+            continue
 
         if path.startswith("docs/"):
             if path.startswith("docs/screenshots/"):
                 flags["web"] = True
             # Other documentation and assets do not require a code build.
-            continue
-
-        if path.endswith(".md") and "/" not in path:
             continue
 
         if path in {".markdownlint-cli2.jsonc", "cspell.json"}:
