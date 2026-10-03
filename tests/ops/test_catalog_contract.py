@@ -19,6 +19,7 @@ InvalidPackage = MODULE["InvalidPackage"]
 READER = runpy.run_path(str(Path(__file__).resolve().parents[2] /
                             "scripts" / "read-catalog.py"))
 read_catalog = READER["read_catalog"]
+ReaderInvalidPackage = READER["_validator"].InvalidPackage
 
 
 def license_details():
