@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/kennfarbe/LearnPip/compare/v1.7.0...v1.7.1) (2026-10-03)
+
+
+### Bug Fixes
+
+* **catalog:** require leading manifest and non-executable media types ([2d3c1bc](https://github.com/kennfarbe/LearnPip/commit/2d3c1bcba6b0217a3f4254b95422578e057ac767))
+
 # [1.7.0](https://github.com/kennfarbe/LearnPip/compare/v1.6.0...v1.7.0) (2026-10-03)
 
 
