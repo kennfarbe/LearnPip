@@ -96,6 +96,25 @@ public sealed class OidcProviderConfigurationTests
     }
 
     /// <summary>
+    /// Microsoft tenant strategies are explicit and support organization or consumer accounts.
+    /// </summary>
+    [Theory]
+    [InlineData("https://login.microsoftonline.com/organizations/v2.0")]
+    [InlineData("https://login.microsoftonline.com/consumers/v2.0")]
+    [InlineData("https://login.microsoftonline.com/11111111-1111-1111-1111-111111111111/v2.0")]
+    public void MicrosoftSupportsExplicitTenantStrategies(string authority)
+    {
+        var configuration = CreateConfiguration(new Dictionary<string, string?>
+        {
+            ["Oidc:Providers:microsoft:Authority"] = authority,
+            ["Oidc:Providers:microsoft:ClientId"] = "client",
+            ["Oidc:Providers:microsoft:ClientSecret"] = "secret",
+        });
+
+        Assert.Equal("LearnPipOidc-microsoft", OidcSetup.ProviderScheme(configuration, "microsoft"));
+    }
+
+    /// <summary>
     /// Fremde Issuer dürfen nicht unter dem Namen eines bekannten Anbieters auftreten.
     /// </summary>
     /// <param name="provider">Der deklarierte Anbieter.</param>
@@ -105,7 +124,6 @@ public sealed class OidcProviderConfigurationTests
     [InlineData("apple", "https://appleid.apple.com.evil.invalid")]
     [InlineData("microsoft", "https://issuer.example.invalid")]
     [InlineData("microsoft", "https://login.microsoftonline.com/common/v2.0")]
-    [InlineData("microsoft", "https://login.microsoftonline.com/organizations/v2.0")]
     public void ProviderAuthorityMustMatchDeclaredProvider(string provider, string authority)
     {
         var configuration = CreateConfiguration(new Dictionary<string, string?>
