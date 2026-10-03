@@ -30,6 +30,17 @@ docker compose --env-file deploy/.env --file deploy/compose.yaml down --volumes
 
 Dieser letzte Befehl löscht den lokalen Datenbankinhalt.
 
+## Datenvolume bei PostgreSQL 18
+
+Die lokale Compose-Datei verwendet PostgreSQL 18 und bindet das persistente Volume
+unter `/var/lib/postgresql` ein. PostgreSQL 18 verwendet standardmäßig ein
+versionsspezifisches Unterverzeichnis (`18/docker`). Vor dem Wechsel eines
+bereits bestehenden lokalen Datenvolumes von einem älteren Mount-Pfad bitte
+die Datenbank sichern und den tatsächlichen Datenbestand prüfen. **Den
+Mount-Pfad nicht blind ändern und keine Volumes löschen.** Eine Anpassung
+bereits vorhandener Datenbestände erfordert einen gesondert geprüften
+Migrations-/Wiederherstellungsweg; ein reines Umhängen migriert keine Daten.
+
 ## Komponenten einzeln bauen
 
 Start the local stack first, then run the migration and ownership integration tests against a temporary database:
