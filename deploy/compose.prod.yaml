@@ -79,6 +79,7 @@ services:
     volumes:
       - ${LEARNPIP_SHARED_DIR:?Set LEARNPIP_SHARED_DIR in .env.production}/update-queue:/var/lib/learnpip-update/queue
       - ${LEARNPIP_SHARED_DIR:?Set LEARNPIP_SHARED_DIR in .env.production}/update-status:/var/lib/learnpip-update/status:ro
+      - data-protection-keys:/var/lib/learnpip/data-protection
     secrets:
       - ConnectionStrings__LearnPip
       - Authentication__EmailCodeKey
@@ -185,6 +186,7 @@ volumes:
   postgres-data:
   caddy-data:
   caddy-config:
+  data-protection-keys:
 
 secrets:
   postgres_password:
