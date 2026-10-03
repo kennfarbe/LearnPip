@@ -219,7 +219,9 @@ for link in secrets .env.production; do
     ln -s "$shared/$link" "$target/deploy/$link"
   fi
 done
-if [[ -z $current ]]; then bash "$target/scripts/prod-init.sh"; fi
+# Initialize newly introduced optional secret files on upgrades as well.
+# prod-init.sh preserves existing database and authentication credentials.
+bash "$target/scripts/prod-init.sh"
 python3 - "$shared/.env.production" "$version" "$domain" "$internal" "$rootless_standard_ports" "$shared" <<'PY'
 import sys
 from pathlib import Path

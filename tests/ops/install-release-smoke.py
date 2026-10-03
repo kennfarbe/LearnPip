@@ -64,6 +64,13 @@ if [[ "$*" == *'run --rm migrate'* && "${MOCK_FAIL_MIGRATE:-}" == 1 ]]; then exi
     assert mount in migration and mount in api
     assert '  data-protection-keys:' in volumes
 
+    compose_text = (repo / 'deploy/compose.prod.yaml').read_text()
+    for provider in ('apple', 'microsoft'):
+        secret = f'Oidc__Providers__{provider}__ClientSecret'
+        assert f'      - {secret}' in compose_text
+        assert f'  {secret}:\n    file: ./secrets/{secret}' in compose_text
+        assert secret in (repo / 'scripts/prod-init.sh').read_text()
+
     run('prepare')
     assert not (target / 'current').exists()
     assert not log.exists(), 'prepare must not invoke Docker'
@@ -79,7 +86,15 @@ if [[ "$*" == *'run --rm migrate'* && "${MOCK_FAIL_MIGRATE:-}" == 1 ]]; then exi
     assert '-f deploy/compose.internal.yaml' in log.read_text()
     run('install', '--yes', success=False)
     run('update', '--yes')  # same version is a no-op
+    # Simulate an older installation without the newly introduced provider
+    # secret; updates must create missing files and preserve existing values.
+    apple_secret = target / 'shared/secrets/Oidc__Providers__apple__ClientSecret'
+    microsoft_secret = target / 'shared/secrets/Oidc__Providers__microsoft__ClientSecret'
+    apple_secret.unlink()
+    microsoft_secret.write_text('preserve-existing-secret')
     run('update', '--version', 'v1.0.1', '--yes')
+    assert apple_secret.is_file() and apple_secret.read_bytes() == b''
+    assert microsoft_secret.read_text() == 'preserve-existing-secret'
     assert (target / 'current').resolve() == target / 'releases/v1.0.1'
     assert (target / 'shared/secrets/postgres_password').read_bytes() == password
     assert 'LEARNPIP_INTERNAL=true' in (target / 'shared/.env.production').read_text()
