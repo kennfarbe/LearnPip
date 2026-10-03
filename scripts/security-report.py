@@ -2,7 +2,7 @@
 """Evaluate scanner JSON without printing private vulnerability identifiers.
 
 For local investigation, run the scanners directly on a trusted computer.
-This CI checker prints only an aggregate status and never uploads the report.
+This CI checker prints only an aggregate status; workflows retain bounded reports.
 """
 
 from __future__ import annotations
@@ -37,14 +37,12 @@ def evaluate(kind: str, document: object) -> tuple[int, int]:
         projects = document.get("projects")
         check(isinstance(projects, list) and bool(projects), "NuGet projects missing")
         high = critical = 0
-        scanned = False
         for project in projects:
             check(isinstance(project, dict), "Invalid NuGet project")
             frameworks = project.get("frameworks", [])
             check(isinstance(frameworks, list), "Invalid NuGet framework list")
             for framework in frameworks:
                 check(isinstance(framework, dict), "Invalid NuGet framework")
-                scanned = True
                 for section in ("topLevelPackages", "transitivePackages"):
                     packages = framework.get(section, [])
                     check(isinstance(packages, list), "Invalid package list")
@@ -59,7 +57,8 @@ def evaluate(kind: str, document: object) -> tuple[int, int]:
                                                "critical"), "Unknown vulnerability severity")
                             high += severity == "high"
                             critical += severity == "critical"
-        # Empty framework lists occur in valid dotnet list JSON for projects without\n        # vulnerable packages. The top-level projects list establishes scanner output.
+        # Empty framework lists occur in valid dotnet list JSON for projects without
+        # vulnerable packages. The top-level projects list establishes scanner output.
         return high, critical
 
     if kind == "trivy":

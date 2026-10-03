@@ -1,6 +1,6 @@
 # Schwachstellenprüfung und Aktualisierung
 
-Diese Prüfung dient der technischen Qualitätssicherung von LearnPip. Die vollständigen Ergebnisse dürfen im öffentlichen GitHub-Actions-Artefakt `dependency-security-reports` erscheinen (Aufbewahrung 14 Tage). **Der Workflow erstellt keine GitHub Security Advisories, beantragt keine CVE-Nummern und reicht keine Schwachstellen bei einer Meldestelle ein.** Solche formellen Prozesse erfolgen nur nach gesonderter Entscheidung des Projektverantwortlichen.
+Diese Prüfung dient der technischen Qualitätssicherung von LearnPip. Die vollständigen Ergebnisse dürfen im öffentlichen GitHub-Actions-Artefakten `dependency-security-reports-*` erscheinen (Aufbewahrung 14 Tage). **Der Workflow erstellt keine GitHub Security Advisories, beantragt keine CVE-Nummern und reicht keine Schwachstellen bei einer Meldestelle ein.** Solche formellen Prozesse erfolgen nur nach gesonderter Entscheidung des Projektverantwortlichen.
 
 ## Automatische Kontrollen
 
@@ -10,9 +10,23 @@ Für Root und Angular werden jeweils ein **verbindlicher Produktions-Audit** (`n
 
 Befunde ab HIGH im Produktionsgraphen sowie fehlgeschlagene Scans blockieren weiterhin den Merge. Dev-Befunde allein blockieren nicht; der wöchentliche Gesamtaudit und die hochgeladenen Berichte ermöglichen wiederkehrende Update-Prüfungen. Vorgehen: zuerst sichere Paketupdates und passende Lockfile-Änderungen, danach vollständige Tests und erneute Scans. Besteht keine verfügbare sichere Aktualisierung, eine funktional geeignete Ersatzbibliothek prüfen. Ohne tragfähige Lösung konkrete Rückfrage an den Projektverantwortlichen richten und den PR offen lassen; keine Ausnahmen oder Deaktivierungen ohne ausdrückliche Entscheidung.
 
-## Noch offene Abnahmekriterien
+## Unterstützte Versionen und konkrete Images
 
-Dies ist ein erster technischer Schritt für #96/#97. Insbesondere fehlen eine vollständige Bestandsaufnahme älterer unterstützter Release-Digests, Release-Freigaberegeln und kontrollierte echte Scannerfehlertests. Die bereits vorhandene SBOM-Buildoption muss anhand verfügbarer Release-Artefakte überprüft werden. Eine CRA- oder NIS2-Konformität wird nicht behauptet.
+`security/supported-releases.json` ist das verbindliche Supportinventar. In dieser frühen Projektphase wird ausschließlich das jeweils neueste stabile Release unterstützt (`latest`); ältere Releases erhalten keine zugesicherte Pflege. Betreiber sollen auf das aktuelle stabile Release aktualisieren. Wird eine ältere Linie weiter gepflegt, muss ihr konkretes `vX.Y.Z`-Tag hier zusätzlich aufgenommen werden; die Tests prüfen auch mehrere unterstützte Releases. Das ist eine technische Supportentscheidung, keine Aussage über gesetzlich erforderliche Supportdauer (#97).
+
+Der wöchentliche/manuelle Lauf löst jedes unterstützte Release auf einen Commit auf und prüft dessen NuGet-/npm-Graph zusätzlich zum aktuellen main. API-, Worker- und Web-Images sowie PostgreSQL und Caddy werden für `linux/amd64` und `linux/arm64` inventarisiert und ausschließlich über konkrete Plattform-Digests gescannt. Fehlende Releases, Plattformen oder Digests blockieren die Prüfung. Zeit, Umfang und Digests liegen im Artefakt `security-inventory` (14 Tage). Trivy ist auf Version `0.74.0`, Actions auf unveränderliche Commit-SHAs, Node auf `24.19.0` und .NET auf `10.0.401` gebunden. Trivy muss eine höchstens 72 Stunden alte Advisory-Datenbank mit Download innerhalb von 24 Stunden nachweisen; fehlende Zeitnachweise sind unvollständig. npm/NuGet fragen bei jedem Lauf die Advisory-Quellen ab; Netzwerk-/Restore-/Scannerfehler bleiben blockierend.
+
+## Befundverwaltung und Freigabe
+
+Das Artefakt `security-ledger` führt Befunde anhand Scanner, Ziel, Paket, betroffener Version und Advisory zusammen. Es enthält Erst-/Letztfund, Schwere, verfügbare Behebung, Zuständigkeit (`kennfarbe`), Bearbeitungsziel und den ausdrücklich noch manuell zu bewertenden Ausnutzbarkeitsstatus. Wiederholungen erzeugen keine neuen Tickets. Der nächste planmäßige/manuelle Lauf liest den letzten verfügbaren Ledger von main; fehlender historischer Bestand wird ausdrücklich als neue Baseline gekennzeichnet. Die Aufbewahrung beträgt 14 Tage; für längere Betriebsunterbrechungen muss der Projektverantwortliche den Ledger vorher geschützt sichern. Ein Befund wird erst nach vollständigem Scan desselben Ziels ohne diesen Befund als verifiziert behoben markiert. Scannerfehler und veraltete Daten schließen keine Funde.
+
+Der Projektverantwortliche bewertet Ausnutzbarkeit und Auswirkungen: CRITICAL innerhalb eines Tages, HIGH innerhalb sieben Tagen, MEDIUM/MODERATE innerhalb 30 Tagen, übrige innerhalb 90 Tagen triagieren und Maßnahmen festlegen. Das sind interne Bearbeitungsziele, keine gesetzlichen Meldefristen. Bereits bestehende Funde werden beim ersten vollständigen Scan aufgenommen; es gibt keine automatische Bestandsschutz-Ausnahme. Das vereinbarte informative npm-Dev-Verhalten bleibt erhalten. Ausnahmen benötigen vorherige Zustimmung, Begründung und gegebenenfalls Ablaufdatum; der Workflow führt keine Unterdrückungen ein.
+
+Vor Semantic Release muss der wiederverwendbare Sicherheitsworkflow erfolgreich sein. Er prüft Abhängigkeiten und frisch gebaute Laufzeit-Images einschließlich der Compose-Basisdienste; HIGH/CRITICAL-Produktionsfunde oder unvollständige Prüfungen verhindern Release und Image-Publishing. Veröffentlichte Images werden zusätzlich zyklisch erneut geprüft. Keine automatischen Paketupdates, CVE-Veröffentlichungen, Security Advisories oder öffentlichen Exploit-Tickets. Noch nicht veröffentlichte Lücken über den vertraulichen Weg aus SECURITY.md behandeln; Audit-Artefakte nur im vereinbarten Untersuchungsumfang verwenden, niemals Secrets oder private Betriebsdaten beifügen.
+
+## Nachgewiesene Scannerkontrollen
+
+`security-scanner-selftest.py` erstellt in einem temporären Verzeichnis einen ausschließlich synthetischen Lockfile-Graph mit einer bekannten verwundbaren Bibliotheksversion, fragt den echten npm-Auditdienst ab und verlangt einen relevanten Befund. Paketcode wird weder installiert noch ausgeführt. Anschließend erzwingt eine reservierte ungültige Registry-Adresse einen echten Scannerfehler; dieser darf nicht als sauberer Scan gelten. Die CI testet zusätzlich Digest-/Supportfehler, Ledger-Deduplizierung, Wiederholungsprüfung und veraltete Advisory-Daten. Die Kontrollen sind technische Nachweise zu #96; SBOM-/CRA-/NIS2-Organisationspflichten aus #97/#98 bleiben separate Aufgaben.
 
 ## Befundaufnahme zu PR #124 (03.10.2026)
 

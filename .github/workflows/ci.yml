@@ -447,12 +447,21 @@ jobs:
           print('All selected CI checks succeeded; inapplicable jobs were skipped.')
           PY
 
+  release-security:
+    name: Security gate before release
+    needs: [changes]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.release == 'true'
+    uses: ./.github/workflows/security.yml
+    permissions:
+      contents: read
+      actions: read
+
   release:
     name: Semantic release
     outputs:
       release_tag: ${{ steps.released.outputs.release_tag }}
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.ci-result.result == 'success'
-    needs: [ci-result]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.ci-result.result == 'success' && needs.release-security.result == 'success'
+    needs: [ci-result, release-security]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
