@@ -17,6 +17,7 @@ Das ZIP enthält am Archivwurzelpfad genau eine manifest.json (UTF-8), eine ques
 Vor der Verarbeitung werden Dateinamen normalisiert und auf Einzigartigkeit geprüft, Archive auf Dateianzahl, dekomprimierte Gesamtgröße, Einzeldateigröße und Kompressionsverhältnis begrenzt, Hashes geprüft und unbekannte Versionsnummern abgelehnt. ZIP-Inhalte dürfen keine Logik oder Skripte ausführen. Integritätsprüfung ist **keine** Authentifizierung des Herausgebers: Eine optional spätere Signatur braucht ein gesondertes Vertrauensmodell.
 
 Das JSON-Schema befindet sich unter schemas/catalog/0.1.0/. Es definiert Pflichtfelder und Formate; zusätzliche semantische Regeln gelten:
+
 - Jede Frage-ID muss einmalig sein; Antwort-IDs müssen je Frage eindeutig sein und sämtliche correct_answer_ids müssen existieren.
 - Sämtliche referenzierten Medien müssen enthalten und gehasht sein; nicht referenzierte Dateien werden zurückgewiesen.
 - Für Originale ist ein realer Rechteinhaber samt Attribution anzugeben; abgeleitete und wörtlich übernommene Werke benötigen einen konkreten Quellenlink und Revisionsstand sowie, soweit bearbeitet, einen Änderungsvermerk.
