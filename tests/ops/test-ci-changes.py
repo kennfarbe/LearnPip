@@ -20,6 +20,10 @@ class ChangeClassifierTests(unittest.TestCase):
         self.check(["README.md", "docs/API.md", "docs/CLA-ENTITY-DRAFT.md"],
                    markdown=True)
 
+    def test_markdown_inside_code_directories_does_not_build(self):
+        self.check(["backend/README.md", "frontend/web/README.md",
+                    "deploy/NOTES.md"], markdown=True)
+
     def test_web_only(self):
         self.check(["frontend/web/src/app/app.ts"], web=True,
                    integration=True, release=True)
