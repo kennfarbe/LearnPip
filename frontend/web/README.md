@@ -36,3 +36,12 @@ noch offene manuelle Screenreader-Abnahme stehen unter
 Die UI-Tests verwenden Chromium, den Produktionsbuild und isolierte API-Fixtures.
 Sie laufen auch in der CI. Für ein bereits installiertes Chromium kann lokal
 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` auf dessen Programmdatei gesetzt werden.
+
+## Beispielbilder pflegen
+
+Die [Bildvorschau](../../docs/UI-PREVIEW.md) zeigt die aktuelle Oberfläche.
+Bei Designänderungen `npm run docs:screenshots` ausführen, Bilder visuell prüfen
+und zusammen mit dem Manifest einchecken. Die CI prüft mit
+`npm run docs:screenshots:check`, ob die Aufnahmen zu den UI-Quellen passen.
+Jedes Bild braucht einen beschreibenden Alternativtext, der bei Inhaltsänderungen
+mit aktualisiert wird.

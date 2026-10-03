@@ -9,7 +9,9 @@
     "format:check": "prettier --check src angular.json tsconfig.json tsconfig.app.json",
     "test:pwa": "node --test tests/pwa.test.cjs",
     "lint": "eslint . --max-warnings=0",
-    "test:ui": "playwright test"
+    "test:ui": "playwright test",
+    "docs:screenshots": "npm run build && playwright test --config playwright.docs.config.cjs && node tools/docs-screenshots.cjs --record",
+    "docs:screenshots:check": "node tools/docs-screenshots.cjs"
   },
   "private": true,
   "packageManager": "npm@11.9.0",

@@ -7,6 +7,16 @@ LearnPip ist ein Open-Source-Projekt für kurze, regelmäßige Lerneinheiten. Le
 
 > **Projektstatus (2. Oktober 2026):** LearnPip besitzt ein startbares Backend und eine responsive Angular-Weboberfläche mit privaten Fragen und Medien, Lernsitzungen, Fortschritt, Gruppen, Prüfungsübungen, Identitätswegen und optionalen KI-Betriebsarten. Der Release-/Installationsweg ist vorhanden. Die Admin-Web-Updates aus Issues #75–#77 befinden sich in PR #91 und benötigen nach Veröffentlichung einen gesondert eingerichteten Host-Operator. Einzelne rechtliche, betriebliche und Freigabeprozesse sind weiterhin offen.
 
+## Ein erster Eindruck
+
+Die Übersicht führt direkt zu kurzen Lerneinheiten und eigenen Fragen.
+Die Aufnahme verwendet fiktive Beispieldaten.
+
+![LearnPip-Übersicht im hellen Design mit Navigation, Einstiegskarten zum Lernen, Fragen und Katalogen sowie persönlichem Lernfortschritt.](docs/screenshots/overview.png)
+
+Weitere Ansichten des Frageneditors, der Kataloge und einer mobilen Lerneinheit
+findest du in der [Bildvorschau](docs/UI-PREVIEW.md).
+
 ## Für wen ist LearnPip gedacht?
 
 LearnPip richtet sich an Menschen, die Schulstoff, Ausbildungsthemen oder Prüfungsinhalte in ihrem eigenen Tempo üben möchten. Neben dem persönlichen Lernbereich gibt es bereits gruppenbezogene Funktionen; spätere Erweiterungen bleiben im Issue-Tracker dokumentiert.

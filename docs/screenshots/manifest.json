@@ -1,0 +1,25 @@
+{
+  "sourceHash": "12642bced16f06b17b3c9cd904572d58eb910436cfcd34e5df01ade271d6c299",
+  "images": {
+    "overview.png": {
+      "sha256": "85c93c29333540c6ef47a074db31524561829bc2900a9a4161e4123a2ff8f1b4",
+      "width": 1440,
+      "height": 1180
+    },
+    "question-editor.png": {
+      "sha256": "c2e95996c380b7acb2d0ef847c0f5a0c68a9bc30d505c8d045ac3a2616d3dc05",
+      "width": 1440,
+      "height": 2595
+    },
+    "catalogs.png": {
+      "sha256": "550b05465763a2df6e8f87dc7eed5fc2638a93526133d676b047ee2c79cbe5e5",
+      "width": 1440,
+      "height": 1347
+    },
+    "learning-mobile-dark.png": {
+      "sha256": "755c986e740aace9e037b0ccfb3d5dbb79e08afb2a55a8b1bdbffe8b8fb3368e",
+      "width": 390,
+      "height": 998
+    }
+  }
+}
