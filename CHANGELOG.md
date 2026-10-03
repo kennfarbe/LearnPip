@@ -1,3 +1,16 @@
+# [1.5.0](https://github.com/kennfarbe/LearnPip/compare/v1.4.0...v1.5.0) (2026-10-03)
+
+
+### Bug Fixes
+
+* **web:** initialize system theme across workspaces ([e48eae0](https://github.com/kennfarbe/LearnPip/commit/e48eae0095b14b8b85f2fc2706fa1ec8961c206f))
+
+
+### Features
+
+* **api:** expose current workspace capabilities ([7dacae3](https://github.com/kennfarbe/LearnPip/commit/7dacae319ee768923c47a75a6c97a0f3bcb6db79))
+* **web:** introduce focused application workspaces ([6c86f61](https://github.com/kennfarbe/LearnPip/commit/6c86f61b67dadc4c3b6b7ab5d27c948422c0986e))
+
 # [1.4.0](https://github.com/kennfarbe/LearnPip/compare/v1.3.1...v1.4.0) (2026-10-03)
 
 
