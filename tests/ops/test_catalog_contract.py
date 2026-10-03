@@ -223,6 +223,13 @@ class CatalogContractTests(unittest.TestCase):
         with self.assertRaisesRegex(InvalidPackage, "Unknown manifest fields"):
             self.check(make_zip(self.manifest, self.files))
 
+    def test_unknown_questions_document_field_is_rejected(self):
+        self.questions["private_export_metadata"] = {"token": "synthetic"}
+        self.files["questions.json"] = json.dumps(self.questions).encode("utf-8")
+        self.update_question_record()
+        with self.assertRaisesRegex(InvalidPackage, "Unknown questions document fields"):
+            self.check(make_zip(self.manifest, self.files))
+
     def test_unknown_question_field_is_rejected(self):
         self.questions["questions"][0]["unreviewed_setting"] = True
         self.files["questions.json"] = json.dumps(self.questions).encode("utf-8")
