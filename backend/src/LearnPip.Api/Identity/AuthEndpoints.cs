@@ -277,10 +277,3 @@ public static class AuthEndpoints
     private static IResult InvalidEmail() => Results.ValidationProblem(
         new Dictionary<string, string[]> { ["email"] = ["Enter a valid email address."] });
 }
-
-public sealed record RecoveryRequest(string? Secret);
-public sealed record EmailStartRequest(string? Email);
-public sealed record EmailCompleteRequest(string? Email, string? Code);
-public sealed record NewAccount(Guid AccountId, string RecoverySecret, SessionGrant Session);
-public sealed record AccountInfo(Guid Id, string? DisplayName,
-    DateTimeOffset LastActivityAtUtc, DateTimeOffset? DisabledAtUtc);

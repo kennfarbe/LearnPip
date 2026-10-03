@@ -4,10 +4,6 @@
 
 namespace LearnPip.Api.Questions;
 
-public sealed record ReviewEvent(Guid AttemptId, DateTimeOffset AtUtc, string Kind, bool IsCorrect);
-public sealed record ReviewState(int ConfidentStreak, DateTimeOffset? DueAtUtc, int Answers,
-    int Guesses, int ExplanationsViewed, bool Mastered);
-
 /// <summary>Pure replay: the same ordered events always produce the same learning state.</summary>
 public static class ReviewSchedule
 {

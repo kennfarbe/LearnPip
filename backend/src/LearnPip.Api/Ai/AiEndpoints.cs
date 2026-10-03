@@ -13,10 +13,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Ai;
 
-public sealed record AiKeyInput(string Key);
-public sealed record AiGenerateInput(string Mode, string Prompt, string DisclosureVersion,
-    bool Confirmed);
-
 public static class AiEndpoints
 {
     public static IEndpointRouteBuilder MapAiEndpoints(this IEndpointRouteBuilder app)

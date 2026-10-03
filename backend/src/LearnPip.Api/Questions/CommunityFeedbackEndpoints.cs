@@ -10,11 +10,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
 
-public sealed record ReportInput(string Reason, string Details);
-public sealed record CommentInput(string Text);
-public sealed record HelpfulInput(bool Helpful);
-public sealed record ModerationActionInput(string Action, string Note, string? CorrectedPrompt);
-
 public static class CommunityFeedbackEndpoints
 {
     public static IEndpointRouteBuilder MapCommunityFeedbackEndpoints(this IEndpointRouteBuilder app)

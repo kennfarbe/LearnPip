@@ -4,20 +4,6 @@
 
 namespace LearnPip.Api.Questions;
 
-public sealed record ExamPlanInput(
-    int? ScopeContents, int? DailyMinutes, int? TargetPercent,
-    DateOnly? ExamDate, int? HorizonDays, int DailyLimitMinutes,
-    IReadOnlyList<int>? SchoolDays, IReadOnlyList<DateOnly>? BreakDays,
-    IReadOnlyList<Guid>? ContentIds);
-
-public sealed record ExamPlanResult(
-    string EstimatedDimension, int ScopeContents, int DailyMinutes, int TargetPercent,
-    int AvailableContents, int MasteredContents, int PlanningDays, int StudyDays,
-    int ExpectedNewlyMastered, int ConservativeNewlyMastered,
-    int ExpectedQuotePercent, int ConservativeQuotePercent, bool Feasible,
-    int? SuggestedDailyMinutes, int? SuggestedScopeContents, DateOnly? SuggestedExamDate,
-    IReadOnlyList<string> Options, string Assumptions);
-
 /// <summary>Capacity estimate, not a predicted exam result. A content needs three spaced answers.</summary>
 public static class ExamPlanEstimator
 {

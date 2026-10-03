@@ -10,16 +10,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
 
-public sealed record LearningContentView(Guid Id, string Title, IReadOnlyList<Guid> QuestionIds,
-    bool OftenForMe, int ConfidentStreak, DateTimeOffset? DueAtUtc,
-    bool Mastered, int Answers, int Guesses, int ExplanationsViewed);
-public sealed record ReviewOverview(int TotalContents, int MasteredContents, int OftenForMeCount,
-    IReadOnlyList<LearningContentView> Contents);
-public sealed record ContentAssignment(Guid ContentId);
-
-internal sealed record ReviewCandidate(Guid QuestionId, Guid VersionId, Guid ContentId,
-    string Title, string Subject, Guid? CatalogId);
-
 public static class ReviewEndpoints
 {
     public static IEndpointRouteBuilder MapReviewEndpoints(this IEndpointRouteBuilder app)

@@ -4,9 +4,6 @@
 
 namespace LearnPip.Api.Questions;
 
-public sealed record ProgressAttempt(Guid ContentId, Guid SessionId, DateTimeOffset AnsweredAtUtc,
-    bool IsCorrect, bool WasGuessed, DateTimeOffset? ExplanationViewedAtUtc);
-
 public static class ProgressMetrics
 {
     // A day/content pair earns at most four points. Repeating clicks on the same

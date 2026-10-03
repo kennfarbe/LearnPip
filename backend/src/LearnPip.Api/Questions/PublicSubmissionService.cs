@@ -11,15 +11,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
 
-public sealed record PublicSubmissionInput(string PreviewToken, string LicenseChoice,
-    string AuthorAttribution, bool RightsConfirmed, bool ImageRightsConfirmed,
-    string AgeDeclaration);
-public sealed record PublicReviewInput(string Decision, bool CorrectnessChecked,
-    bool ImageRightsChecked, bool PersonalDataChecked, bool DuplicateChecked, string Note);
-public sealed record PublicSubmissionResult(string Status, Guid QuestionVersionId);
-public sealed record PublicPreview(PublishedQuestionVersion Version, string PreviewToken,
-    bool HasImages);
-
 public sealed class PublicSubmissionService(LearnPipDbContext db)
 {
     public static readonly string[] Licenses = ["CC BY 4.0", "CC BY-SA 4.0", "CC0 1.0"];

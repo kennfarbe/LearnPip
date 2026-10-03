@@ -15,19 +15,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
 
-public sealed record LocalizedBlock(string Kind, string? Text, Guid? MediaId, string? AltText);
-public sealed record LocalizedAnswer(Guid OptionId, IReadOnlyList<LocalizedBlock> Blocks);
-public sealed record TranslationPayload(IReadOnlyList<LocalizedBlock> Prompt,
-    IReadOnlyList<LocalizedBlock> Explanation, IReadOnlyList<LocalizedAnswer> Answers);
-public sealed record TranslationDraftInput(string Language, TranslationPayload Payload,
-    string Source, string License, string Provenance);
-public sealed record TranslationSuggestionInput(string Language, string Mode,
-    string DisclosureVersion, bool Confirmed);
-public sealed record TranslationReportInput(string Details);
-public sealed record TranslationView(Guid? Id, int Revision, string Language, string Source,
-    string License, string Provenance, bool Missing, TranslationPayload Payload);
-public sealed record TranslationDraftCreated(Guid Id, int Revision, string Status);
-
 public static class TranslationEndpoints
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);

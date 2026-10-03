@@ -14,11 +14,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Family;
 
-public sealed record AgeBandInput(string AgeBand);
-public sealed record FamilyInviteInput(string Token);
-public sealed record FamilyVerificationInput(string Reference);
-public sealed record FamilyGoalInput(string Title, DateTimeOffset? TargetAtUtc);
-
 public static class FamilyEndpoints
 {
     public static IEndpointRouteBuilder MapFamilyEndpoints(this IEndpointRouteBuilder app)

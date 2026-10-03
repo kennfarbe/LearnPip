@@ -9,13 +9,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
 
-public sealed record TopicProgress(string Subject, string Topic, int TotalContents,
-    int MasteredContents, int ImprovedContents);
-public sealed record ProgressWeek(string Label, int CompletedSessions, int ActiveDays);
-public sealed record LearningProgress(int TotalContents, int MasteredContents,
-    int ImprovedContents, int ParticipationPoints, int LearningDays,
-    IReadOnlyList<TopicProgress> Topics, IReadOnlyList<ProgressWeek> RecentWeeks);
-
 public static class ProgressEndpoints
 {
     public static IEndpointRouteBuilder MapProgressEndpoints(this IEndpointRouteBuilder app)

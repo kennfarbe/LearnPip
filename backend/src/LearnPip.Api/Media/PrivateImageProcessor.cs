@@ -1,4 +1,4 @@
-// <copyright file="PrivateMedia.cs" company="LearnPip contributors">
+// <copyright file="PrivateImageProcessor.cs" company="LearnPip contributors">
 // Copyright (c) LearnPip contributors. Licensed under AGPL-3.0-only.
 // </copyright>
 
@@ -8,29 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using SkiaSharp;
 
 namespace LearnPip.Api.Media;
-
-// A storage boundary so a private object store can replace PostgreSQL without changing the API.
-public interface IPrivateMediaStore
-{
-    void Add(MediaAsset asset, byte[] bytes);
-    Task<byte[]?> ReadAsync(Guid mediaId, CancellationToken cancellationToken);
-    void Remove(MediaAsset asset);
-}
-
-public sealed class PostgresPrivateMediaStore(LearnPipDbContext db) : IPrivateMediaStore
-{
-    public void Add(MediaAsset asset, byte[] bytes)
-    {
-        db.MediaAssets.Add(asset);
-        db.MediaBlobs.Add(new MediaBlob { MediaAssetId = asset.Id, Data = bytes });
-    }
-
-    public Task<byte[]?> ReadAsync(Guid mediaId, CancellationToken cancellationToken) =>
-        db.MediaBlobs.AsNoTracking().Where(item => item.MediaAssetId == mediaId)
-            .Select(item => item.Data).SingleOrDefaultAsync(cancellationToken);
-
-    public void Remove(MediaAsset asset) => db.MediaAssets.Remove(asset);
-}
 
 public static class PrivateImageProcessor
 {

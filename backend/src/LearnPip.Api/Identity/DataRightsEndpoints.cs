@@ -10,8 +10,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Identity;
 
-public sealed record DeleteAccountRequest(string? Confirmation, string? RecoverySecret);
-
 public static class DataRightsEndpoints
 {
     public static IEndpointRouteBuilder MapDataRightsEndpoints(this IEndpointRouteBuilder app)

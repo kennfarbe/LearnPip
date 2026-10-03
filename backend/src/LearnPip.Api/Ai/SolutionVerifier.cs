@@ -7,8 +7,6 @@ using System.Text.RegularExpressions;
 
 namespace LearnPip.Api.Ai;
 
-public sealed record SolutionCheck(string Status, string Reason, string? Expected);
-
 /// <summary>Checks only bounded, unitless decimal arithmetic. Unsupported subjects stay unverified.</summary>
 public static class SolutionVerifier
 {

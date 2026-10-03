@@ -104,9 +104,3 @@ public static class AdministrationEndpoints
         };
     }
 }
-
-public sealed record GroupRoleRequest(string Code);
-public sealed record MaintenanceNoticeRequest(string? Value);
-
-public sealed record UpdateIntervalRequest(string Interval);
-public sealed record UpdateInstallRequest(string Version);

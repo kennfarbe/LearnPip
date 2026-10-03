@@ -12,13 +12,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
 
-public sealed record CatalogInput(string Name);
-public sealed record CatalogView(Guid Id, string Name, int QuestionCount);
-public sealed record DraftSaveRequest(QuestionPublishRequest Content, Guid? CatalogId);
-public sealed record DraftView(Guid QuestionId, Guid? CatalogId, int LatestVersion,
-    DateTimeOffset UpdatedAtUtc, QuestionPublishRequest Content);
-public sealed record CatalogMoveRequest(Guid? CatalogId);
-
 public static class CatalogEditorEndpoints
 {
     public static IEndpointRouteBuilder MapCatalogEditorEndpoints(this IEndpointRouteBuilder app)

@@ -12,25 +12,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
 
-public sealed record ContentBlockInput(string Kind, string? Text, Guid? MediaId);
-public sealed record AnswerInput(bool IsCorrect, IReadOnlyList<ContentBlockInput> Blocks);
-public sealed record QuestionPublishRequest(
-    string SelectionMode, string Subject, string Topic, string Language, string Source,
-    string License, IReadOnlyList<ContentBlockInput> Prompt,
-    IReadOnlyList<ContentBlockInput> Explanation, IReadOnlyList<AnswerInput> Answers);
-public sealed record ContentBlockOutput(string Kind, string? Text, Guid? MediaId, string? AltText);
-public sealed record AnswerOutput(Guid Id, bool IsCorrect, IReadOnlyList<ContentBlockOutput> Blocks);
-public sealed record PublishedQuestionVersion(
-    Guid Id, int Version, string SelectionMode, string Subject, string Topic, string Language,
-    string Source, string License, string AuthorAttribution,
-    DateTimeOffset PublishedAtUtc, string Visibility,
-    IReadOnlyList<ContentBlockOutput> Prompt, IReadOnlyList<ContentBlockOutput> Explanation,
-    IReadOnlyList<AnswerOutput> Answers);
-public sealed record GradeRequest(Guid VersionId, IReadOnlyList<Guid> SelectedOptionIds);
-public sealed record GradeResult(Guid AttemptId, Guid VersionId, bool IsCorrect,
-    IReadOnlyList<Guid> SelectedOptionIds, IReadOnlyList<Guid> CorrectOptionIds);
-public sealed record VersionVisibilityInput(string Visibility);
-
 public static class QuestionEndpoints
 {
     public static IEndpointRouteBuilder MapQuestionEndpoints(this IEndpointRouteBuilder app)

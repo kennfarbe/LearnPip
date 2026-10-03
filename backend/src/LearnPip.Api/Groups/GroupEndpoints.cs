@@ -11,12 +11,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Groups;
 
-public sealed record GroupInput(string Name);
-public sealed record InvitationInput(DateTimeOffset ExpiresAtUtc, int MaxUses);
-public sealed record JoinInput(string Code);
-public sealed record GroupView(Guid Id, string Name, Guid OwnerAccountId);
-public sealed record InvitationView(Guid Id, string Code, DateTimeOffset ExpiresAtUtc, int MaxUses);
-
 public static class GroupEndpoints
 {
     public static IEndpointRouteBuilder MapGroupEndpoints(this IEndpointRouteBuilder app)

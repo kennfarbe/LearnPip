@@ -13,23 +13,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.Questions;
 
-public sealed record StartLearningRequest(Guid? CatalogId, int Count = 5, string Language = "de");
-public sealed record LearningAnswerRequest(IReadOnlyList<Guid> SelectedOptionIds, bool WasGuessed = false);
-public sealed record ExplanationViewRequest(Guid AttemptId);
-public sealed record LearningOption(Guid Id, IReadOnlyList<ContentBlockOutput> Blocks);
-public sealed record LearningQuestion(Guid QuestionId, Guid VersionId, string SelectionMode,
-    IReadOnlyList<ContentBlockOutput> Prompt, IReadOnlyList<LearningOption> Answers,
-    string? Hint, string? NextStep, string Language, string RequestedLanguage,
-    bool TranslationMissing, Guid? TranslationId, int VersionNumber);
-public sealed record LearningSessionView(Guid Id, int Total, int Answered, int Skipped,
-    bool Completed, LearningQuestion? Current);
-public sealed record LearningFeedback(Guid AttemptId, Guid ContentId, bool IsCorrect,
-    IReadOnlyList<Guid> CorrectOptionIds,
-    IReadOnlyList<ContentBlockOutput> Explanation, string? ShortExplanation);
-
-internal sealed record LearningPlanItem(Guid QuestionId, Guid VersionId, Guid[] OptionIds,
-    string State, string Language = "de", Guid? TranslationId = null);
-
 public static class LearningSessionEndpoints
 {
     public static IEndpointRouteBuilder MapLearningSessionEndpoints(this IEndpointRouteBuilder app)
