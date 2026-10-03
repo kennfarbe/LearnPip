@@ -1,3 +1,31 @@
+# [1.7.0](https://github.com/kennfarbe/LearnPip/compare/v1.6.0...v1.7.0) (2026-10-03)
+
+
+### Bug Fixes
+
+* **security:** accept valid NuGet projects without reported frameworks ([1ede4ba](https://github.com/kennfarbe/LearnPip/commit/1ede4bafb97ae1f365f93d8b793855e05ab2c0ab))
+* **security:** never waive invalid dev audit reports ([561572a](https://github.com/kennfarbe/LearnPip/commit/561572a103248dab3d57d697ee2c7d9d9ce3d48c))
+
+
+### Features
+
+* **moderation:** add purpose-bound audited private question inspection ([202fdd9](https://github.com/kennfarbe/LearnPip/commit/202fdd918465e97621b5c91aebbee164a4f78c9e))
+* **moderation:** define audited inspection requests ([29a393b](https://github.com/kennfarbe/LearnPip/commit/29a393b4e379e1af0c7f8f973cfcb999f3a9b1e6))
+* **moderation:** define audited inspection requests ([475d80b](https://github.com/kennfarbe/LearnPip/commit/475d80bca99ba1db2c91208ec2ae96e107ca415a))
+* **release:** add dependency-free conventional commit release planner ([491d33c](https://github.com/kennfarbe/LearnPip/commit/491d33c42eb32b1ffd6ead0577e694e93cff1e91))
+* **release:** replace semantic-release job with dependency-free release publishing ([c777a14](https://github.com/kennfarbe/LearnPip/commit/c777a14708abf32ad5efa9cf6ad53b14018ca164))
+* **security:** classify scan reports without exposing advisory details ([57b0719](https://github.com/kennfarbe/LearnPip/commit/57b07198a004fc92c5b234a9d798bc4bd9b167a4))
+* **security:** separate informational dev audit from blocking runtime dependency audit ([fdbff28](https://github.com/kennfarbe/LearnPip/commit/fdbff280e7827ed971a9d403ec62a79d115671f0))
+
+
+### Reverts
+
+* **release:** remove replacement release planner ([3afd09f](https://github.com/kennfarbe/LearnPip/commit/3afd09f35083ef57c15e3942b6bb6b6845ef92df))
+* **release:** restore existing semantic-release configuration ([0e1c62d](https://github.com/kennfarbe/LearnPip/commit/0e1c62d2c64997865c0f2c649759ec8ab6c00397))
+* **release:** restore existing semantic-release configuration ([0d6e29b](https://github.com/kennfarbe/LearnPip/commit/0d6e29b6b7226c79cbc7b92da78f6ebeb2b7a340))
+* **release:** restore existing semantic-release configuration ([71616c1](https://github.com/kennfarbe/LearnPip/commit/71616c1752d3bd8d57b754e56075ba4e4b29c634))
+* **release:** retain semantic-release workflow as requested ([1cfe992](https://github.com/kennfarbe/LearnPip/commit/1cfe992c8cd8035858e02ab47a33f57ad0268940))
+
 # [1.6.0](https://github.com/kennfarbe/LearnPip/compare/v1.5.1...v1.6.0) (2026-10-03)
 
 
