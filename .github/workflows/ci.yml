@@ -434,22 +434,6 @@ jobs:
           retention-days: 3
           overwrite: true
 
-      # Temporary review generation; removed once screenshots have been visually checked and committed.
-      - name: Generate catalog export review screenshots
-        if: github.head_ref == 'feat/private-catalog-export'
-        working-directory: frontend/web
-        run: npm run docs:screenshots
-      - name: Retain catalog export review screenshots
-        if: github.head_ref == 'feat/private-catalog-export'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: catalog-export-docs
-          path: |
-            docs/screenshots/
-            frontend/web/test-results/**/catalog-export-review.png
-          if-no-files-found: error
-          retention-days: 3
-
       - name: Require committed and current documentation screenshots
         working-directory: frontend/web
         run: |

@@ -1,5 +1,5 @@
 {
-  "sourceHash": "181298a880a1dd8d2ac00484e6755fe0b878b77b4b6701a0911a2bdd8e2bdfe0",
+  "sourceHash": "b77b2bc1dc5569b8b00c0cef25f6a69093f3801e3027a45c86ad637504d79061",
   "images": {
     "overview.png": {
       "sha256": "85c93c29333540c6ef47a074db31524561829bc2900a9a4161e4123a2ff8f1b4",
@@ -7,9 +7,9 @@
       "height": 1180
     },
     "question-editor.png": {
-      "sha256": "c2e95996c380b7acb2d0ef847c0f5a0c68a9bc30d505c8d045ac3a2616d3dc05",
+      "sha256": "cdcf86f78d3d03a7c38c13e8e87d2d94b400aed438ea7059d74c25e49722322a",
       "width": 1440,
-      "height": 2595
+      "height": 2751
     },
     "catalogs.png": {
       "sha256": "898aeeec9e9b2ccbab69252e4776ae82d2308bfb4712cdffdff75915f23b8349",
