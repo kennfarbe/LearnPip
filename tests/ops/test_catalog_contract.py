@@ -106,6 +106,78 @@ class CatalogContractTests(unittest.TestCase):
         self.assertEqual(self.check(make_zip(self.manifest, self.files)),
                          ("example.synthetic", 1))
 
+    def test_archived_contract_bytes_are_unchanged(self):
+        root = Path(__file__).resolve().parents[2]
+        fixture = root / "tests/fixtures/catalog/0.1.0"
+        hashes = json.loads((fixture / "contract-lock.json").read_text(encoding="utf-8"))
+        expected_paths = {str(path.relative_to(root)) for path in
+                          (root / "schemas/catalog/0.1.0").glob("*.json")}
+        expected_paths.update(str((fixture / name).relative_to(root))
+                              for name in ("golden.zip", "frozen.json", "provenance.json"))
+        self.assertEqual(set(hashes), expected_paths)
+        for name, digest in hashes.items():
+            with self.subTest(path=name):
+                self.assertEqual(hashlib.sha256((root / name).read_bytes()).hexdigest(), digest,
+                                 "Archived contract changed; add a new version instead")
+
+    def test_actual_golden_archive_roundtrip_and_selection(self):
+        golden = (Path(__file__).resolve().parents[1] / "fixtures/catalog/0.1.0/golden.zip")
+        original = golden.read_bytes()
+        snapshot = read_catalog(golden)
+        self.assertEqual(snapshot.manifest["exporter_app_version"], "fixture-old-app")
+        self.assertTrue(snapshot.media["media/diagram.png"].startswith(b"\x89PNG\r\n\x1a\n"))
+        target = Path(self.tempdir.name) / "golden-roundtrip.zip"
+        write_catalog(snapshot, target)
+        exported = read_catalog(target)
+        self.assertEqual(exported.questions, snapshot.questions)
+        self.assertEqual(exported.media, snapshot.media)
+        self.assertEqual(exported.notices, snapshot.notices)
+        self.assertEqual({key: value for key, value in exported.manifest.items() if key != "files"},
+                         {key: value for key, value in snapshot.manifest.items() if key != "files"})
+        selected = select_from_file(golden, {snapshot.questions["questions"][0]["id"]})
+        write_catalog(selected, target)
+        self.assertEqual(read_catalog(target), exported)
+        self.assertEqual(golden.read_bytes(), original)
+
+    def test_writer_preserves_optional_file_metadata(self):
+        for record in self.manifest["files"]:
+            record["media_type"] = "text/plain"
+        snapshot = read_catalog(self.write_sample())
+        target = Path(self.tempdir.name) / "metadata.zip"
+        write_catalog(snapshot, target)
+        self.assertEqual(
+            [{key: value for key, value in record.items() if key not in ("size", "sha256")}
+             for record in read_catalog(target).manifest["files"]],
+            [{key: value for key, value in record.items() if key not in ("size", "sha256")}
+             for record in snapshot.manifest["files"]])
+
+    def test_invalid_content_does_not_replace_destination_or_leave_temporary_file(self):
+        snapshot = read_catalog(self.write_sample())
+        target = Path(self.tempdir.name) / "existing.zip"
+        target.write_bytes(b"existing destination")
+        before = set(Path(self.tempdir.name).iterdir())
+        import copy
+        questions = copy.deepcopy(snapshot.questions)
+        questions["questions"][0]["correct_answer_ids"] = ["missing"]
+        with self.assertRaisesRegex(WriterInvalidPackage, "correct answer"):
+            write_catalog(snapshot._replace(questions=questions), target)
+        self.assertEqual(target.read_bytes(), b"existing destination")
+        self.assertEqual(set(Path(self.tempdir.name).iterdir()), before)
+
+    def test_non_json_numbers_are_rejected(self):
+        for value in ("NaN", "Infinity", "-Infinity"):
+            with self.subTest(value=value):
+                self.files["questions.json"] = (
+                    '{"questions":[],"unexpected":' + value + '}').encode("utf-8")
+                self.update_question_record()
+                with self.assertRaisesRegex(InvalidPackage, "Invalid JSON number"):
+                    self.check(make_zip(self.manifest, self.files))
+
+    def test_unknown_schema_message_includes_received_and_supported_version(self):
+        self.manifest["schema_version"] = "99.0.0"
+        with self.assertRaisesRegex(InvalidPackage, "99.0.0; supported: 0.1.0"):
+            self.check(make_zip(self.manifest, self.files))
+
     def test_frozen_draft_fixture_remains_readable_and_roundtrips(self):
         # This file is independent of base_files(), so future test helper edits
         # cannot silently rewrite the older format's compatibility example.

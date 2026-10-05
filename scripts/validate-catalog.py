@@ -48,8 +48,12 @@ def unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
 
 
 def parse_json(content: bytes) -> dict:
+    def reject_constant(value: str):
+        raise InvalidPackage("Invalid JSON number: " + value)
+
     try:
-        result = json.loads(content.decode("utf-8-sig"), object_pairs_hook=unique_object)
+        result = json.loads(content.decode("utf-8-sig"), object_pairs_hook=unique_object,
+                            parse_constant=reject_constant)
     except (UnicodeError, json.JSONDecodeError) as error:
         raise InvalidPackage("Invalid UTF-8 or JSON") from error
     require(isinstance(result, dict), "JSON root must be an object")
@@ -133,7 +137,9 @@ def validate(filename: str) -> tuple[str, int]:
                                     "exporter_app_version", "license", "files"}, "manifest")
             require(manifest.get("format_id") == FORMAT_ID, "Unsupported format_id")
             require(manifest.get("schema_version") == VERSION,
-                    "Unsupported schema_version; do not downgrade or partially import")
+                    "Unsupported schema_version: " + str(manifest.get("schema_version")) +
+                    "; supported: " + VERSION +
+                    ". Bitte einen passenden Reader verwenden; kein Teilimport.")
             for key in ("package_id", "catalog_version", "source_revision",
                         "title", "publisher", "description", "language", "created_at"):
                 require(isinstance(manifest.get(key), str), "Missing manifest field: " + key)
