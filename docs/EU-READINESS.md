@@ -35,13 +35,13 @@ nicht ergänzt oder als erfüllt angenommen.
 
 | Issue | Zu prüfender Bereich | Nachweis vor Abnahme | Stand |
 | --- | --- | --- | --- |
-| #93 | Gesamteinordnung | Je Szenario Verantwortliche, betroffene Normen, Quelle/Datum, Maßnahmen und fachliche Freigabe | Offen |
+| #93 | Gesamteinordnung | Je Szenario Verantwortliche, betroffene Normen, Quelle/Datum, Maßnahmen und fachliche Freigabe | Roadmap erstellt; Betreiberfreigaben bleiben einsatzabhängig |
 | #97 | CRA und Produkt-/Release-Sicherheit | Geschäfts-/Herstellerrollenprüfung, Bedrohungsmodell, Supportzeitraum, SBOM, Meldungsweg und gegebenenfalls Konformitätsunterlagen | Offen; technische Scan-Vorarbeit #96 |
-| #98 | NIS2 und Betrieb | Betroffenheit nach Tätigkeit/Sektor/Größe, dokumentierte Betriebspflichten und Vorfallübung | Offen |
-| #99 | DSGVO, TDDDG und Minderjährige | Datenfluss-/Rollenmatrix, Zwecke/Rechtsgrundlagen, Information, Aufbewahrung, Betroffenenrechte, DSFA-Schwellenprüfung | Offen |
+| #98 | NIS2 und Betrieb | Betroffenheit nach Tätigkeit/Sektor/Größe, dokumentierte Betriebspflichten und Vorfallübung | Bedingte Szenarienprüfung, Betriebsplan und synthetische Übung erstellt |
+| #99 | DSGVO, TDDDG und Minderjährige | Datenfluss-/Rollenmatrix, Zwecke/Rechtsgrundlagen, Information, Aufbewahrung, Betroffenenrechte, DSFA-Schwellenprüfung | Betriebsnachweis und Freigabegates erstellt; konkrete Betreiberangaben offen |
 | #100 | Barrierefreiheit | Anwendbarkeit pro Angebot, echte Tastatur-/Screenreader-Abnahme mit Prüfprotokoll, zugängliche Informationen | Offen |
 | #101 | DSA/DDG bei öffentlichen Inhalten | Einstufung des tatsächlichen Dienstes, Betreiberinformationen, Melde-/Moderationsablauf | Offen |
-| #102 | AI Act und KI-Funktionen | Jede KI-Funktion einzeln, Rollen und Verwendungskontext, nachvollziehbare Einstufung und Nutzerinformation | Offen |
+| #102 | AI Act und KI-Funktionen | Jede KI-Funktion einzeln, Rollen und Verwendungskontext, nachvollziehbare Einstufung und Nutzerinformation | Vorhandene assistierende Zwecke bewertet; neue Bewertungszwecke gesperrt |
 | #103 | Aktivierungshinweise | Reproduzierbare Entscheidungsmatrix zu Funktionen/Kombinationen, Bestätigung und Audit | Offen |
 
 **Entscheidungsprozess:** Für jeden Fall tatsächliche Fakten, zuständige
@@ -114,3 +114,23 @@ Maßnahme, Commit/Test, Restrisiko, Freigabe und nächste Überprüfung.
 
 Offene Punkte sind keine bestandene Prüfung. Neue Rollen oder technische
 Funktionen dürfen nicht mit der Abnahme dieser Unterlagen als freigegeben gelten.
+
+## Priorisierte verbleibende Abnahmen
+
+Die Abnahme der vorliegenden Unterlagen ersetzt keine Freigabe unbekannter
+Betreiber, Provider oder Angebote. Die folgenden bestehenden Issues führen die
+konkreten Abschlusskriterien; kein Punkt wird durch eine bloße Absicht erledigt.
+
+| Priorität / Auslöser | Folgeaufgabe | Zuständige Rolle | Überprüfbarer Abschluss |
+| --- | --- | --- | --- |
+| P1, vor unterstütztem Produktrelease | [#97](https://github.com/kennfarbe/LearnPip/issues/97) | Projektführung / Release-Verantwortliche | Vertraulichen Kanal tatsächlich prüfen; je Release dauerhaft abrufbare SBOM mit transitiven Versionen, Lizenzen und Artefaktbezug sowie veröffentlichte Support-/Enddaten nachweisen |
+| P1, vor öffentlichem Hosting von Nutzerinhalten | [#101](https://github.com/kennfarbe/LearnPip/issues/101) | Projektführung / konkreter Dienstanbieter | Allgemeinen Meldemechanismus, erforderliche Angaben, Eingangs-/Entscheidungsnachricht, Begründung, gegebenenfalls Beschwerde und Missbrauchsschutz mit synthetischen Fällen prüfen |
+| P1, vor einer Barrierefreiheitszusage | [#100](https://github.com/kennfarbe/LearnPip/issues/100) | UI-Verantwortliche / tatsächliche Testpersonen | Alle sechs Kernabläufe auf Desktop und Mobilgerät mit Tastatur und realem Screenreader protokollieren; Kontrast, Reflow, Fehler, Status und Touch prüfen; Befunde beheben oder einzeln führen |
+| P1, vor Aktivierung neuer externer oder öffentlicher Funktionen | [#103](https://github.com/kennfarbe/LearnPip/issues/103) | Projektführung / Instanzadmin | Funktionsabhängige Voraussetzungen vor Aktivierung anzeigen, Bestätigung und Audit testen; Betreiberfreigabe bleibt erforderlich |
+
+Der Einsatzverantwortliche führt ergänzend das private Betriebsregister:
+NIS2-Tatsachen und gegebenenfalls Behördenzugänge, Rechtsgrundlagen und
+Providerverträge, erforderliche DSFA, echte Kontaktinformationen und das
+Löschregister für Wiederherstellungen. Diese einsatzabhängigen Freigaben sind in
+den Detailnachweisen beschrieben und bei jeder wesentlichen Änderung neu zu
+prüfen. Eine Abnahme der Projektdokumentation behauptet ihre Durchführung nicht.
