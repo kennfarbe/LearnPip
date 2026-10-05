@@ -1,3 +1,11 @@
+## [1.13.1](https://github.com/kennfarbe/LearnPip/compare/v1.13.0...v1.13.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* **catalog:** preserve file metadata and freeze offline archive contracts ([4d28014](https://github.com/kennfarbe/LearnPip/commit/4d28014498ef656c7a1ede4c7a3fb0972e614877))
+* **ci:** repair Dependabot screenshot lookup and integrate main ([8bcf0f1](https://github.com/kennfarbe/LearnPip/commit/8bcf0f1a50a0a1568dd518965e5060d874cfafb5))
+
 # [1.13.0](https://github.com/kennfarbe/LearnPip/compare/v1.12.0...v1.13.0) (2026-10-03)
 
 
