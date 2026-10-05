@@ -87,6 +87,18 @@ public sealed class CatalogPackageReaderTests
         return output.ToArray();
     }
 
+    /// <summary>Verhindert Teilimporte bei Modellgrenzen und nicht speicherbaren Nullzeichen.</summary>
+    /// <param name="kind">Die synthetische Darstellungsgrenze.</param>
+    [Theory]
+    [InlineData("long")]
+    [InlineData("null")]
+    public void UndisplayableContentIsRejectedBeforeWriting(string kind)
+    {
+        var prompt = kind == "long" ? new string('a', 4001) : "synthetic\0question";
+        var package = CatalogPackageReader.Read(Rewrite(null, prompt));
+        Assert.Throws<InvalidDataException>(() => CatalogPackageImporter.PrepareImages(package));
+    }
+
     /// <summary>Prüft Originalbytes, Bilddarstellung und getrennte Lizenznachweise.</summary>
     [Fact]
     public void GoldenArchiveRetainsOriginalContentAndCanBeDisplayed()

@@ -21,9 +21,10 @@ Der Editor zeigt die ausgewählte Frage und ihre Antwortmöglichkeiten.
 ## Kataloge und Inhalte
 
 Private Kataloge bündeln eigene Fragen. Von hier aus gelangt man direkt zur
-gefilterten Fragenliste.
+gefilterten Fragenliste. Lokale ZIP-Fragenpakete lassen sich nach einer Vorschau
+und ausdrücklicher Bestätigung in einen neuen privaten Katalog importieren.
 
-![Katalogbereich im hellen Design mit dem privaten Katalog Mathematik, seiner Fragenanzahl und dem Link zur zugehörigen Fragenliste.](screenshots/catalogs.png)
+![Katalogbereich im hellen Design mit Dateiauswahl und Vorschau-Schaltfläche für den privaten ZIP-Import sowie dem Katalog Mathematik, seiner Fragenanzahl und dem Link zur Fragenliste.](screenshots/catalogs.png)
 
 ## Lernen auf dem Smartphone
 

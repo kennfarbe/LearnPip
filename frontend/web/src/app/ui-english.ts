@@ -265,4 +265,41 @@ export const uiEnglish: Record<string, string> = {
     'Prepare public submission and show preview',
   'Öffentliche Einreichungen prüfen': 'Review public submissions',
   'Überarbeitung anfordern': 'Request changes',
+  'Fragenpaket importieren': 'Import question package',
+  'Wähle eine lokale LearnPip-ZIP-Datei. Der Import bleibt privat und benötigt keinen externen Dienst.':
+    'Choose a local LearnPip ZIP file. The import remains private and needs no external service.',
+  'LearnPip-Paket (.zip, maximal 25 MiB)': 'LearnPip package (.zip, maximum 25 MiB)',
+  'Importvorschau prüfen': 'Review import preview',
+  Paketversion: 'Package version',
+  Formatversion: 'Format version',
+  Quellenstand: 'Source revision',
+  'Archivgröße / entpackte Originaldateien': 'Archive size / unpacked original files',
+  Inhalt: 'Contents',
+  Medien: 'Media',
+  Themen: 'Topics',
+  'Lizenzen, Quellen und Attribution prüfen': 'Review licenses, sources and attribution',
+  'Dieses Paket wurde geändert. Der Import ist gesperrt, damit vorhandene Fragen und Lernstände erhalten bleiben. Kontrollierte Paketupdates sind noch nicht verfügbar.':
+    'This package has changed. Import is blocked to preserve existing questions and progress. Controlled package updates are not yet available.',
+  'Dieses Paket wurde bereits importiert. Es werden keine Duplikate angelegt; eigene Änderungen bleiben erhalten.':
+    'This package has already been imported. No duplicates will be created; your changes are preserved.',
+  'Alle Fragen werden in einem neuen privaten Katalog angelegt. Es wird nichts veröffentlicht. Originalpaket und Anzeigebilder belegen Speicherplatz; Bilder werden für die Anzeige bereinigt.':
+    'All questions will be added to a new private catalog. Nothing will be published. The original package and display images use storage; images are sanitized for display.',
+  'Ich habe die Lizenzangaben geprüft und darf diese Inhalte privat nutzen.':
+    'I have reviewed the licenses and may use these contents privately.',
+  'Import bestätigen': 'Confirm import',
+  'Importierte Fragen anzeigen': 'Show imported questions',
+  'Importierte Originalpakete': 'Imported original packages',
+  'Der Download enthält das unveränderte Originalpaket mit sämtlichen Lizenz- und Quellenangaben. Spätere Änderungen in LearnPip sind darin nicht enthalten.':
+    'The download contains the unchanged original package with all license and source information. Later changes in LearnPip are not included.',
+  'Originalpaket herunterladen': 'Download original package',
+  'Bitte eine ZIP-Datei von maximal 25 MiB auswählen.':
+    'Please choose a ZIP file of no more than 25 MiB.',
+  'Paket geprüft. Bitte die Vorschau und Lizenzangaben lesen.':
+    'Package checked. Please review the preview and licenses.',
+  'Fragenpaket privat importiert. Es wurde nichts veröffentlicht.':
+    'Question package imported privately. Nothing was published.',
+  'Paket konnte nicht verarbeitet werden. Bitte Anmeldung und Datei prüfen.':
+    'The package could not be processed. Please check your session and file.',
+  'Paket konnte nicht verarbeitet werden.': 'The package could not be processed.',
+  'Paket wird verarbeitet …': 'Processing package …',
 };

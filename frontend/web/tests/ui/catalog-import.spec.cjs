@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const { api } = require('./fixtures.cjs');
 const preview = {
   title: 'Synthetisches Fragenpaket', catalogVersion: '1.0.0', schemaVersion: '0.1.0',
-  sourceRevision: 'synthetic-1', language: 'de-DE', questionCount: 1, mediaCount: 1,
+  archiveBytes: 2000, expandedBytes: 5000, sourceRevision: 'synthetic-1', language: 'de-DE', questionCount: 1, mediaCount: 1,
   license: { id: 'CC0-1.0', holder: 'Testautor', attribution: 'Synthetischer Test' },
   questionLicenses: [{ id: 'CC-BY-4.0', holder: 'Bildautor', attribution: 'Testbild' }],
   notices: { 'LICENSES.md': 'Synthetischer Lizenztext', NOTICE: 'Keine echten Fremdinhalte', ATTRIBUTION: 'Testautor' },

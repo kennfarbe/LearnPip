@@ -723,7 +723,8 @@ public sealed class ApiV1Tests
         Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/v1/questions/{questionId}")).StatusCode);
         var download = await client.GetAsync($"/api/v1/catalog-packages/{installId}/original");
         Assert.Equal(original, await download.Content.ReadAsByteArrayAsync());
-        Assert.Equal("private, no-store", download.Headers.CacheControl!.ToString());
+        Assert.True(download.Headers.CacheControl!.Private);
+        Assert.True(download.Headers.CacheControl.NoStore);
         var repacked = CatalogPackageReaderTests.Rewrite(null, null);
         var repackedHash = Convert.ToHexStringLower(SHA256.HashData(repacked));
         Assert.Equal(HttpStatusCode.OK, (await PostPackage(client, "import", repacked, repackedHash)).StatusCode);

@@ -14,7 +14,7 @@ interface Catalog {
   selector: 'app-catalog-library',
   imports: [FormsModule, RouterLink, CatalogPackageImport],
   template: `
-    <app-catalog-package-import />
+    <app-catalog-package-import (completed)="reload()" />
     <section class="workspace-card" aria-labelledby="catalog-library-title">
       <h2 id="catalog-library-title">{{ language.t('Private Kataloge') }}</h2>
       <p>{{ language.t('Deine Fragen bleiben beim Löschen eines Katalogs erhalten.') }}</p>
@@ -83,7 +83,7 @@ export class CatalogLibrary implements OnInit {
     void this.reload();
   }
 
-  private async reload(): Promise<void> {
+  async reload(): Promise<void> {
     try {
       const response = await fetch('/api/v1/catalogs/', { credentials: 'same-origin' });
       if (!response.ok) throw new Error();

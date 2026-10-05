@@ -78,6 +78,11 @@ public sealed class AccountLifecycleTests
                     ByteLength = 3,
                 });
                 db.MediaBlobs.Add(new MediaBlob { MediaAssetId = mediaId, Data = [1, 2, 3] });
+                db.CatalogPackageImports.Add(new CatalogPackageImport
+                {
+                    OwnerAccountId = accountId, PackageId = "synthetic.lifecycle",
+                    CatalogVersion = "1.0.0", Fingerprint = new string('a', 64), Archive = [1, 2, 3],
+                });
                 await db.SaveChangesAsync();
             }
 
@@ -100,6 +105,7 @@ public sealed class AccountLifecycleTests
                 Assert.Equal(1, (await service.RunOnceAsync(now.AddDays(120))).Deleted);
                 Assert.False(await db.Accounts.AnyAsync(x => x.Id == accountId));
                 Assert.False(await db.MediaBlobs.AnyAsync(x => x.MediaAssetId == mediaId));
+                Assert.False(await db.CatalogPackageImports.AnyAsync(item => item.OwnerAccountId == accountId));
                 Assert.False(await db.Questions.AnyAsync(x => x.OwnerAccountId == accountId));
                 Assert.True(await db.Accounts.AnyAsync(x => x.Id == moderatorId));
                 Assert.True(await db.Accounts.AnyAsync(x => x.Id == recoverableId));
@@ -179,6 +185,11 @@ public sealed class AccountLifecycleTests
                     ByteLength = 3,
                 });
                 db.MediaBlobs.Add(new MediaBlob { MediaAssetId = mediaId, Data = [1, 2, 3] });
+                db.CatalogPackageImports.Add(new CatalogPackageImport
+                {
+                    OwnerAccountId = accountId, PackageId = "synthetic.lifecycle",
+                    CatalogVersion = "1.0.0", Fingerprint = new string('a', 64), Archive = [1, 2, 3],
+                });
                 await db.SaveChangesAsync();
             }
 
@@ -189,6 +200,7 @@ public sealed class AccountLifecycleTests
                 Assert.False(await service.DeleteOwnAsync(accountId));
                 Assert.False(await db.Accounts.AnyAsync(item => item.Id == accountId));
                 Assert.False(await db.MediaBlobs.AnyAsync(item => item.MediaAssetId == mediaId));
+                Assert.False(await db.CatalogPackageImports.AnyAsync(item => item.OwnerAccountId == accountId));
                 Assert.False(await db.StudyAttempts.AnyAsync(item => item.StudySessionId == sessionId));
             }
         }

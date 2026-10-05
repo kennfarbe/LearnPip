@@ -66,6 +66,8 @@ public static class CatalogPackageEndpoints
                 package.Manifest.GetProperty("language").GetString()!,
                 package.Questions.Count,
                 package.Files.Keys.Count(path => path.StartsWith("media/", StringComparison.Ordinal)),
+                package.Archive.LongLength,
+                package.Files.Values.Sum(bytes => bytes.LongLength),
                 package.Manifest.GetProperty("license"),
                 licenses,
                 notices,
@@ -133,11 +135,11 @@ public static class CatalogPackageEndpoints
             }
 
             var title = package.Manifest.GetProperty("title").GetString()!;
-            var name = title[..Math.Min(100, title.Length)];
+            var name = string.Concat(title.EnumerateRunes().Take(100));
             var suffix = 1;
             while (await db.PrivateCatalogs.AnyAsync(item => item.OwnerAccountId == owner && item.Name == name, ct))
             {
-                name = title[..Math.Min(100, title.Length)] + " (Import " + (++suffix).ToString(System.Globalization.CultureInfo.InvariantCulture) + ")";
+                name = string.Concat(title.EnumerateRunes().Take(100)) + " (Import " + (++suffix).ToString(System.Globalization.CultureInfo.InvariantCulture) + ")";
             }
 
             var catalog = new PrivateCatalog { OwnerAccountId = owner, Name = name };

@@ -15,6 +15,8 @@ namespace LearnPip.Api.CatalogPackages;
 /// <param name="Language">Die Paketsprache.</param>
 /// <param name="QuestionCount">Die Anzahl der Fragen.</param>
 /// <param name="MediaCount">Die Anzahl der Medien.</param>
+/// <param name="ArchiveBytes">Die Originalgröße des ZIP-Archivs.</param>
+/// <param name="ExpandedBytes">Die Größe aller entpackten Originaldateien.</param>
 /// <param name="License">Die Übersichtsangaben zur Lizenz.</param>
 /// <param name="QuestionLicenses">Alle eigenständigen Frage- und Medienlizenzen.</param>
 /// <param name="Notices">Die originalen Lizenz- und Attributionstexte.</param>
@@ -31,6 +33,8 @@ public sealed record CatalogPackagePreview(
     string Language,
     int QuestionCount,
     int MediaCount,
+    long ArchiveBytes,
+    long ExpandedBytes,
     JsonElement License,
     IReadOnlyList<JsonElement> QuestionLicenses,
     IReadOnlyDictionary<string,

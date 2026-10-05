@@ -1,6 +1,6 @@
 # Austauschformat für eigenständige LearnPip-Kataloge
 
-Status: **Entwurf 0.1.0, noch kein freigegebenes stabiles Format**. Dieses Dokument und die JSON-Schemas legen den öffentlichen Vertragsentwurf fest. Ein schreibgeschützter Offline-Reader und ein lokaler Writer für vollständige geprüfte Pakete sind vorhanden. Die Integration in API, gezielten Benutzerexport, Datenbankimport, Migrationen und Instanztests fehlt noch. Ein öffentliches stabiles 1.0.0 darf erst mit entsprechend getesteten Readern und Golden-Files veröffentlicht werden. Siehe Issues #108, #114, #115, #116 und #118.
+Status: **Entwurf 0.1.0, noch kein freigegebenes stabiles Format**. Dieses Dokument und die JSON-Schemas legen den öffentlichen Vertragsentwurf fest. Ein Offline-Reader, ein lokaler Writer und ein privater API-/Browserimport mit Vorschau und Datenbanktransaktion sind vorhanden. Gezielter Export aus Benutzerkonten, kontrollierte Updates, stabile Formatmigrationen und Instanztests fehlen noch. Ein öffentliches stabiles 1.0.0 darf erst mit entsprechend getesteten Readern und Golden-Files veröffentlicht werden. Siehe Issues #108, #114, #115, #116 und #118.
 
 ## Trennung und Versionierung
 
@@ -30,7 +30,7 @@ Ein LearnPip-Release enthält keine realen Fragenkataloge. Die zwei vorgeschlage
 
 ## Weitere Abnahmeschritte vor Freigabe als 1.0.0
 
-1. Vollständigen Offline-Validator und ZIP-Import-/Export-Reader erstellen, Schema **und** semantische Regeln testen.
+1. Die vorhandenen Reader und Validatoren systematisch gegen den gesamten Schema-Vertrag und seine semantischen Regeln prüfen.
 2. Rechte- und Objektprüfungen im Backend, datensparsamen Filterexport, Konfliktvorschau, Transaktionen und Idempotenz implementieren.
 3. Synthetische Golden-Pakete inklusive Bild, Attributions- und Lizenzvarianten und Sonderzeichen dauerhaft versionieren. Kein offizieller oder fremder Fragenbestand im App-Repository.
 4. Integration auf zwei voneinander unabhängigen Installationen sowie ein Upgrade von alter zu neuer App-Version testen; neue Versionen nur mit expliziter verlustfrei geprüfter Zielversion abwärts exportieren.
@@ -63,7 +63,7 @@ python3 -m unittest discover -s tests/ops -p 'test_catalog_contract.py' -v
 python3 scripts/validate-catalog.py tests/fixtures/catalog/0.1.0/golden.zip
 ```
 
-Dieser Bestand sichert weiterhin den **Entwurf 0.1.0**. Vor einem stabilen 1.0.0 fehlen insbesondere vollständige Schema-Prüfung, produktiver Datenbankimport und Instanztests. Eine Migration zwischen stabilen Major-Versionen wird erst mit einem tatsächlich freigegebenen Nachfolgeformat implementiert und geprüft; eine bloße Änderung der Versionsnummer wäre kein Migrationsnachweis. #118 bleibt bis zur vollständigen Abnahme offen.
+Dieser Bestand sichert weiterhin den **Entwurf 0.1.0**. Vor einem stabilen 1.0.0 fehlen insbesondere vollständige Schema-Prüfung, instanzweite Paketverwaltung und Instanztests. Eine Migration zwischen stabilen Major-Versionen wird erst mit einem tatsächlich freigegebenen Nachfolgeformat implementiert und geprüft; eine bloße Änderung der Versionsnummer wäre kein Migrationsnachweis. #118 bleibt bis zur vollständigen Abnahme offen.
 
 ## Unbekannte Felder im Entwurf
 
@@ -76,3 +76,32 @@ Auch das Wurzelobjekt von `questions.json` darf im Entwurf 0.1.0 ausschließlich
 `scripts/select-catalog.py` stellt `select_from_file(datei, frage_ids)` bereit. Die Quelldatei wird vor jeder Auswahl vollständig validiert. Der Helfer übernimmt ausschließlich ausdrücklich gewählte Fragen in ihrer bisherigen Reihenfolge, behält deren Antwort- und Herkunftsangaben sowie die vollständigen Nachweisdateien und entfernt nicht mehr referenzierte Mediendateien. `scripts/write-catalog.py` erzeugt daraus ein neues geprüftes Paket mit aktualisierten Hashes. Leere oder unbekannte Frage-IDs werden zurückgewiesen, die Ursprungsdatei bleibt unverändert.
 
 Dies ist **noch kein Export aus Benutzerkonten oder der Datenbank**: Rollen- und Eigentumsprüfung, Auswahl nach Themen/Katalogen, Privatsphäre, ausdrückliche Lizenz- und Community-Freigabe sowie Metadaten zur neuen Katalogrevision sind vor einem produktiven Export gesondert umzusetzen (#115–#117). Insbesondere dürfen fremde oder private Inhalte niemals allein aufgrund ihrer ID auswählbar werden. Der technische Helfer ist keine Berechtigungsgrenze.
+
+## Privater ZIP-Import in der Anwendung
+
+Unter **Kataloge und Inhalte > Fragenpaket importieren** kann ein angemeldetes Konto eine lokale ZIP-Datei hochladen. Die Vorschau zeigt Originaltitel, Inhalts-/Formatversion, Quellenstand, Sprache, Themen, Fragen- und Medienanzahl sowie die Lizenz- und Attributionstexte. Erst die ausdrückliche Bestätigung der privaten Nutzungsrechte legt einen neuen privaten Katalog mit lernbaren Fragen an. Es erfolgt kein Download aus externen Quellen und keine Veröffentlichung.
+
+Die API prüft Pfade, doppelte ZIP-/JSON-Einträge, Größen und Kompressionsverhältnis, Dateiprüfsummen, Pflichtfelder, Datentypen und Wertebereiche des archivierten 0.1.0-Vertrags sowie Antworten, Medienverweise und getrennte Herkunftsnachweise. Unbekannte Felder oder Schema-Versionen werden abgewiesen. Die Importbestätigung enthält die SHA-256-Prüfsumme der Vorschau; eine zwischenzeitlich geänderte Datei benötigt eine neue Vorschau. Sämtliche Datenbankänderungen erfolgen in einer Transaktion mit einer Kontensperre, die auch die vorhandenen Bildkontingente schützt.
+
+Paketkennung und Inhaltsvergleich verhindern doppelte Importe auch bei gleichzeitigem Bestätigen. Geänderte JSON-Formatierung oder ZIP-Kompression allein erzeugen keinen neuen Katalog. Ein geänderter Inhalt, Quellen-/Lizenztext oder Paketstand wird als Konflikt abgewiesen. Bestehende Fragen, Entwürfe und Lernstände werden niemals durch einen Reimport überschrieben. Das Entfernen des Katalogordners lässt Fragen und Importidentität bestehen und löst keinen erneuten Import aus.
+
+Die unveränderte Originaldatei und die Zuordnung externer Frage-IDs zu lokalen Fragen werden mit dem Eigentümerkonto gespeichert. Unter **Importierte Originalpakete** kann ausschließlich dieses Konto die Originaldatei herunterladen. Sie enthält unverändert sämtliche Medienbytes, Metadaten, Quellen und Einzellizenzen. Spätere Änderungen der Lernfragen sind darin nicht enthalten; dies ist noch kein Export selbst erstellter oder bearbeiteter Fragen nach #115. Angezeigte Themen und Attribution können für die Kurzansicht gekürzt sein, die Originalangaben bleiben im Paket erhalten.
+
+### Unterstützte Inhalte und Grenzen
+
+- Format: weiterhin **Entwurf 0.1.0**. Ein stabiler Formatvertrag wird damit nicht behauptet.
+- Für die Lernanzeige: gültige, nicht animierte JPEG-/PNG-Bilder bis 5 MiB und 4096 × 4096 Pixel; Bildbeschreibung maximal 300 Zeichen. Anzeigebilder werden wie vorhandene Uploads neu kodiert, damit Metadaten nicht unbeabsichtigt mit angezeigt werden. Das nur privat herunterladbare Originalarchiv bleibt bytegenau erhalten und kann solche Metadaten weiterhin enthalten.
+- Fragetext, Erklärung und einzelne Antworttexte: derzeit maximal 4000 Zeichen entsprechend dem vorhandenen Inhaltsblockmodell; Inhaltslizenz-Identifier maximal 120 Zeichen. Andere gültige Paketmedien, größere Inhalte und nicht speicherbare Nullzeichen werden mit verständlichem Fehler vollständig abgewiesen, niemals still weggelassen.
+- Pro Konto maximal 20 Originalpakete mit zusammen 100 MiB; bestehende Bildkontingente von 100 Bildern/100 MiB gelten zusätzlich. Die Datenbank benötigt auch Platz für die entpackten Lernfragen und bereinigten Anzeigebilder. Das Backup muss die neue Tabelle `CatalogPackageImports` einschließen; vollständige PostgreSQL-Sicherungen tun dies automatisch.
+- Originalpakete unterliegen dem Lebenszyklus des Eigentümerkontos. Ein Katalogordner allein löscht sie nicht.
+
+### API und Prüfung
+
+- `POST /api/v1/catalog-packages/preview`: Multipart-Datei `file`, keine Datenbankänderung.
+- `POST /api/v1/catalog-packages/import`: dieselbe Datei, `archiveSha256` aus der Vorschau und `rightsConfirmed=true`.
+- `GET /api/v1/catalog-packages/`: ausschließlich eigene Importmetadaten.
+- `GET /api/v1/catalog-packages/{id}/original`: eigener Originaldownload ohne Cachefreigabe.
+
+Tests prüfen den produktiven Reader am unveränderten Golden-ZIP, bildbezogene Rechteangaben, Inhaltsvergleich trotz anderer JSON-Formatierung, manipulierte Dateien, Versions-/Schemafehler, Vorschau-/Bestätigungsbindung, fehlende Zustimmung, gleichzeitigen Reimport, Konflikte, erhaltene eigene Entwürfe und fremde Zugriffe. Browserprüfungen sichern ausdrückliche Zustimmung, gesperrte Konflikte, zurückgesetzte Vorschauen bei einer neuen Dateiauswahl sowie die mobile Darstellung. Die neue Datenbankmigration ist additiv und lässt bestehende Fragen unverändert.
+
+Instanzweite Administrationspakete, Setup-Auswahl, kontrollierte Updates/Entfernung, vollständiger Fragenexport aus Konten, stabile Formatmigrationen und der Abnahmetest auf zwei frischen unabhängigen Installationen bleiben als weitere Abnahmeschritte in #108, #110, #115 und #118 offen.

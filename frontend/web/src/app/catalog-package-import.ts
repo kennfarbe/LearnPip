@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { LanguageService } from './language';
@@ -15,6 +15,8 @@ interface Preview {
   language: string;
   questionCount: number;
   mediaCount: number;
+  archiveBytes: number;
+  expandedBytes: number;
   license: License;
   questionLicenses: License[];
   notices: Record<string, string>;
@@ -71,6 +73,8 @@ interface Imported {
               {{ item.questionCount }} {{ language.t('Fragen') }}, {{ item.mediaCount }}
               {{ language.t('Medien') }}
             </dd>
+            <dt>{{ language.t('Archivgröße / entpackte Originaldateien') }}</dt>
+            <dd>{{ size(item.archiveBytes) }} / {{ size(item.expandedBytes) }}</dd>
             <dt>{{ language.t('Themen') }}</dt>
             <dd>{{ item.topics.join(', ') }}</dd>
           </dl>
@@ -199,6 +203,7 @@ interface Imported {
 })
 export class CatalogPackageImport implements OnInit {
   readonly language = inject(LanguageService);
+  readonly completed = output<void>();
   readonly busy = signal(false);
   readonly preview = signal<Preview | null>(null);
   readonly message = signal('');
@@ -207,6 +212,14 @@ export class CatalogPackageImport implements OnInit {
   readonly noticeNames = ['LICENSES.md', 'NOTICE', 'ATTRIBUTION'];
   file: File | null = null;
   confirmed = false;
+  size(bytes: number): string {
+    return (
+      new Intl.NumberFormat(this.language.current(), { maximumFractionDigits: 2 }).format(
+        bytes / (1024 * 1024),
+      ) + ' MiB'
+    );
+  }
+
   ngOnInit(): void {
     void this.reload();
   }
@@ -249,6 +262,7 @@ export class CatalogPackageImport implements OnInit {
         this.language.t('Fragenpaket privat importiert. Es wurde nichts veröffentlicht.'),
       );
       await this.reload();
+      this.completed.emit();
     });
   }
   private async request(action: string, hash?: string): Promise<Response> {

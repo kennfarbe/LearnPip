@@ -18,6 +18,11 @@ public static class CatalogPackageImporter
     /// <exception cref="InvalidDataException">Ein Inhalt kann nicht vollständig übernommen werden.</exception>
     public static IReadOnlyDictionary<string, byte[]> PrepareImages(CatalogPackage package)
     {
+        if (ContainsNullCharacter(package.Manifest))
+        {
+            throw new InvalidDataException("Nullzeichen in Paketmetadaten sind nicht speicherbar. Kein Teilimport.");
+        }
+
         var images = new Dictionary<string, byte[]>(StringComparer.Ordinal);
         foreach (var (path, bytes) in package.Files.Where(file => file.Key.StartsWith("media/", StringComparison.Ordinal)))
         {
@@ -148,7 +153,7 @@ public static class CatalogPackageImporter
         _ => false,
     };
 
-    private static string Short(string value) => value[..Math.Min(120, value.Length)];
+    private static string Short(string value) => string.Concat(value.EnumerateRunes().Take(120));
 
     private static string MediaType(string path) => Path.GetExtension(path).ToLowerInvariant() switch
     {
