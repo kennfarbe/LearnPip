@@ -184,12 +184,11 @@ public sealed class IdentityFlowTests
             Assert.Equal(
                 expectedResult5,
                 actualResult6);
+
             // Ordinary reads and credential rotation cannot promote an old session.
             Assert.Equal(HttpStatusCode.Forbidden, (await first.PostAsync("/api/v1/auth/recovery/rotate", null)).StatusCode);
-            Assert.Equal(HttpStatusCode.Forbidden, (await first.PostAsJsonAsync(
-                "/api/v1/auth/email/link/start", new EmailStartRequest("fresh@example.org"))).StatusCode);
-            Assert.Equal(HttpStatusCode.Forbidden, (await first.PostAsJsonAsync(
-                "/api/v1/auth/email/link/complete", new EmailCompleteRequest("fresh@example.org", "000000"))).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await first.PostAsJsonAsync("/api/v1/auth/email/link/start", new EmailStartRequest("fresh@example.org"))).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await first.PostAsJsonAsync("/api/v1/auth/email/link/complete", new EmailCompleteRequest("fresh@example.org", "000000"))).StatusCode);
             foreach (var path in new[] { "/oidc/link/start", "/oidc/apple/link/start", "/github/link/start", "/facebook/link/start" })
             {
                 Assert.Equal(HttpStatusCode.Forbidden, (await first.GetAsync("/api/v1/auth" + path)).StatusCode);
