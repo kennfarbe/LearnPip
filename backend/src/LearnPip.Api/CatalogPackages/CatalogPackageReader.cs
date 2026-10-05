@@ -42,7 +42,7 @@ public static partial class CatalogPackageReader
             var media = new HashSet<string>(StringComparer.Ordinal);
             foreach (var question in questions)
             {
-                ValidateQuestion(question, files, ids, media);
+                ValidateQuestion(question, files, ids, media, manifest.GetProperty("schema_version").GetString() == "0.2.0");
             }
 
             Require(
@@ -101,7 +101,7 @@ public static partial class CatalogPackageReader
             "format_id schema_version package_id catalog_version source_revision title description language publisher created_at license files");
         Require(Text(manifest, "format_id", 1, 128) == "org.learnpip.catalog.zip", "Unbekanntes Paketformat.");
         var version = Text(manifest, "schema_version", 1, 128);
-        Require(version == "0.1.0", $"Schema-Version {version} ist nicht unterstützt. Unterstützt: 0.1.0. Kein Teilimport.");
+        Require(version is "0.1.0" or "0.2.0", $"Schema-Version {version} ist nicht unterstützt. Unterstützt: 0.1.0, 0.2.0. Kein Teilimport.");
         Require(PackageIdPattern().IsMatch(Text(manifest, "package_id", 3, 128)), "Ungültige Paketkennung.");
         Text(manifest, "catalog_version", 1, 128);
         Text(manifest, "source_revision", 1, 256);
@@ -113,10 +113,10 @@ public static partial class CatalogPackageReader
         var date = Text(manifest, "created_at", 1, 128);
         Require(
             DatePattern().IsMatch(date) && DateTimeOffset.TryParse(
-    date,
-    CultureInfo.InvariantCulture,
-    DateTimeStyles.None,
-    out _),
+                date,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out _),
             "Erstellungsdatum benötigt ein gültiges Datum mit Zeitzone.");
         License(manifest.GetProperty("license"));
         var paths = new HashSet<string>(StringComparer.Ordinal);
@@ -141,17 +141,18 @@ public static partial class CatalogPackageReader
         Dictionary<string,
         byte[]> files,
         HashSet<string> ids,
-        HashSet<string> media)
+        HashSet<string> media,
+        bool blocksFormat)
     {
         Fields(
             question,
-            "id language prompt answers correct_answer_ids explanation topics difficulty age_band license provenance media",
-            "id language prompt answers correct_answer_ids explanation topics difficulty license provenance media");
+            "id language prompt answers correct_answer_ids explanation topics difficulty age_band license provenance media" + (blocksFormat ? " subject topic question_version selection_mode prompt_blocks explanation_blocks source_note" : string.Empty),
+            "id language prompt answers correct_answer_ids explanation topics difficulty license provenance media" + (blocksFormat ? " subject topic question_version selection_mode prompt_blocks explanation_blocks" : string.Empty));
         var id = Text(question, "id", 3, 128);
         Require(QuestionIdPattern().IsMatch(id) && ids.Add(id), "Ungültige oder doppelte Fragekennung.");
         Language(question);
-        Text(question, "prompt", 1, 10000);
-        Text(question, "explanation", 0, 20000);
+        Text(question, "prompt", 1, blocksFormat ? 12000 : 10000);
+        Text(question, "explanation", 0, blocksFormat ? 12000 : 20000);
         OptionalText(question, "age_band", 0, 80);
         var difficulty = Text(question, "difficulty", 1, 16);
         Require(difficulty is "unknown" or "easy" or "medium" or "hard", "Ungültiger Schwierigkeitsgrad.");
@@ -163,7 +164,7 @@ public static partial class CatalogPackageReader
         var answers = new HashSet<string>(StringComparer.Ordinal);
         foreach (var answer in Array(question, "answers", 2, 20))
         {
-            Fields(answer, "id text", "id text");
+            Fields(answer, blocksFormat ? "id text blocks" : "id text", blocksFormat ? "id text blocks" : "id text");
             var answerId = Text(answer, "id", 1, 64);
             Require(AnswerIdPattern().IsMatch(answerId) && answers.Add(answerId), "Ungültige Antwortkennung.");
             Text(answer, "text", 1, 10000);
@@ -173,7 +174,7 @@ public static partial class CatalogPackageReader
         Require(
             correct.Distinct(StringComparer.Ordinal).Count() == correct.Length && correct.All(answers.Contains),
             "Ungültige Lösung oder Antwortreferenz.");
-        foreach (var asset in Array(question, "media", 0, 20))
+        foreach (var asset in Array(question, "media", 0, blocksFormat ? 180 : 20))
         {
             Fields(asset, "path alt license provenance", "path alt license provenance");
             var path = Text(asset, "path", 1, 256);
@@ -185,6 +186,56 @@ public static partial class CatalogPackageReader
             Provenance(asset.GetProperty("provenance"));
             media.Add(path);
         }
+
+        if (blocksFormat)
+        {
+            ValidateBlocksQuestion(question, correct.Length);
+        }
+    }
+
+    private static void ValidateBlocksQuestion(JsonElement question, int correctCount)
+    {
+        Text(question, "subject", 1, 120);
+        Text(question, "topic", 1, 120);
+        Text(question, "question_version", 1, 128);
+        OptionalText(question, "source_note", 0, 500);
+        var mode = Text(question, "selection_mode", 1, 16);
+        Require((mode == "single" && correctCount == 1) || (mode == "multiple" && correctCount >= 2), "Auswahlmodus und Lösungen passen nicht zusammen.");
+        var declared = question.GetProperty("media").EnumerateArray().Select(item => item.GetProperty("path").GetString()!).ToHashSet(StringComparer.Ordinal);
+        Require(declared.Count == question.GetProperty("media").GetArrayLength(), "Doppelte Medienbeschreibung.");
+        var referenced = new HashSet<string>(StringComparer.Ordinal);
+        Blocks(question, "prompt_blocks", question.GetProperty("prompt").GetString()!, true, declared, referenced);
+        Blocks(question, "explanation_blocks", question.GetProperty("explanation").GetString()!, false, declared, referenced);
+        foreach (var answer in question.GetProperty("answers").EnumerateArray())
+        {
+            Blocks(answer, "blocks", answer.GetProperty("text").GetString()!, true, declared, referenced);
+        }
+
+        Require(declared.SetEquals(referenced), "Medienbeschreibung und Inhaltsblöcke stimmen nicht überein.");
+    }
+
+    private static void Blocks(JsonElement value, string name, string summary, bool required, HashSet<string> declared, HashSet<string> referenced)
+    {
+        var blocks = Array(value, name, required ? 1 : 0, 20);
+        var text = new List<string>();
+        foreach (var block in blocks)
+        {
+            var kind = Text(block, "kind", 1, 16);
+            if (kind == "text")
+            {
+                Fields(block, "kind text", "kind text");
+                text.Add(Text(block, "text", 1, 4000));
+            }
+            else
+            {
+                Fields(block, "kind path", "kind path");
+                var path = Text(block, "path", 1, 256);
+                Require(kind == "image" && declared.Contains(path), "Ungültiger Bildblock.");
+                referenced.Add(path);
+            }
+        }
+
+        Require(summary == (text.Count == 0 && required ? "[Bild]" : string.Join("\n", text)), "Textzusammenfassung und Inhaltsblöcke stimmen nicht überein.");
     }
 
     private static void License(JsonElement license)

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\fixtures\catalog\0.2.0\golden.zip" Link="Fixtures\catalog-blocks-golden.zip" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\fixtures\catalog\0.1.0\golden.zip" Link="Fixtures\catalog-golden.zip" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

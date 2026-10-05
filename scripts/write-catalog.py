@@ -30,7 +30,7 @@ def write_catalog(snapshot, destination: str | Path) -> None:
     manifest = dict(snapshot.manifest)
     if manifest.get("format_id") != _validator.FORMAT_ID:
         raise _validator.InvalidPackage("Unsupported format_id")
-    if manifest.get("schema_version") != _validator.VERSION:
+    if manifest.get("schema_version") not in _validator.VERSIONS:
         raise _validator.InvalidPackage("Unsupported schema_version")
     files = {
         "questions.json": json.dumps(snapshot.questions, ensure_ascii=False,

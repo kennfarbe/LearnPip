@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Offline safety and semantic validation of draft LearnPip catalog ZIP files.
 
-Draft format 0.1.0 only. This does not establish publication or usage rights.
+Draft formats 0.1.0 and 0.2.0. This does not establish publication or usage rights.
 The immutable JSON schemas are the format specification; this validator also
 checks relationships and ZIP properties which JSON Schema cannot express.
 """
@@ -19,6 +19,7 @@ import zipfile
 
 FORMAT_ID = "org.learnpip.catalog.zip"
 VERSION = "0.1.0"
+VERSIONS = {"0.1.0", "0.2.0"}
 REQUIRED = {"questions.json", "LICENSES.md", "NOTICE", "ATTRIBUTION"}
 FILE_LIMIT = 2000
 TOTAL_LIMIT = 100 * 1024 * 1024
@@ -136,9 +137,9 @@ def validate(filename: str) -> tuple[str, int]:
                                     "description", "language", "publisher", "created_at",
                                     "exporter_app_version", "license", "files"}, "manifest")
             require(manifest.get("format_id") == FORMAT_ID, "Unsupported format_id")
-            require(manifest.get("schema_version") == VERSION,
+            require(manifest.get("schema_version") in VERSIONS,
                     "Unsupported schema_version: " + str(manifest.get("schema_version")) +
-                    "; supported: " + VERSION +
+                    "; supported: " + ", ".join(sorted(VERSIONS)) +
                     ". Bitte einen passenden Reader verwenden; kein Teilimport.")
             for key in ("package_id", "catalog_version", "source_revision",
                         "title", "publisher", "description", "language", "created_at"):
@@ -178,13 +179,14 @@ def validate(filename: str) -> tuple[str, int]:
             questions = questions_root.get("questions")
             require(isinstance(questions, list) and 0 < len(questions) <= QUESTION_LIMIT,
                     "Invalid question count")
+            blocks_format = manifest["schema_version"] == "0.2.0"
             question_ids = set()
             referenced_media = set()
             for question in questions:
                 known_fields(question, {"id", "language", "prompt", "answers",
                                         "correct_answer_ids", "explanation", "topics",
                                         "difficulty", "age_band", "license", "provenance",
-                                        "media"}, "question")
+                                        "media"} | ({"subject", "topic", "question_version", "selection_mode", "prompt_blocks", "explanation_blocks", "source_note"} if blocks_format else set()), "question")
                 question_id = question.get("id")
                 require(isinstance(question_id, str) and
                         SAFE_ID.fullmatch(question_id) is not None, "Invalid question ID")
@@ -207,7 +209,7 @@ def validate(filename: str) -> tuple[str, int]:
                         "Invalid answer count")
                 answer_ids = []
                 for answer in answers:
-                    known_fields(answer, {"id", "text"}, "answer")
+                    known_fields(answer, {"id", "text"} | ({"blocks"} if blocks_format else set()), "answer")
                     require(isinstance(answer, dict) and isinstance(answer.get("id"), str)
                             and bool(answer["id"].strip()) and
                             isinstance(answer.get("text"), str) and
@@ -219,7 +221,7 @@ def validate(filename: str) -> tuple[str, int]:
                         len(set(correct)) == len(correct) and
                         set(correct) <= set(answer_ids), "Invalid correct answer references")
                 media = question.get("media")
-                require(isinstance(media, list) and len(media) <= 20, "Invalid media")
+                require(isinstance(media, list) and len(media) <= (180 if blocks_format else 20), "Invalid media")
                 for asset in media:
                     known_fields(asset, {"path", "alt", "license", "provenance"}, "asset")
                     path = asset.get("path")
@@ -230,11 +232,54 @@ def validate(filename: str) -> tuple[str, int]:
                     check_license(asset.get("license"))
                     check_provenance(asset.get("provenance"))
                     referenced_media.add(path)
+                if blocks_format:
+                    check_blocks_question(question)
             require({path for path in declared if path.startswith("media/")} == referenced_media,
                     "Unused or missing media assets")
             return manifest["package_id"], len(questions)
     except (zipfile.BadZipFile, EOFError, RuntimeError) as error:
         raise InvalidPackage("Malformed ZIP archive") from error
+
+
+def check_blocks_question(question: dict) -> None:
+    for field, limit in (("subject", 120), ("topic", 120), ("question_version", 128)):
+        require(isinstance(question.get(field), str) and
+                1 <= len(question[field]) <= limit and question[field].strip(),
+                "Invalid block metadata: " + field)
+    mode = question.get("selection_mode")
+    count = len(question["correct_answer_ids"])
+    require((mode == "single" and count == 1) or (mode == "multiple" and count >= 2),
+            "Selection mode does not match solutions")
+    declared = {asset["path"] for asset in question["media"]}
+    require(len(declared) == len(question["media"]), "Duplicate media description")
+    referenced = set()
+
+    def blocks(value, name, summary, required):
+        items = value.get(name)
+        require(isinstance(items, list) and (1 if required else 0) <= len(items) <= 20,
+                "Invalid block list")
+        text = []
+        for block in items:
+            require(isinstance(block, dict), "Invalid block")
+            if block.get("kind") == "text":
+                known_fields(block, {"kind", "text"}, "text block")
+                require(isinstance(block.get("text"), str) and
+                        1 <= len(block["text"]) <= 4000 and block["text"].strip(),
+                        "Invalid text block")
+                text.append(block["text"])
+            else:
+                known_fields(block, {"kind", "path"}, "image block")
+                require(block.get("kind") == "image" and isinstance(block.get("path"), str) and
+                        block["path"] in declared, "Missing image block")
+                referenced.add(block["path"])
+        require(summary == ("[Bild]" if not text and required else "\n".join(text)),
+                "Block summary mismatch")
+
+    blocks(question, "prompt_blocks", question["prompt"], True)
+    blocks(question, "explanation_blocks", question["explanation"], False)
+    for answer in question["answers"]:
+        blocks(answer, "blocks", answer["text"], True)
+    require(declared == referenced, "Unreferenced block media")
 
 
 def main() -> int:

@@ -44,8 +44,8 @@ public static class CatalogPackageImporter
             }
 
             if (ContainsNullCharacter(question) ||
-                question.GetProperty("prompt").GetString()!.Length > 4000 ||
-                question.GetProperty("explanation").GetString()!.Length > 4000 ||
+                question.GetProperty("prompt").GetString()!.Length > (question.TryGetProperty("prompt_blocks", out _) ? 12000 : 4000) ||
+                question.GetProperty("explanation").GetString()!.Length > (question.TryGetProperty("prompt_blocks", out _) ? 12000 : 4000) ||
                 question.GetProperty("answers").EnumerateArray().Any(answer => answer.GetProperty("text").GetString()!.Length > 4000) ||
                 question.GetProperty("license").GetProperty("id").GetString()!.Length > 120)
             {
@@ -76,7 +76,9 @@ public static class CatalogPackageImporter
         {
             var question = new Question { OwnerAccountId = owner, PrivateCatalogId = catalog.Id };
             var topic = original.GetProperty("topics")[0].GetString()!;
+            var blocksFormat = original.TryGetProperty("prompt_blocks", out _);
             question.LearningContent = new LearningContent { Id = question.Id, OwnerAccountId = owner, Title = Short(topic) };
+            var selectionMode = original.GetProperty("correct_answer_ids").GetArrayLength() == 1 ? "single" : "multiple";
             var version = new QuestionVersion
             {
                 Question = question,
@@ -85,52 +87,17 @@ public static class CatalogPackageImporter
                 Visibility = "private",
                 Prompt = original.GetProperty("prompt").GetString()!,
                 Explanation = original.GetProperty("explanation").GetString(),
-                SelectionMode = original.GetProperty("correct_answer_ids").GetArrayLength() == 1 ? "single" : "multiple",
+                SelectionMode = blocksFormat ? original.GetProperty("selection_mode").GetString()! : selectionMode,
                 Language = original.GetProperty("language").GetString()!,
-                Subject = Short(topic),
-                Topic = Short(topic),
-                Source = package.Manifest.GetProperty("package_id").GetString()!,
+                Subject = blocksFormat ? original.GetProperty("subject").GetString()! : Short(topic),
+                Topic = blocksFormat ? original.GetProperty("topic").GetString()! : Short(topic),
+                Source = original.TryGetProperty("source_note", out var sourceNote) ? sourceNote.GetString()! : package.Manifest.GetProperty("package_id").GetString()!,
                 License = original.GetProperty("license").GetProperty("id").GetString()!,
                 AuthorAttribution = Short(original.GetProperty("license").GetProperty("attribution").GetString()!),
             };
             db.Questions.Add(question);
             db.QuestionVersions.Add(version);
-            db.QuestionContentBlocks.Add(new QuestionContentBlock
-            {
-                QuestionVersionId = version.Id,
-                Section = "prompt",
-                Kind = "text",
-                Text = version.Prompt,
-            });
-            db.QuestionContentBlocks.Add(new QuestionContentBlock
-            {
-                QuestionVersionId = version.Id,
-                Section = "explanation",
-                Kind = "text",
-                Text = version.Explanation,
-            });
-            var correct = original.GetProperty("correct_answer_ids").EnumerateArray().Select(answer => answer.GetString()).ToHashSet(StringComparer.Ordinal);
-            var index = 0;
-            foreach (var answer in original.GetProperty("answers").EnumerateArray())
-            {
-                var option = new AnswerOption
-                {
-                    QuestionVersionId = version.Id,
-                    SortOrder = index++,
-                    IsCorrect = correct.Contains(answer.GetProperty("id").GetString()),
-                    Text = answer.GetProperty("text").GetString()!,
-                };
-                db.AnswerOptions.Add(option);
-                db.QuestionContentBlocks.Add(new QuestionContentBlock
-                {
-                    AnswerOptionId = option.Id,
-                    Section = "answer",
-                    Kind = "text",
-                    Text = option.Text,
-                });
-            }
-
-            index = 1;
+            var media = new Dictionary<string, Guid>(StringComparer.Ordinal);
             foreach (var asset in original.GetProperty("media").EnumerateArray())
             {
                 var path = asset.GetProperty("path").GetString()!;
@@ -145,20 +112,70 @@ public static class CatalogPackageImporter
                 };
                 db.MediaAssets.Add(image);
                 db.MediaBlobs.Add(new MediaBlob { MediaAssetId = image.Id, Data = images[path] });
-                db.QuestionContentBlocks.Add(new QuestionContentBlock
+                media.Add(path, image.Id);
+            }
+
+            if (blocksFormat)
+            {
+                AddBlocks(db, version.Id, null, "prompt", original.GetProperty("prompt_blocks"), media);
+                AddBlocks(db, version.Id, null, "explanation", original.GetProperty("explanation_blocks"), media);
+            }
+            else
+            {
+                db.QuestionContentBlocks.Add(new QuestionContentBlock { QuestionVersionId = version.Id, Section = "prompt", Kind = "text", Text = version.Prompt });
+                db.QuestionContentBlocks.Add(new QuestionContentBlock { QuestionVersionId = version.Id, Section = "explanation", Kind = "text", Text = version.Explanation });
+                var order = 1;
+                foreach (var image in media.Values)
+                {
+                    db.QuestionContentBlocks.Add(new QuestionContentBlock { QuestionVersionId = version.Id, Section = "prompt", SortOrder = order++, Kind = "image", MediaAssetId = image });
+                }
+            }
+
+            var correct = original.GetProperty("correct_answer_ids").EnumerateArray().Select(answer => answer.GetString()).ToHashSet(StringComparer.Ordinal);
+            var index = 0;
+            foreach (var answer in original.GetProperty("answers").EnumerateArray())
+            {
+                var option = new AnswerOption
                 {
                     QuestionVersionId = version.Id,
-                    Section = "prompt",
                     SortOrder = index++,
-                    Kind = "image",
-                    MediaAssetId = image.Id,
-                });
+                    IsCorrect = correct.Contains(answer.GetProperty("id").GetString()),
+                    Text = answer.GetProperty("text").GetString()!,
+                };
+                db.AnswerOptions.Add(option);
+                if (blocksFormat)
+                {
+                    AddBlocks(db, null, option.Id, "answer", answer.GetProperty("blocks"), media);
+                }
+                else
+                {
+                    db.QuestionContentBlocks.Add(new QuestionContentBlock { AnswerOptionId = option.Id, Section = "answer", Kind = "text", Text = option.Text });
+                }
             }
 
             mappings.Add(original.GetProperty("id").GetString()!, question.Id);
         }
 
         return mappings;
+    }
+
+    private static void AddBlocks(LearnPipDbContext db, Guid? versionId, Guid? answerId, string section, JsonElement blocks, Dictionary<string, Guid> media)
+    {
+        var index = 0;
+        foreach (var block in blocks.EnumerateArray())
+        {
+            var kind = block.GetProperty("kind").GetString()!;
+            db.QuestionContentBlocks.Add(new QuestionContentBlock
+            {
+                QuestionVersionId = versionId,
+                AnswerOptionId = answerId,
+                Section = section,
+                SortOrder = index++,
+                Kind = kind,
+                Text = kind == "text" ? block.GetProperty("text").GetString() : null,
+                MediaAssetId = kind == "image" ? media[block.GetProperty("path").GetString()!] : null,
+            });
+        }
     }
 
     private static bool ContainsNullCharacter(JsonElement value) => value.ValueKind switch
