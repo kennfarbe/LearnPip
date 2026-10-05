@@ -106,7 +106,11 @@ Der schreibende Workflow führt ausschließlich Code vom Standardbranch aus.
 Er akzeptiert nur offene Dependabot-PRs aus diesem Repository, deren Änderungen
 auf die beiden Web-Paketdateien und die sechs erzeugten Bilddateien beschränkt
 sind. Die Artefakte stammen aus dem zugehörigen CI-Lauf; Dateiliste, Größe,
-PNG-Kopf, Abmessungen und Manifest-Fingerabdrücke werden geprüft. Vor dem
+PNG-Kopf, Abmessungen und Manifest-Fingerabdrücke werden geprüft. Die
+PR-Suche dient nur zur Auswahl; die Dateianzahl kommt aus einem zusätzlich
+abgerufenen vollständigen PR-Datensatz. Dabei werden Autor, Repository,
+Offen-Status und Commit erneut geprüft, bevor Dateiliste und Artefakte
+akzeptiert werden. Vor dem
 Schreiben wird der aktuelle PR-Commit erneut geprüft; es gibt keinen Force-Push.
 Build- oder Testfehler erzeugen keine neuen Bilder. Gemischte Änderungen und
 Beiträge anderer Autoren benötigen weiterhin die manuelle Aktualisierung.
