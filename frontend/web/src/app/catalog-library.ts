@@ -2,6 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { LanguageService } from './language';
+import { CatalogPackageImport } from './catalog-package-import';
 
 interface Catalog {
   id: string;
@@ -11,8 +12,9 @@ interface Catalog {
 
 @Component({
   selector: 'app-catalog-library',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, CatalogPackageImport],
   template: `
+    <app-catalog-package-import />
     <section class="workspace-card" aria-labelledby="catalog-library-title">
       <h2 id="catalog-library-title">{{ language.t('Private Kataloge') }}</h2>
       <p>{{ language.t('Deine Fragen bleiben beim Löschen eines Katalogs erhalten.') }}</p>

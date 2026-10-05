@@ -434,6 +434,21 @@ jobs:
           retention-days: 3
           overwrite: true
 
+      # Temporary generation for this implementation branch; removed after visual review.
+      - name: Generate catalog import review screenshots
+        if: github.head_ref == 'feat/offline-catalog-import'
+        working-directory: frontend/web
+        run: npm run docs:screenshots
+
+      - name: Retain catalog import review screenshots
+        if: github.head_ref == 'feat/offline-catalog-import'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: catalog-import-docs
+          path: docs/screenshots/
+          if-no-files-found: error
+          retention-days: 3
+
       - name: Require committed and current documentation screenshots
         working-directory: frontend/web
         run: |
