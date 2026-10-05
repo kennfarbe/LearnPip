@@ -38,6 +38,12 @@ public static class CatalogPackageImporter
 
         foreach (var question in package.Questions)
         {
+            var paths = question.GetProperty("media").EnumerateArray().Select(asset => asset.GetProperty("path").GetString()).ToArray();
+            if (paths.Length != paths.Distinct(StringComparer.Ordinal).Count())
+            {
+                throw new InvalidDataException("Doppelte Medienbeschreibungen können nicht eindeutig übernommen werden. Kein Teilimport.");
+            }
+
             if (question.GetProperty("media").EnumerateArray().Any(asset => asset.GetProperty("alt").GetString()!.Length > 300))
             {
                 throw new InvalidDataException("Bildbeschreibungen dürfen im privaten Import derzeit maximal 300 Zeichen umfassen. Kein Teilimport.");
@@ -62,6 +68,7 @@ public static class CatalogPackageImporter
     /// <param name="images">Die vollständig geprüften Anzeigebilder.</param>
     /// <param name="owner">Das lokale Eigentümerkonto.</param>
     /// <param name="catalog">Der private Zielkatalog.</param>
+    /// <param name="identical">Bereits vorhandene unveränderte Quellfragen.</param>
     /// <returns>Die Zuordnung stabiler externer IDs zu lokalen Fragen.</returns>
     public static IReadOnlyDictionary<string, Guid> AddQuestions(
         LearnPipDbContext db,
@@ -69,11 +76,20 @@ public static class CatalogPackageImporter
         IReadOnlyDictionary<string,
         byte[]> images,
         Guid owner,
-        PrivateCatalog catalog)
+        PrivateCatalog catalog,
+        IReadOnlyDictionary<string,
+        Guid>? identical = null)
     {
         var mappings = new Dictionary<string, Guid>(StringComparer.Ordinal);
         foreach (var original in package.Questions)
         {
+            var sourceId = original.GetProperty("id").GetString()!;
+            if (identical != null && identical.TryGetValue(sourceId, out var known))
+            {
+                mappings.Add(sourceId, known);
+                continue;
+            }
+
             var question = new Question { OwnerAccountId = owner, PrivateCatalogId = catalog.Id };
             var topic = original.GetProperty("topics")[0].GetString()!;
             var blocksFormat = original.TryGetProperty("prompt_blocks", out _);

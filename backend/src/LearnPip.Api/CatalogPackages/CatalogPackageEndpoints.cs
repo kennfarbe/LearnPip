@@ -54,6 +54,27 @@ public static class CatalogPackageEndpoints
                 state = existing.Fingerprint == package.Fingerprint ? "identical" : "conflict";
             }
 
+            var comparison = existing == null ? await CatalogPackageComparison.Compare(package, db, owner, ct) : (new Dictionary<string, Guid>(StringComparer.Ordinal), new List<string>());
+            var identical = comparison.Item1.Count;
+            var conflicts = comparison.Item2.Count;
+            if (existing != null)
+            {
+                identical = state == "identical" ? package.Questions.Count : 0;
+                conflicts = state == "conflict" ? package.Questions.Count : 0;
+            }
+
+            if (existing == null)
+            {
+                if (conflicts > 0)
+                {
+                    state = "conflict";
+                }
+                else if (identical == package.Questions.Count)
+                {
+                    state = "identical";
+                }
+            }
+
             var licenses = package.Questions.SelectMany(question => question.GetProperty("media").EnumerateArray()
                 .Select(asset => asset.GetProperty("license")).Prepend(question.GetProperty("license"))).DistinctBy(license => license.GetRawText()).ToArray();
             var notices = NoticeFiles.ToDictionary(name => name, name => Encoding.UTF8.GetString(package.Files[name]), StringComparer.Ordinal);
@@ -75,7 +96,10 @@ public static class CatalogPackageEndpoints
                     .Distinct(StringComparer.Ordinal).ToArray(),
                 Convert.ToHexStringLower(SHA256.HashData(package.Archive)),
                 state,
-                existing?.PrivateCatalogId);
+                existing?.PrivateCatalogId,
+                package.Questions.Count - identical - conflicts,
+                identical,
+                conflicts);
             return Results.Ok(new ApiResponse<CatalogPackagePreview>(preview));
         }
         catch (InvalidDataException error)
@@ -122,11 +146,22 @@ public static class CatalogPackageEndpoints
                     : Results.Conflict(new { Message = "Das Paket wurde geändert. Bestehende Fragen und Lernstände bleiben erhalten. Kontrollierte Paketupdates sind noch nicht verfügbar." });
             }
 
+            var comparison = await CatalogPackageComparison.Compare(package, db, owner, ct);
+            if (comparison.Conflicts.Count > 0)
+            {
+                return Results.Conflict(new { Message = "Bekannte Quellfragen wurden geändert oder bereits bearbeitet. Kein Überschreiben und keine Duplikate; bitte Auswahl oder Quell-IDs prüfen." });
+            }
+
+            if (comparison.Identical.Count == package.Questions.Count)
+            {
+                return Results.Ok(new ApiResponse<object>(new { CatalogId = (Guid?)null, AlreadyImported = true }));
+            }
+
             var stored = await db.CatalogPackageImports.Where(item => item.OwnerAccountId == owner)
                 .Select(item => item.Archive.Length).ToListAsync(ct);
             var media = await db.MediaAssets.Where(item => item.OwnerAccountId == owner && item.DeletedAtUtc == null)
                 .Select(item => item.ByteLength).ToListAsync(ct);
-            var addedImages = package.Questions.SelectMany(question => question.GetProperty("media").EnumerateArray())
+            var addedImages = package.Questions.Where(question => !comparison.Identical.ContainsKey(question.GetProperty("id").GetString()!)).SelectMany(question => question.GetProperty("media").EnumerateArray())
                 .Select(asset => images[asset.GetProperty("path").GetString()!].LongLength).ToArray();
             if (stored.Count >= 20 || stored.Sum(size => (long)size) + package.Archive.Length > 100L * 1024 * 1024 ||
                 media.Count + addedImages.Length > 100 || media.Sum() + addedImages.Sum() > 100L * 1024 * 1024)
@@ -144,7 +179,7 @@ public static class CatalogPackageEndpoints
 
             var catalog = new PrivateCatalog { OwnerAccountId = owner, Name = name };
             db.PrivateCatalogs.Add(catalog);
-            var ids = CatalogPackageImporter.AddQuestions(db, package, images, owner, catalog);
+            var ids = CatalogPackageImporter.AddQuestions(db, package, images, owner, catalog, comparison.Identical);
             db.CatalogPackageImports.Add(new CatalogPackageImport
             {
                 OwnerAccountId = owner,
