@@ -185,21 +185,23 @@ public sealed class IdentityFlowTests
                 expectedResult5,
                 actualResult6);
 
-            // Ordinary reads and credential rotation cannot promote an old session.
-            Assert.Equal(HttpStatusCode.Forbidden, (await first.PostAsync("/api/v1/auth/recovery/rotate", null)).StatusCode);
-            Assert.Equal(HttpStatusCode.Forbidden, (await first.PostAsJsonAsync("/api/v1/auth/email/link/start", new EmailStartRequest("fresh@example.org"))).StatusCode);
-            Assert.Equal(HttpStatusCode.Forbidden, (await first.PostAsJsonAsync("/api/v1/auth/email/link/complete", new EmailCompleteRequest("fresh@example.org", "000000"))).StatusCode);
+            // Isolate freshness checks from the separate rate-limit regression below.
+            using var freshnessFactory = factory.WithWebHostBuilder(_ => { });
+            using var stale = ClientFor(freshnessFactory, created.Session.Token);
+            Assert.Equal(HttpStatusCode.Forbidden, (await stale.PostAsync("/api/v1/auth/recovery/rotate", null)).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await stale.PostAsJsonAsync("/api/v1/auth/email/link/start", new EmailStartRequest("fresh@example.org"))).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await stale.PostAsJsonAsync("/api/v1/auth/email/link/complete", new EmailCompleteRequest("fresh@example.org", "000000"))).StatusCode);
             foreach (var path in new[] { "/oidc/link/start", "/oidc/apple/link/start", "/github/link/start", "/facebook/link/start" })
             {
-                Assert.Equal(HttpStatusCode.Forbidden, (await first.GetAsync("/api/v1/auth" + path)).StatusCode);
+                Assert.Equal(HttpStatusCode.Forbidden, (await stale.GetAsync("/api/v1/auth" + path)).StatusCode);
             }
 
-            Assert.Equal(HttpStatusCode.Forbidden, (await first.DeleteAsync("/api/v1/auth/providers/apple/link")).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await stale.DeleteAsync("/api/v1/auth/providers/apple/link")).StatusCode);
             await using (var db = new LearnPipDbContext(options))
             {
                 Assert.Empty(await db.EmailLoginCodes.ToListAsync());
                 Assert.Single(await db.Questions.Where(question => question.OwnerAccountId == created.AccountId).ToListAsync());
-                using var scope = factory.Services.CreateScope();
+                using var scope = freshnessFactory.Services.CreateScope();
                 var callback = new DefaultHttpContext { RequestServices = scope.ServiceProvider };
                 var properties = new AuthenticationProperties();
                 properties.Items[OidcSetup.LinkSessionKey] = (await db.AccountSessions.SingleAsync()).Id.ToString();
