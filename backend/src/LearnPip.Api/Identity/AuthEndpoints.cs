@@ -96,12 +96,12 @@ public static class AuthEndpoints
         secured.MapPost(
             "/email/link/start",
             StartEmailLink)
-            .RequireRateLimiting("auth")
+            .RequireAuthorization(ApiPolicies.FreshIdentity).RequireRateLimiting("auth")
             .Produces(StatusCodes.Status202Accepted);
         secured.MapPost(
             "/email/link/complete",
             CompleteEmailLink)
-            .RequireRateLimiting("auth")
+            .RequireAuthorization(ApiPolicies.FreshIdentity).RequireRateLimiting("auth")
             .Produces(StatusCodes.Status204NoContent);
         secured.MapGet("/facebook/link/start", (IConfiguration configuration, ClaimsPrincipal principal) =>
         {
@@ -118,7 +118,7 @@ public static class AuthEndpoints
             var properties = new AuthenticationProperties { RedirectUri = "/" };
             properties.Items[OidcSetup.LinkSessionKey] = sessionId.ToString();
             return Results.Challenge(properties, [FacebookOAuthSetup.Scheme]);
-        }).RequireRateLimiting("auth");
+        }).RequireAuthorization(ApiPolicies.FreshIdentity).RequireRateLimiting("auth");
         secured.MapGet("/github/link/start", (IConfiguration configuration, ClaimsPrincipal principal) =>
         {
             if (!GithubOAuthSetup.IsEnabled(configuration))
@@ -134,15 +134,15 @@ public static class AuthEndpoints
             var properties = new AuthenticationProperties { RedirectUri = "/" };
             properties.Items[OidcSetup.LinkSessionKey] = sessionId.ToString();
             return Results.Challenge(properties, [GithubOAuthSetup.Scheme]);
-        }).RequireRateLimiting("auth");
+        }).RequireAuthorization(ApiPolicies.FreshIdentity).RequireRateLimiting("auth");
         secured.MapGet("/oidc/{provider}/link/start", StartNamedOidcLink)
-            .RequireRateLimiting("auth");
+            .RequireAuthorization(ApiPolicies.FreshIdentity).RequireRateLimiting("auth");
         secured.MapDelete("/providers/{provider}/link", UnlinkProvider)
-            .RequireRateLimiting("auth");
+            .RequireAuthorization(ApiPolicies.FreshIdentity).RequireRateLimiting("auth");
         secured.MapGet(
             "/oidc/link/start",
             StartOidcLink)
-            .RequireRateLimiting("auth")
+            .RequireAuthorization(ApiPolicies.FreshIdentity).RequireRateLimiting("auth")
             .Produces(StatusCodes.Status302Found);
         return app;
     }

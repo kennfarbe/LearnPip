@@ -30,6 +30,10 @@ public static class ApiAuthorization
                     policy =>
                 policy.RequireAuthenticatedUser().AddRequirements(new ActiveAccountRequirement()));
             options.AddPolicy(
+                    ApiPolicies.FreshIdentity,
+                    policy =>
+                policy.RequireAuthenticatedUser().AddRequirements(new ActiveAccountRequirement()).AddRequirements(new FreshIdentitySessionRequirement()));
+            options.AddPolicy(
                     ApiPolicies.QuestionRead,
                     policy =>
                 policy.RequireAuthenticatedUser().AddRequirements(new QuestionReadRequirement()));

@@ -21,6 +21,9 @@ public static class ApiPolicies
     /// </summary>
     public const string ActiveAccount = nameof(ActiveAccount);
 
+    /// <summary>Den Richtliniennamen für kürzlich bestätigte Identitätsänderungen.</summary>
+    public const string FreshIdentity = nameof(FreshIdentity);
+
     /// <summary>
     /// Den Richtliniennamen zum Lesen von Fragen.
     /// </summary>
