@@ -5,7 +5,7 @@ Status: **Entwurf 0.1.0, noch kein freigegebenes stabiles Format**. Dieses Dokum
 ## Trennung und Versionierung
 
 - format_id ist derzeit org.learnpip.catalog.zip; andere Containerformate erhalten eine neue Kennung.
-- schema_version (SemVer) versioniert ausschließlich die Syntax und Semantik des Austauschformats. Die unveränderlich zu archivierenden Schemas liegen unter schemas/catalog/0.1.0/ (später je stabiler Version getrennt)..
+- schema_version (SemVer) versioniert ausschließlich die Syntax und Semantik des Austauschformats. Die unveränderlich zu archivierenden Schemas liegen unter schemas/catalog/0.1.0/ (später je stabiler Version getrennt).
 - catalog_version bezeichnet unabhängig davon eine Inhaltsfassung, source_revision den nachgewiesenen Quellenstand, exporter_app_version ist nur informativ. Ein LearnPip-Update darf keine künstliche Katalogversion erzeugen.
 - package_id ist ein dauerhaft stabiler Namespace für das Katalogprodukt; Fragen tragen innerhalb und außerhalb des Archivs unveränderliche, global qualifizierte IDs. Inhaltliche Änderungen erzeugen eine neue catalog_version, keine neuen IDs derselben Fragen.
 - Alte **stabile** Reader bleiben unterstützt; unbekannte Versionen werden vor Mutation abgewiesen, nicht als alte interpretiert. Erweiterungen und Migrationen müssen Originaldateien, Quellen, Rechte, IDs, Lösungen und Medien erhalten. Es gibt keine implizite Abwärtskonvertierung oder stillen Datenverlust. Vor einer zukünftigen stabilen Veröffentlichung sind Golden-File-, Roundtrip- und Migrations-Tests verpflichtend.
@@ -47,6 +47,23 @@ Der Reader extrahiert keine Archive auf das Dateisystem und führt keine Paketin
 Unter `tests/fixtures/catalog/0.1.0/frozen.json` liegt ein eigenständiges synthetisches Beispiel des Entwurfsstands 0.1.0. Der Vertragstest erzeugt daraus lokal ein ZIP, prüft den alten Stand mit dem aktuellen Reader und führt einen erneuten Schreib-/Lesevorgang einschließlich der Lösungen und Nachweistexte durch. Die Datei darf bei Formatänderungen nicht stillschweigend angepasst werden; zukünftige Formatstände erhalten eigene Beispiele. Dieser Test ist ein erster Kompatibilitätsschutz, aber noch kein vollständiger stabiler Golden-Archivbestand mit Medien und Migrationen nach #118.
 
 Unter `tests/fixtures/catalog/0.1.0/provenance.json` liegt ein zweites eigenständiges synthetisches Beispiel mit einer bearbeiteten Frage, eigener Quellenrevision und einer gesondert lizenzierten Mediendatei. Der Vertragstest prüft, ob Lizenz- und Herkunftsangaben der Frage und des Mediums getrennt bleiben, die Medienbytes erhalten bleiben und die ursprüngliche Datei nicht verändert wird. Die Beispieldaten und die verlinkten Adressen sind ausschließlich synthetisch; sie belegen keine Rechte an realen Fremdinhalten. Vollständige stabile Golden-Archive und Migrationstests bleiben offen.
+
+### Fest gespeichertes ZIP-Testpaket
+
+`tests/fixtures/catalog/0.1.0/golden.zip` ist ein dauerhaft eingechecktes Archiv mit einem synthetischen PNG-Bild, Umlauten, getrennten Frage-/Bildlizenzen, Herkunftsnachweisen und einer informativen älteren Exporterkennung. Anders als die JSON-Beispiele wird dieses Archiv im Test nicht neu erzeugt. Der aktuelle Reader muss dessen tatsächliche Bytes weiterhin akzeptieren. Vollständiger und selektiver Export werden erneut gelesen; Fragen, richtige Antworten, Bildbytes, Nachweise und Versionsangaben müssen erhalten bleiben. Nur die Byte-Länge und Prüfsumme einer neu serialisierten JSON-Datei dürfen sich ändern. Optionale Dateiangaben wie `media_type` bleiben erhalten.
+
+`contract-lock.json` hält SHA-256-Werte dieses Archivs, beider JSON-Beispiele und der beiden archivierten Schemas fest. Der bestehende verpflichtende CI-Katalogtest prüft diese Werte sowie die Vollständigkeit des Bestands. Änderungen am Format erhalten einen neuen Versionsordner und eigene Testpakete; vorhandene Archive und Schemas werden nicht zur Anpassung an einen neuen Reader umgeschrieben. Die Sperrdatei ist ein Regressionsschutz, keine Herausgebersignatur.
+
+Unbekannte Schema-Versionen melden sowohl die empfangene als auch die unterstützte Version. Nicht standardkonforme JSON-Zahlen (`NaN`, `Infinity`, `-Infinity`) werden abgewiesen. Ein fehlerhafter Export ersetzt keine bereits vorhandene Zieldatei und hinterlässt keine temporären ZIP-Dateien.
+
+Lokale Prüfung:
+
+```bash
+python3 -m unittest discover -s tests/ops -p 'test_catalog_contract.py' -v
+python3 scripts/validate-catalog.py tests/fixtures/catalog/0.1.0/golden.zip
+```
+
+Dieser Bestand sichert weiterhin den **Entwurf 0.1.0**. Vor einem stabilen 1.0.0 fehlen insbesondere vollständige Schema-Prüfung, produktiver Datenbankimport und Instanztests. Eine Migration zwischen stabilen Major-Versionen wird erst mit einem tatsächlich freigegebenen Nachfolgeformat implementiert und geprüft; eine bloße Änderung der Versionsnummer wäre kein Migrationsnachweis. #118 bleibt bis zur vollständigen Abnahme offen.
 
 ## Unbekannte Felder im Entwurf
 
