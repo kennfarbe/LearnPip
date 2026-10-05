@@ -5,7 +5,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text.Encodings.Web;
+using System.Text.Json;
 using LearnPip.Api;
 using LearnPip.Api.Questions;
 using LearnPip.Api.Security;
@@ -641,6 +643,7 @@ public sealed class ApiV1Tests
             Assert.Equal(
                 HttpStatusCode.NotFound,
                 (await ownerClient.GetAsync($"/api/v1/media/{mediaId}")).StatusCode);
+            await VerifyOfflinePackageImport(factory, options);
         }
         finally
         {
@@ -657,6 +660,111 @@ public sealed class ApiV1Tests
             await using var drop = new NpgsqlCommand($"DROP DATABASE IF EXISTS \"{databaseName}\"", admin);
             await drop.ExecuteNonQueryAsync();
         }
+    }
+
+    private static async Task VerifyOfflinePackageImport(
+        WebApplicationFactory<Program> factory,
+        DbContextOptions<LearnPipDbContext> options)
+    {
+        var owner = Guid.NewGuid();
+        var stranger = Guid.NewGuid();
+        await using (var db = new LearnPipDbContext(options))
+        {
+            db.Accounts.AddRange(new Account { Id = owner }, new Account { Id = stranger });
+            await db.SaveChangesAsync();
+        }
+
+        using var client = ClientFor(factory, owner);
+        using var other = ClientFor(factory, stranger);
+        using var anonymous = factory.CreateClient();
+        var original = CatalogPackageReaderTests.Golden();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await PostPackage(anonymous, "preview", original)).StatusCode);
+        using var previewResponse = await PostPackage(client, "preview", original);
+        Assert.Equal(HttpStatusCode.OK, previewResponse.StatusCode);
+        var preview = (await previewResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data");
+        Assert.Equal("new", preview.GetProperty("state").GetString());
+        var hash = preview.GetProperty("archiveSha256").GetString()!;
+        Assert.Equal(HttpStatusCode.BadRequest, (await PostPackage(client, "import", original, hash, false)).StatusCode);
+        await using (var db = new LearnPipDbContext(options))
+        {
+            Assert.False(await db.CatalogPackageImports.AnyAsync(item => item.OwnerAccountId == owner));
+            Assert.False(await db.Questions.AnyAsync(item => item.OwnerAccountId == owner));
+        }
+
+        var requests = await Task.WhenAll(PostPackage(client, "import", original, hash), PostPackage(client, "import", original, hash));
+        Assert.Contains(requests, response => response.StatusCode == HttpStatusCode.Created);
+        Assert.Contains(requests, response => response.StatusCode == HttpStatusCode.OK);
+        foreach (var response in requests)
+        {
+            response.Dispose();
+        }
+
+        Guid installId;
+        Guid questionId;
+        Guid catalogId;
+        await using (var db = new LearnPipDbContext(options))
+        {
+            var install = await db.CatalogPackageImports.SingleAsync(item => item.OwnerAccountId == owner);
+            installId = install.Id;
+            catalogId = install.PrivateCatalogId!.Value;
+            Assert.Equal(original, install.Archive);
+            var mappings = JsonSerializer.Deserialize<Dictionary<string, Guid>>(install.QuestionIdsJson)!;
+            questionId = Assert.Single(mappings).Value;
+            var question = await db.Questions.Include(item => item.Versions).SingleAsync(item => item.Id == questionId);
+            var version = Assert.Single(question.Versions);
+            Assert.Equal("private", version.Visibility);
+            Assert.Equal(2, await db.AnswerOptions.CountAsync(item => item.QuestionVersionId == version.Id));
+            Assert.Single(await db.MediaAssets.Where(item => item.QuestionVersionId == version.Id).ToListAsync());
+            db.QuestionDrafts.Add(new QuestionDraft { QuestionId = questionId, PayloadJson = "{}" });
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/v1/catalog-packages/{installId}/original")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/v1/questions/{questionId}")).StatusCode);
+        var download = await client.GetAsync($"/api/v1/catalog-packages/{installId}/original");
+        Assert.Equal(original, await download.Content.ReadAsByteArrayAsync());
+        Assert.Equal("private, no-store", download.Headers.CacheControl!.ToString());
+        var repacked = CatalogPackageReaderTests.Rewrite(null, null);
+        var repackedHash = Convert.ToHexStringLower(SHA256.HashData(repacked));
+        Assert.Equal(HttpStatusCode.OK, (await PostPackage(client, "import", repacked, repackedHash)).StatusCode);
+        var changed = CatalogPackageReaderTests.Rewrite(null, "Geänderte synthetische Frage");
+        Assert.Equal(HttpStatusCode.BadRequest, (await PostPackage(client, "import", changed, hash)).StatusCode);
+        using var conflictPreview = await PostPackage(client, "preview", changed);
+        Assert.Equal("conflict", (await conflictPreview.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data").GetProperty("state").GetString());
+        Assert.Equal(HttpStatusCode.Conflict, (await PostPackage(client, "import", changed, Convert.ToHexStringLower(SHA256.HashData(changed)))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await PostPackage(client, "preview", CatalogPackageReaderTests.Rewrite("checksum", null))).StatusCode);
+        await using (var db = new LearnPipDbContext(options))
+        {
+            Assert.Equal(1, await db.Questions.CountAsync(item => item.OwnerAccountId == owner));
+            Assert.True(await db.QuestionDrafts.AnyAsync(item => item.QuestionId == questionId));
+            db.PrivateCatalogs.Remove(await db.PrivateCatalogs.SingleAsync(item => item.Id == catalogId));
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Equal(HttpStatusCode.OK, (await PostPackage(client, "import", original, hash)).StatusCode);
+        await using (var db = new LearnPipDbContext(options))
+        {
+            Assert.Null((await db.CatalogPackageImports.SingleAsync(item => item.Id == installId)).PrivateCatalogId);
+            Assert.Equal(1, await db.Questions.CountAsync(item => item.OwnerAccountId == owner));
+        }
+    }
+
+    private static async Task<HttpResponseMessage> PostPackage(
+        HttpClient client,
+        string operation,
+        byte[] bytes,
+        string? hash = null,
+        bool confirmed = true)
+    {
+        using var form = new MultipartFormDataContent();
+        form.Add(new ByteArrayContent(bytes), "file", "synthetic.zip");
+        if (hash != null)
+        {
+            form.Add(new StringContent(hash), "archiveSha256");
+            form.Add(new StringContent(confirmed ? "true" : "false"), "rightsConfirmed");
+        }
+
+        return await client.PostAsync("/api/v1/catalog-packages/" + operation, form);
     }
 
     private static HttpClient ClientFor(
