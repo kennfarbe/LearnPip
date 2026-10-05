@@ -49,6 +49,9 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
     /// <summary>Holt die Datenmenge AccountRoles.</summary>
     public DbSet<AccountRole> AccountRoles => this.Set<AccountRole>();
 
+    /// <summary>Holt die Originalpakete privater Katalogimporte.</summary>
+    public DbSet<CatalogPackageImport> CatalogPackageImports => this.Set<CatalogPackageImport>();
+
     /// <summary>Holt die Datenmenge PrivateCatalogs.</summary>
     public DbSet<PrivateCatalog> PrivateCatalogs => this.Set<PrivateCatalog>();
 
@@ -354,6 +357,20 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
             entity.HasOne(x => x.Account).WithMany().HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.RoleDefinition).WithMany(x => x.AccountRoles)
                 .HasForeignKey(x => x.RoleDefinitionId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CatalogPackageImport>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.PackageId).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.CatalogVersion).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.Fingerprint).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.QuestionIdsJson).HasColumnType("jsonb").IsRequired();
+            entity.HasIndex(x => new { x.OwnerAccountId, x.PackageId }).IsUnique();
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.OwnerAccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<PrivateCatalog>().WithMany().HasForeignKey(x => x.PrivateCatalogId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<PrivateCatalog>(entity =>

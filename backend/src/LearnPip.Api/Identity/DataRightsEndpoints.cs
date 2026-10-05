@@ -54,6 +54,10 @@ public static class DataRightsEndpoints
         var catalogs = await db.PrivateCatalogs.AsNoTracking()
             .Where(item => item.OwnerAccountId == id)
             .Select(item => new { item.Id, item.Name, item.CreatedAtUtc }).ToListAsync(ct);
+        var catalogPackages = await db.CatalogPackageImports.AsNoTracking()
+            .Where(item => item.OwnerAccountId == id)
+            .Select(item => new { item.Id, item.PackageId, item.CatalogVersion, item.PrivateCatalogId, item.ImportedAtUtc })
+            .ToListAsync(ct);
         var questions = await db.Questions.AsNoTracking()
             .Where(item => item.OwnerAccountId == id)
             .Select(item => new { item.Id, item.PrivateCatalogId, item.CreatedAtUtc, item.DeletedAtUtc }).ToListAsync(ct);
@@ -92,8 +96,8 @@ public static class DataRightsEndpoints
         context.Response.Headers.CacheControl = "private, no-store";
         context.Response.Headers.ContentDisposition = "attachment; filename=learnpip-export.json";
         var notice = "Media bytes can be downloaded individually via /api/v1/media/{id}/content. " +
-            "Copies published under open licenses by others cannot be recalled.";
-        return Results.Json(new { generatedAtUtc = DateTimeOffset.UtcNow, account, identities, catalogs, questions, drafts, versions, answers, sessions, attempts, selections, media, groups, notice });
+            "Original catalog ZIPs can be downloaded individually via /api/v1/catalog-packages/{id}/original. Copies published under open licenses by others cannot be recalled.";
+        return Results.Json(new { generatedAtUtc = DateTimeOffset.UtcNow, account, identities, catalogs, catalogPackages, questions, drafts, versions, answers, sessions, attempts, selections, media, groups, notice });
     }
 
     private static async Task<IResult> Delete(
