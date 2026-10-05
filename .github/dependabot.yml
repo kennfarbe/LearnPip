@@ -5,15 +5,44 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+      include: scope
 
   - package-ecosystem: nuget
     directory: /backend
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      skia:
+        patterns:
+          - "SkiaSharp*"
+      skia-security:
+        applies-to: security-updates
+        patterns:
+          - "SkiaSharp*"
 
   - package-ecosystem: npm
     directory: /frontend/web
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      angular:
+        patterns:
+          - "@angular/*"
+      angular-security:
+        applies-to: security-updates
+        patterns:
+          - "@angular/*"
+    # Angular 22.2 requires TypeScript >=6.0 <6.1. Review before removing.
+    ignore:
+      - dependency-name: typescript
+        versions: [">=6.1"]

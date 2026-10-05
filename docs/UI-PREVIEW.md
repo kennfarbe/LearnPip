@@ -45,7 +45,7 @@ npm run docs:screenshots
 npm run docs:screenshots:check
 ```
 
-Alle vier Bilder und `docs/screenshots/manifest.json` zusammen einchecken und
+Alle fünf Bilder und `docs/screenshots/manifest.json` zusammen einchecken und
 visuell prüfen. Bei geänderten Bildinhalten auch die Alternativtexte aktualisieren.
 Die CI prüft die Fingerabdrücke der UI-Quellen und Bilddateien und schlägt bei
 veralteten Aufnahmen fehl. Sie ersetzt keine visuelle Prüfung der Bilder.

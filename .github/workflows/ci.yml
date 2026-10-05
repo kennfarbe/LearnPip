@@ -66,6 +66,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Test Dependabot screenshot publication boundaries
+        run: python3 -m unittest discover -s tests/ops -p 'test_dependabot_screenshots.py' -v
+
       - name: Test offline catalog interchange contract
         run: python3 -m unittest discover -s tests/ops -p 'test_catalog_contract.py' -v
 
@@ -367,7 +370,6 @@ jobs:
         working-directory: frontend/web
         run: |
           npm test --if-present
-          npm run docs:screenshots:check
           npm run format:check
           npm run lint
           npm run test:pwa
@@ -386,6 +388,57 @@ jobs:
         if: hashFiles('frontend/web/package-lock.json') != ''
         working-directory: frontend/web
         run: npm run test:ui
+
+      - name: Detect Dependabot screenshot refresh
+        id: screenshot-refresh
+        if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          python3 - <<'PYTHON'
+          import importlib.util
+          import os
+          import subprocess
+          spec = importlib.util.spec_from_file_location('screenshots', 'scripts/dependabot-screenshots.py')
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          paths = subprocess.check_output(
+              ['git', 'diff', '--name-only', '-z', f"{os.environ['BASE_SHA']}...{os.environ['PR_HEAD_SHA']}"],
+          ).decode().strip('\0').split('\0')
+          files = [{'filename': path, 'status': 'modified'} for path in paths]
+          eligible = module.eligible_files(files)
+          current = subprocess.run(['node', 'frontend/web/tools/docs-screenshots.cjs'], capture_output=True).returncode == 0
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f"refresh={'true' if eligible and not current else 'false'}\n")
+          PYTHON
+
+      - name: Generate documentation screenshots for dependency updates
+        if: steps.screenshot-refresh.outputs.refresh == 'true'
+        working-directory: frontend/web
+        run: npm run docs:screenshots
+
+      - name: Retain generated dependency screenshots
+        if: steps.screenshot-refresh.outputs.refresh == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: dependabot-screenshots
+          path: |
+            docs/screenshots/overview.png
+            docs/screenshots/question-editor.png
+            docs/screenshots/catalogs.png
+            docs/screenshots/learning-mobile-dark.png
+            docs/screenshots/admin-password.png
+            docs/screenshots/manifest.json
+          if-no-files-found: error
+          retention-days: 3
+          overwrite: true
+
+      - name: Require committed and current documentation screenshots
+        working-directory: frontend/web
+        run: |
+          npm run docs:screenshots:check
+          git diff --exit-code -- ../../docs/screenshots
 
   installer-smoke:
     needs: [changes]
