@@ -21,8 +21,9 @@ public static class CatalogPackageWriter
     /// <param name="media">Nur tatsächlich referenzierte Originalmedien.</param>
     /// <param name="notices">Die vollständigen Lizenz-, Quellen- und Attributionsnachweise.</param>
     /// <param name="createdAt">Der feste Inhaltsstand für reproduzierbare Downloads.</param>
+    /// <param name="mediaTypes">Optionale originale MIME-Angaben der referenzierten Medien.</param>
     /// <returns>Ein vollständig validiertes, importierbares Paket.</returns>
-    public static CatalogPackage Write(string title, string publisher, IReadOnlyList<JsonObject> questions, IReadOnlyDictionary<string, byte[]> media, IReadOnlyDictionary<string, string> notices, DateTimeOffset createdAt)
+    public static CatalogPackage Write(string title, string publisher, IReadOnlyList<JsonObject> questions, IReadOnlyDictionary<string, byte[]> media, IReadOnlyDictionary<string, string> notices, DateTimeOffset createdAt, IReadOnlyDictionary<string, string>? mediaTypes = null)
     {
         var ordered = questions.OrderBy(question => question["id"]!.GetValue<string>(), StringComparer.Ordinal).ToArray();
         var ids = string.Join("\n", ordered.Select(question => question["id"]!.GetValue<string>()));
@@ -45,7 +46,7 @@ public static class CatalogPackageWriter
             throw new InvalidDataException("Die Auswahl überschreitet die Paketgrenzen. Bitte weniger Fragen auswählen.");
         }
 
-        var contentHash = Hash(files["questions.json"]);
+        var contentHash = Hash(JsonSerializer.SerializeToUtf8Bytes(files.Select(file => new { Path = file.Key, Sha256 = Hash(file.Value) })));
         var manifest = new JsonObject
         {
             ["format_id"] = "org.learnpip.catalog.zip",
@@ -64,11 +65,20 @@ public static class CatalogPackageWriter
                 ["holder"] = publisher,
                 ["attribution"] = "Die Einzellizenzen der Fragen und Medien sind maßgeblich; siehe LICENSES.md, NOTICE und ATTRIBUTION.",
             },
-            ["files"] = new JsonArray(files.Select(file => (JsonNode)new JsonObject
+            ["files"] = new JsonArray(files.Select(file =>
             {
-                ["path"] = file.Key,
-                ["size"] = file.Value.Length,
-                ["sha256"] = Hash(file.Value),
+                var record = new JsonObject
+                {
+                    ["path"] = file.Key,
+                    ["size"] = file.Value.Length,
+                    ["sha256"] = Hash(file.Value),
+                };
+                if (mediaTypes != null && mediaTypes.TryGetValue(file.Key, out var mediaType))
+                {
+                    record["media_type"] = mediaType;
+                }
+
+                return (JsonNode)record;
             }).ToArray()),
         };
         using var buffer = new MemoryStream();

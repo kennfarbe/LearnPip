@@ -125,6 +125,7 @@ public static class CatalogExportEndpoints
 
             var originals = new Dictionary<Guid, CatalogPackage>();
             var media = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+            var mediaTypes = new Dictionary<string, string>(StringComparer.Ordinal);
             var questions = new List<JsonObject>();
             var notices = NoticeNames.ToDictionary(name => name, _ => new List<string>(), StringComparer.Ordinal);
             notices["LICENSES.md"].Add("# Lizenznachweise\n\nKeine Softwarelizenz für Frageinhalte. Einzellizenzen sind maßgeblich.\n\n" + input.LicenseNotice);
@@ -151,11 +152,11 @@ public static class CatalogExportEndpoints
                         }
                     }
 
-                    questions.Add(Original(package, origin.SourceId, media));
+                    questions.Add(Original(package, origin.SourceId, media, mediaTypes));
                 }
                 else
                 {
-                    questions.Add(await Native(question, input, db, owner, media, ct));
+                    questions.Add(await Native(question, input, db, owner, media, mediaTypes, ct));
                 }
             }
 
@@ -176,7 +177,8 @@ public static class CatalogExportEndpoints
                 questions,
                 media,
                 notices.ToDictionary(item => item.Key, item => string.Join("\n\n", item.Value.Distinct(StringComparer.Ordinal)), StringComparer.Ordinal),
-                selected.Max(question => question.Draft?.UpdatedAtUtc ?? question.UpdatedAtUtc));
+                selected.Max(question => question.Draft?.UpdatedAtUtc ?? question.UpdatedAtUtc),
+                mediaTypes);
             var hash = Convert.ToHexStringLower(SHA256.HashData(exported.Archive));
             if (download)
             {
@@ -207,7 +209,7 @@ public static class CatalogExportEndpoints
         }
     }
 
-    private static async Task<JsonObject> Native(Question question, CatalogExportRequest input, LearnPipDbContext db, Guid owner, Dictionary<string, byte[]> media, CancellationToken ct)
+    private static async Task<JsonObject> Native(Question question, CatalogExportRequest input, LearnPipDbContext db, Guid owner, Dictionary<string, byte[]> media, Dictionary<string, string> mediaTypes, CancellationToken ct)
     {
         QuestionPublishRequest content;
         if (question.Draft != null)
@@ -265,6 +267,7 @@ public static class CatalogExportEndpoints
                 ?? throw new InvalidDataException("Die Bilddatei fehlt. Kein Teilexport.");
             var path = MediaPath(bytes, "-" + image.Id.ToString("N") + (image.MediaType == "image/png" ? ".png" : ".jpg"));
             media.TryAdd(path, bytes);
+            mediaTypes[path] = image.MediaType;
             paths.Add(image.Id, path);
             if (assets.Any(asset => asset!["path"]!.GetValue<string>() == path))
             {
@@ -318,12 +321,15 @@ public static class CatalogExportEndpoints
         };
     }
 
-    private static JsonObject Original(CatalogPackage package, string id, Dictionary<string, byte[]> media)
+    private static JsonObject Original(CatalogPackage package, string id, Dictionary<string, byte[]> media, Dictionary<string, string> mediaTypes)
     {
         var original = package.Questions.Single(question => question.GetProperty("id").GetString() == id);
         var result = JsonNode.Parse(original.GetRawText())!.AsObject();
         if (!result.ContainsKey("prompt_blocks"))
         {
+            var origin = JsonNode.Parse(package.Manifest.GetRawText())!.AsObject();
+            origin.Remove("files");
+            result["origin"] = origin;
             result["subject"] = string.Concat(original.GetProperty("topics")[0].GetString()!.EnumerateRunes().Take(120));
             result["topic"] = result["subject"]!.DeepClone();
             result["question_version"] = package.Manifest.GetProperty("catalog_version").GetString();
@@ -346,8 +352,16 @@ public static class CatalogExportEndpoints
         {
             var path = asset!["path"]!.GetValue<string>();
             var bytes = package.Files[path];
-            var target = MediaPath(bytes, "-" + Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(path)))[..16] + Path.GetExtension(path).ToLowerInvariant());
+            var record = package.Manifest.GetProperty("files").EnumerateArray().Single(file => file.GetProperty("path").GetString() == path);
+            var hasType = record.TryGetProperty("media_type", out var type);
+            var salt = path + (hasType ? "\n" + type.GetString() : string.Empty);
+            var target = MediaPath(bytes, "-" + Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(salt)))[..16] + Path.GetExtension(path).ToLowerInvariant());
             media.TryAdd(target, bytes);
+            if (hasType)
+            {
+                mediaTypes[target] = type.GetString()!;
+            }
+
             rename.Add(path, target);
             asset["path"] = target;
         }

@@ -95,10 +95,30 @@ public static partial class CatalogPackageReader
 
     private static void ValidateManifest(JsonElement manifest, Dictionary<string, byte[]> files)
     {
+        ManifestMetadata(manifest, false);
+        var paths = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var file in Array(manifest, "files", 4, 2000))
+        {
+            Fields(file, "path sha256 size media_type", "path sha256 size");
+            var path = Text(file, "path", 1, 256);
+            var hash = Text(file, "sha256", 64, 64);
+            Require(SafePath(path) && paths.Add(path) && files.ContainsKey(path), "Ungültige deklarierte Dateiliste.");
+            Require(
+                file.GetProperty("size").ValueKind == JsonValueKind.Number && file.GetProperty("size").TryGetInt64(out var size) && size == files[path].Length,
+                "Dateigröße stimmt nicht: " + path);
+            Require(HashPattern().IsMatch(hash) && Hash(files[path]) == hash, "Prüfsumme stimmt nicht: " + path);
+            OptionalText(file, "media_type", 0, 128);
+        }
+
+        Require(paths.SetEquals(files.Keys.Where(path => path != "manifest.json")), "Dateiliste stimmt nicht mit ZIP überein.");
+    }
+
+    private static void ManifestMetadata(JsonElement manifest, bool origin)
+    {
         Fields(
             manifest,
-            "format_id schema_version package_id catalog_version source_revision title description language publisher created_at exporter_app_version license files",
-            "format_id schema_version package_id catalog_version source_revision title description language publisher created_at license files");
+            "format_id schema_version package_id catalog_version source_revision title description language publisher created_at exporter_app_version license" + (origin ? string.Empty : " files"),
+            "format_id schema_version package_id catalog_version source_revision title description language publisher created_at license" + (origin ? string.Empty : " files"));
         Require(Text(manifest, "format_id", 1, 128) == "org.learnpip.catalog.zip", "Unbekanntes Paketformat.");
         var version = Text(manifest, "schema_version", 1, 128);
         Require(version is "0.1.0" or "0.2.0", $"Schema-Version {version} ist nicht unterstützt. Unterstützt: 0.1.0, 0.2.0. Kein Teilimport.");
@@ -119,21 +139,6 @@ public static partial class CatalogPackageReader
                 out _),
             "Erstellungsdatum benötigt ein gültiges Datum mit Zeitzone.");
         License(manifest.GetProperty("license"));
-        var paths = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var file in Array(manifest, "files", 4, 2000))
-        {
-            Fields(file, "path sha256 size media_type", "path sha256 size");
-            var path = Text(file, "path", 1, 256);
-            var hash = Text(file, "sha256", 64, 64);
-            Require(SafePath(path) && paths.Add(path) && files.ContainsKey(path), "Ungültige deklarierte Dateiliste.");
-            Require(
-                file.GetProperty("size").ValueKind == JsonValueKind.Number && file.GetProperty("size").TryGetInt64(out var size) && size == files[path].Length,
-                "Dateigröße stimmt nicht: " + path);
-            Require(HashPattern().IsMatch(hash) && Hash(files[path]) == hash, "Prüfsumme stimmt nicht: " + path);
-            OptionalText(file, "media_type", 0, 128);
-        }
-
-        Require(paths.SetEquals(files.Keys.Where(path => path != "manifest.json")), "Dateiliste stimmt nicht mit ZIP überein.");
     }
 
     private static void ValidateQuestion(
@@ -146,7 +151,7 @@ public static partial class CatalogPackageReader
     {
         Fields(
             question,
-            "id language prompt answers correct_answer_ids explanation topics difficulty age_band license provenance media" + (blocksFormat ? " subject topic question_version selection_mode prompt_blocks explanation_blocks source_note" : string.Empty),
+            "id language prompt answers correct_answer_ids explanation topics difficulty age_band license provenance media" + (blocksFormat ? " subject topic question_version selection_mode prompt_blocks explanation_blocks source_note origin" : string.Empty),
             "id language prompt answers correct_answer_ids explanation topics difficulty license provenance media" + (blocksFormat ? " subject topic question_version selection_mode prompt_blocks explanation_blocks" : string.Empty));
         var id = Text(question, "id", 3, 128);
         Require(QuestionIdPattern().IsMatch(id) && ids.Add(id), "Ungültige oder doppelte Fragekennung.");
@@ -199,6 +204,11 @@ public static partial class CatalogPackageReader
         Text(question, "topic", 1, 120);
         Text(question, "question_version", 1, 128);
         OptionalText(question, "source_note", 0, 500);
+        if (question.TryGetProperty("origin", out var origin))
+        {
+            ManifestMetadata(origin, true);
+        }
+
         var mode = Text(question, "selection_mode", 1, 16);
         Require((mode == "single" && correctCount == 1) || (mode == "multiple" && correctCount >= 2), "Auswahlmodus und Lösungen passen nicht zusammen.");
         var declared = question.GetProperty("media").EnumerateArray().Select(item => item.GetProperty("path").GetString()!).ToHashSet(StringComparer.Ordinal);

@@ -106,7 +106,6 @@ Tests prüfen den produktiven Reader am unveränderten Golden-ZIP, bildbezogene 
 
 Instanzweite Administrationspakete, Setup-Auswahl, kontrollierte Updates/Entfernung, vollständiger Fragenexport aus Konten, stabile Formatmigrationen und der Abnahmetest auf zwei frischen unabhängigen Installationen bleiben als weitere Abnahmeschritte in #108, #110, #115 und #118 offen.
 
-
 ## Lokaler Export eigener Fragen
 
 Unter **Fragen > Fragen auswählen und exportieren** die gespeicherten Inhalte
@@ -170,7 +169,7 @@ ZIP bis 25 MiB und weiterhin die bestehenden Bildgrenzen. Es gibt keinen
 verlustbehafteten Teilexport und keine automatische Herabstufung auf 0.1.0.
 Kontrollierte Änderungen an importierten Fragen, instanzweite Paketverwaltung,
 Community-Veröffentlichung und stabile Formatmigrationen sind weitere Schritte.
-#115, #116 und #118 bleiben bis zur vollständigen Abnahme offen.
+Die Issues #115, #116 und #118 bleiben bis zur vollständigen Abnahme offen.
 
 | API | Zweck |
 | --- | --- |
@@ -189,6 +188,7 @@ neue Entwurf 0.2.0 ergänzt die vollständigen Inhaltsblöcke des Fragenmodells:
 | `question_version` | Inhaltsrevision der einzelnen Frage, unabhängig von lokalen Datenbankversionen |
 | `selection_mode` | Einfach- oder Mehrfachauswahl mit passender Anzahl richtiger Antworten |
 | `source_note` | Optionaler freier Herkunftshinweis eigener Originale |
+| `origin` | Originalmanifest eines übernommenen 0.1.0-Pakets ohne dessen Dateiliste, einschließlich ursprünglicher Paket- und Quellenrevision |
 | `prompt_blocks`, `explanation_blocks` | Geordnete Text-/Bildblöcke; Bildpfade müssen vollständig ausgezeichnete Medien referenzieren |
 | `answers[].blocks` | Geordnete Antwortblöcke einschließlich Bildern |
 

@@ -310,6 +310,79 @@
           "source_note": {
             "type": "string",
             "maxLength": 500
+          },
+          "origin": {
+            "title": "LearnPip-Katalogmanifest (Entwurf 0.2.0)",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "format_id",
+              "schema_version",
+              "package_id",
+              "catalog_version",
+              "source_revision",
+              "title",
+              "description",
+              "language",
+              "publisher",
+              "created_at",
+              "license"
+            ],
+            "properties": {
+              "format_id": {
+                "const": "org.learnpip.catalog.zip"
+              },
+              "schema_version": {
+                "enum": [
+                  "0.1.0",
+                  "0.2.0"
+                ]
+              },
+              "package_id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"
+              },
+              "catalog_version": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "source_revision": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "exporter_app_version": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "description": {
+                "type": "string",
+                "maxLength": 2048
+              },
+              "language": {
+                "type": "string",
+                "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+              },
+              "publisher": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "license": {
+                "$ref": "#/$defs/license"
+              }
+            }
           }
         }
       }

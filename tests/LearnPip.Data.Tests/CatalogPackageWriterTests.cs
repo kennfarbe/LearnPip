@@ -27,10 +27,13 @@ public sealed class CatalogPackageWriterTests
         var question = JsonNode.Parse(Assert.Single(source.Questions).GetRawText())!.AsObject();
         var media = source.Files.Where(file => file.Key.StartsWith("media/", StringComparison.Ordinal)).ToDictionary(file => file.Key, file => file.Value, StringComparer.Ordinal);
         var notices = source.Files.Where(file => file.Key is "LICENSES.md" or "NOTICE" or "ATTRIBUTION").ToDictionary(file => file.Key, file => Encoding.UTF8.GetString(file.Value), StringComparer.Ordinal);
+        var mediaTypes = source.Manifest.GetProperty("files").EnumerateArray().Where(file => file.TryGetProperty("media_type", out _))
+            .ToDictionary(file => file.GetProperty("path").GetString()!, file => file.GetProperty("media_type").GetString()!, StringComparer.Ordinal);
         var date = new DateTimeOffset(2026, 10, 5, 0, 0, 0, TimeSpan.Zero);
-        var first = CatalogPackageWriter.Write("Synthetischer Export", "Testautor", [question], media, notices, date);
-        var second = CatalogPackageWriter.Write("Synthetischer Export", "Testautor", [question], media, notices, date);
+        var first = CatalogPackageWriter.Write("Synthetischer Export", "Testautor", [question], media, notices, date, mediaTypes);
+        var second = CatalogPackageWriter.Write("Synthetischer Export", "Testautor", [question], media, notices, date, mediaTypes);
         Assert.Equal(first.Archive, second.Archive);
+        Assert.Equal("image/png", first.Manifest.GetProperty("files").EnumerateArray().Single(file => file.GetProperty("path").GetString() == "media/diagram.png").GetProperty("media_type").GetString());
         Assert.Equal(question.ToJsonString(), JsonNode.Parse(Assert.Single(first.Questions).GetRawText())!.ToJsonString());
         Assert.Equal(source.Files["media/diagram.png"], first.Files["media/diagram.png"]);
         Assert.Equal("image", first.Questions[0].GetProperty("answers")[0].GetProperty("blocks")[0].GetProperty("kind").GetString());

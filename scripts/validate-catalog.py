@@ -186,7 +186,7 @@ def validate(filename: str) -> tuple[str, int]:
                 known_fields(question, {"id", "language", "prompt", "answers",
                                         "correct_answer_ids", "explanation", "topics",
                                         "difficulty", "age_band", "license", "provenance",
-                                        "media"} | ({"subject", "topic", "question_version", "selection_mode", "prompt_blocks", "explanation_blocks", "source_note"} if blocks_format else set()), "question")
+                                        "media"} | ({"subject", "topic", "question_version", "selection_mode", "prompt_blocks", "explanation_blocks", "source_note", "origin"} if blocks_format else set()), "question")
                 question_id = question.get("id")
                 require(isinstance(question_id, str) and
                         SAFE_ID.fullmatch(question_id) is not None, "Invalid question ID")
@@ -242,6 +242,17 @@ def validate(filename: str) -> tuple[str, int]:
 
 
 def check_blocks_question(question: dict) -> None:
+    if "origin" in question:
+        origin = question["origin"]
+        known_fields(origin, {"format_id", "schema_version", "package_id", "catalog_version",
+                              "source_revision", "title", "description", "language", "publisher",
+                              "created_at", "exporter_app_version", "license"}, "origin")
+        require(origin.get("format_id") == FORMAT_ID and origin.get("schema_version") in VERSIONS,
+                "Invalid original manifest metadata")
+        for field in ("package_id", "catalog_version", "source_revision", "title", "publisher",
+                      "description", "language", "created_at"):
+            require(isinstance(origin.get(field), str), "Missing origin metadata")
+        check_license(origin.get("license"))
     for field, limit in (("subject", 120), ("topic", 120), ("question_version", 128)):
         require(isinstance(question.get(field), str) and
                 1 <= len(question[field]) <= limit and question[field].strip(),

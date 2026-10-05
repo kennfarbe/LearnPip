@@ -309,4 +309,769 @@ public sealed class ApiV1Tests
                 Explanation = [new LocalizedBlock("text", "Green is correct.", null, null)],
                 Answers = [new LocalizedAnswer(
                 firstVersion.Answers[0].Id,
-             
+                [new LocalizedBlock("image", null, questionMedia, "Green symbol")]),
+                    new LocalizedAnswer(
+                firstVersion.Answers[1].Id,
+                [new LocalizedBlock("text", "Chlorophyll", null, null)]),
+                    new LocalizedAnswer(
+                firstVersion.Answers[2].Id,
+                [new LocalizedBlock("text", "Neither", null, null)])],
+            };
+            var translatedVersion = TranslationEndpoints.Apply(
+                firstVersion,
+                translated,
+                "en",
+                "Owner translation",
+                "CC-BY-4.0");
+            Assert.Equal(
+                firstVersion.Answers.Select(option => (option.Id, option.IsCorrect)),
+                translatedVersion.Answers.Select(option => (option.Id, option.IsCorrect)));
+            Assert.False(TranslationEndpoints.Valid(
+                    translated with
+                    {
+                        Answers = translated.Answers.Select((answer, index) => index == 0 ?
+                            answer with { OptionId = Guid.NewGuid() } : answer).ToArray(),
+                    },
+                    firstVersion));
+            Assert.Equal(
+                HttpStatusCode.NotFound,
+                (await strangerClient.GetAsync($"{translationsPath}/en")).StatusCode);
+            var translationDraft = await ownerClient.PostAsJsonAsync(
+                $"{translationsPath}/drafts",
+                new TranslationDraftInput("en", translated, "Owner translation", "CC-BY-4.0", "manual"));
+            Assert.Equal(HttpStatusCode.Created, translationDraft.StatusCode);
+            var translationId = (await translationDraft.Content.ReadFromJsonAsync<
+                ApiResponse<TranslationDraftCreated>>())!.Data.Id;
+            Assert.True((await ownerClient.GetFromJsonAsync<ApiResponse<TranslationView>>(
+                $"{translationsPath}/en"))!.Data.Missing);
+            Assert.Equal(
+                HttpStatusCode.OK,
+                (await ownerClient.PostAsync($"{translationsPath}/{translationId}/approve", null)).StatusCode);
+            var approved = (await ownerClient.GetFromJsonAsync<ApiResponse<TranslationView>>(
+                $"{translationsPath}/en"))!.Data;
+            Assert.False(approved.Missing);
+            Assert.Equal("Which statements are correct?", approved.Payload.Prompt[0].Text);
+            var expectedResult1 = HttpStatusCode.Created;
+            var actualResult2 = (await ownerClient.PostAsJsonAsync(
+                $"{translationsPath}/{translationId}/reports",
+                new TranslationReportInput("Check image caption"))).StatusCode;
+            Assert.Equal(
+                expectedResult1,
+                actualResult2);
+            var correction = await ownerClient.PostAsJsonAsync(
+                $"{translationsPath}/drafts",
+                new TranslationDraftInput(
+                    "en",
+                    translated with
+                    {
+                        Explanation = [new LocalizedBlock("text", "The green color is correct.", null, null)],
+                    },
+                    "Corrected by owner",
+                    "CC-BY-4.0",
+                    "manual"));
+            Assert.Equal(HttpStatusCode.Created, correction.StatusCode);
+            var actualResult3 = (await ownerClient.GetFromJsonAsync<ApiResponse<TranslationView>>(
+                $"{translationsPath}/en"))!.Data.Revision;
+            Assert.Equal(
+                1,
+                actualResult3);
+            Assert.Equal(
+                HttpStatusCode.Conflict,
+                (await ownerClient.DeleteAsync($"/api/v1/media/{questionMedia}")).StatusCode);
+            Assert.Equal(
+                HttpStatusCode.NotFound,
+                (await strangerClient.GetAsync($"/api/v1/questions/{createdQuestionId}/versions/1")).StatusCode);
+            var selected = firstVersion.Answers.Take(2).Select(answer => answer.Id).ToArray();
+            var grade = await ownerClient.PostAsJsonAsync(
+                $"/api/v1/questions/{createdQuestionId}/attempts",
+                new GradeRequest(firstVersion.Id, selected));
+            Assert.Equal(HttpStatusCode.OK, grade.StatusCode);
+            var firstGrade = (await grade.Content.ReadFromJsonAsync<ApiResponse<GradeResult>>())!.Data;
+            Assert.True(firstGrade.IsCorrect);
+            var partial = await ownerClient.PostAsJsonAsync(
+                $"/api/v1/questions/{createdQuestionId}/attempts",
+                new GradeRequest(firstVersion.Id, [selected[0]]));
+            Assert.False((await partial.Content.ReadFromJsonAsync<ApiResponse<GradeResult>>())!.Data.IsCorrect);
+            var changedDraft = draft with
+            {
+                Answers = [new AnswerInput(false, draft.Answers[0].Blocks),
+                    new AnswerInput(true, draft.Answers[1].Blocks),
+                    new AnswerInput(true, draft.Answers[2].Blocks)],
+            };
+            var published = await ownerClient.PostAsJsonAsync(
+                $"/api/v1/questions/{createdQuestionId}/versions",
+                changedDraft);
+            Assert.Equal(HttpStatusCode.Created, published.StatusCode);
+            var secondVersion = (await published.Content
+                .ReadFromJsonAsync<ApiResponse<PublishedQuestionVersion>>())!.Data;
+            Assert.Equal(2, secondVersion.Version);
+            Assert.False(secondVersion.Answers[0].IsCorrect);
+            var oldVersion = await ownerClient.GetFromJsonAsync<ApiResponse<PublishedQuestionVersion>>(
+                $"/api/v1/questions/{createdQuestionId}/versions/1");
+            Assert.True(oldVersion!.Data.Answers[0].IsCorrect);
+            await using (var checkAttempts = new LearnPipDbContext(options))
+            {
+                var saved = await checkAttempts.StudyAttempts.Include(item => item.Selections)
+                    .SingleAsync(item => item.Id == firstGrade.AttemptId);
+                Assert.Equal(firstVersion.Id, saved.QuestionVersionId);
+                Assert.True(saved.IsCorrect);
+                Assert.Equal(selected.Order(), saved.Selections.Select(item => item.AnswerOptionId).Order());
+            }
+
+            var catalogResponse = await ownerClient.PostAsJsonAsync(
+                "/api/v1/catalogs/",
+                new CatalogInput("Prüfungsvorbereitung"));
+            Assert.Equal(HttpStatusCode.Created, catalogResponse.StatusCode);
+            var catalogId = (await catalogResponse.Content.ReadFromJsonAsync<ApiResponse<CatalogView>>())!.Data.Id;
+            var emptyDraft = new QuestionPublishRequest("single", string.Empty, string.Empty, "de", string.Empty, string.Empty, [], [], []);
+            var savedDraft = await ownerClient.PostAsJsonAsync(
+                "/api/v1/questions/drafts",
+                new DraftSaveRequest(emptyDraft, catalogId));
+            Assert.Equal(HttpStatusCode.Created, savedDraft.StatusCode);
+            var privateDraftId = (await savedDraft.Content.ReadFromJsonAsync<ApiResponse<DraftView>>())!.Data.QuestionId;
+            Assert.Equal(
+                HttpStatusCode.NotFound,
+                (await strangerClient.GetAsync($"/api/v1/questions/{privateDraftId}/draft")).StatusCode);
+            Assert.Equal(
+                HttpStatusCode.NotFound,
+                (await strangerClient.GetAsync($"/api/v1/catalogs/{catalogId}/questions")).StatusCode);
+            Assert.Equal(
+                HttpStatusCode.BadRequest,
+                (await ownerClient.PostAsync($"/api/v1/questions/{privateDraftId}/publish", null)).StatusCode);
+            await using (var checkPrivate = new LearnPipDbContext(options))
+            {
+                Assert.False(await checkPrivate.QuestionVersions.AnyAsync(item => item.QuestionId == privateDraftId));
+            }
+
+            var expectedResult4 = HttpStatusCode.NoContent;
+            var actualResult5 = (await ownerClient.PutAsJsonAsync(
+                $"/api/v1/questions/{privateDraftId}/draft",
+                new DraftSaveRequest(draft, catalogId))).StatusCode;
+
+            Assert.Equal(
+                expectedResult4,
+                actualResult5);
+            Assert.Equal(
+                HttpStatusCode.Created,
+                (await ownerClient.PostAsync($"/api/v1/questions/{privateDraftId}/publish", null)).StatusCode);
+            var learningStart = await ownerClient.PostAsJsonAsync(
+                "/api/v1/learning/sessions/",
+                new StartLearningRequest(catalogId, 5));
+            Assert.Equal(HttpStatusCode.Created, learningStart.StatusCode);
+            var learning = (await learningStart.Content
+                .ReadFromJsonAsync<ApiResponse<LearningSessionView>>())!.Data;
+            Assert.Equal(1, learning.Total);
+            Assert.NotNull(learning.Current);
+            Assert.Equal(privateDraftId, learning.Current.QuestionId);
+            Assert.Equal(3, learning.Current.Answers.Select(option => option.Id).Distinct().Count());
+            Assert.DoesNotContain(
+                "isCorrect",
+                await learningStart.Content.ReadAsStringAsync(),
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(
+                HttpStatusCode.NotFound,
+                (await strangerClient.GetAsync($"/api/v1/learning/sessions/{learning.Id}")).StatusCode);
+            var partialLearning = await ownerClient.PostAsJsonAsync(
+                $"/api/v1/learning/sessions/{learning.Id}/answer",
+                new LearningAnswerRequest([learning.Current.Answers[0].Id]));
+            Assert.Equal(HttpStatusCode.OK, partialLearning.StatusCode);
+            Assert.False((await partialLearning.Content
+                .ReadFromJsonAsync<ApiResponse<LearningFeedback>>())!.Data.IsCorrect);
+            var expectedResult6 = HttpStatusCode.Conflict;
+            var actualResult7 = (await ownerClient.PostAsJsonAsync(
+                $"/api/v1/learning/sessions/{learning.Id}/answer",
+                new LearningAnswerRequest([learning.Current.Answers[0].Id]))).StatusCode;
+            Assert.Equal(
+                expectedResult6,
+                actualResult7);
+            var finishedLearning = (await ownerClient.GetFromJsonAsync<ApiResponse<LearningSessionView>>(
+                $"/api/v1/learning/sessions/{learning.Id}"))!.Data;
+            Assert.True(finishedLearning.Completed);
+            Assert.Equal(1, finishedLearning.Answered);
+            Assert.Equal(0, finishedLearning.Skipped);
+            Assert.Null(finishedLearning.Current);
+
+            var correctStart = await ownerClient.PostAsJsonAsync(
+                "/api/v1/learning/sessions/",
+                new StartLearningRequest(catalogId, 1));
+            var correctSession = (await correctStart.Content
+                .ReadFromJsonAsync<ApiResponse<LearningSessionView>>())!.Data;
+            var correctVersion = (await ownerClient.GetFromJsonAsync<ApiResponse<PublishedQuestionVersion>>(
+                $"/api/v1/questions/{privateDraftId}/versions/1"))!.Data;
+            var correctLearning = await ownerClient.PostAsJsonAsync(
+                $"/api/v1/learning/sessions/{correctSession.Id}/answer",
+                new LearningAnswerRequest(correctVersion.Answers.Where(option => option.IsCorrect)
+                    .Select(option => option.Id).ToArray()));
+            var correctFeedback = (await correctLearning.Content
+                .ReadFromJsonAsync<ApiResponse<LearningFeedback>>())!.Data;
+            Assert.True(correctFeedback.IsCorrect);
+            var beforeMark = (await ownerClient.GetFromJsonAsync<ApiResponse<ReviewOverview>>(
+                "/api/v1/learning/review"))!.Data;
+            Assert.Contains(
+                beforeMark.Contents,
+                item => item.Id == correctFeedback.ContentId &&
+                item.Answers == 2);
+            var expectedResult8 = HttpStatusCode.NotFound;
+            var actualResult9 = (await strangerClient.PutAsync(
+                $"/api/v1/learning/contents/{correctFeedback.ContentId}/often-for-me",
+                null)).StatusCode;
+            Assert.Equal(
+                expectedResult8,
+                actualResult9);
+            var expectedResult10 = HttpStatusCode.NoContent;
+            var actualResult11 = (await ownerClient.PutAsync(
+                $"/api/v1/learning/contents/{correctFeedback.ContentId}/often-for-me",
+                null)).StatusCode;
+            Assert.Equal(
+                expectedResult10,
+                actualResult11);
+            var afterMark = (await ownerClient.GetFromJsonAsync<ApiResponse<ReviewOverview>>(
+                "/api/v1/learning/review"))!.Data;
+            Assert.Equal(beforeMark.MasteredContents, afterMark.MasteredContents);
+            Assert.Equal(beforeMark.TotalContents, afterMark.TotalContents);
+            Assert.Equal(1, afterMark.OftenForMeCount);
+            var expectedResult12 = HttpStatusCode.NoContent;
+            var actualResult13 = (await ownerClient.PostAsJsonAsync(
+                $"/api/v1/learning/sessions/{correctSession.Id}/explanation",
+                new ExplanationViewRequest(correctFeedback.AttemptId))).StatusCode;
+            Assert.Equal(
+                expectedResult12,
+                actualResult13);
+            var explained = (await ownerClient.GetFromJsonAsync<ApiResponse<ReviewOverview>>(
+                "/api/v1/learning/review"))!.Data;
+            var actualResult14 = explained.Contents.Single(item => item.Id == correctFeedback.ContentId)
+                .ExplanationsViewed;
+            Assert.Equal(
+                1,
+                actualResult14);
+            var expectedResult15 = HttpStatusCode.NoContent;
+            var actualResult16 = (await ownerClient.PutAsJsonAsync(
+                $"/api/v1/learning/questions/{createdQuestionId}/content",
+                new ContentAssignment(correctFeedback.ContentId))).StatusCode;
+
+            Assert.Equal(
+                expectedResult15,
+                actualResult16);
+            var grouped = (await ownerClient.GetFromJsonAsync<ApiResponse<ReviewOverview>>(
+                "/api/v1/learning/review"))!.Data;
+            Assert.Equal(afterMark.TotalContents - 1, grouped.TotalContents);
+            var actualResult17 = grouped.Contents.Single(item => item.Id == correctFeedback.ContentId)
+                .QuestionIds.Count;
+            Assert.Equal(
+                2,
+                actualResult17);
+            Assert.Equal(
+                HttpStatusCode.Unauthorized,
+                (await anonymous.GetAsync("/api/v1/learning/progress")).StatusCode);
+            var privateProgress = (await strangerClient.GetFromJsonAsync<ApiResponse<LearningProgress>>(
+                "/api/v1/learning/progress"))!.Data;
+            Assert.Equal(0, privateProgress.TotalContents);
+            Assert.Equal(0, privateProgress.ParticipationPoints);
+            var progressBeforeSkip = (await ownerClient.GetFromJsonAsync<ApiResponse<LearningProgress>>(
+                "/api/v1/learning/progress"))!.Data;
+            Assert.Equal(grouped.TotalContents, progressBeforeSkip.TotalContents);
+            Assert.Contains(progressBeforeSkip.Topics, topic => topic.ImprovedContents > 0);
+            Assert.True(progressBeforeSkip.ParticipationPoints > 0);
+            Assert.Equal(2, progressBeforeSkip.RecentWeeks.Sum(week => week.CompletedSessions));
+
+            var mixedStart = await ownerClient.PostAsJsonAsync(
+                "/api/v1/learning/sessions/",
+                new StartLearningRequest(null, 10));
+            var mixed = (await mixedStart.Content
+                .ReadFromJsonAsync<ApiResponse<LearningSessionView>>())!.Data;
+            Assert.True(mixed.Total >= 2);
+            var seen = new HashSet<Guid>();
+            while (mixed.Current != null)
+            {
+                Assert.True(seen.Add(mixed.Current.QuestionId));
+                Assert.Equal(
+                    HttpStatusCode.NoContent,
+                    (await ownerClient.PostAsync($"/api/v1/learning/sessions/{mixed.Id}/skip", null)).StatusCode);
+                mixed = (await ownerClient.GetFromJsonAsync<ApiResponse<LearningSessionView>>(
+                    $"/api/v1/learning/sessions/{mixed.Id}"))!.Data;
+            }
+
+            Assert.True(mixed.Completed);
+            Assert.Equal(0, mixed.Answered);
+            Assert.Equal(mixed.Total, mixed.Skipped);
+            var progressAfterSkip = (await ownerClient.GetFromJsonAsync<ApiResponse<LearningProgress>>(
+                "/api/v1/learning/progress"))!.Data;
+            Assert.Equal(progressBeforeSkip.ParticipationPoints, progressAfterSkip.ParticipationPoints);
+            Assert.Equal(progressBeforeSkip.MasteredContents, progressAfterSkip.MasteredContents);
+            Assert.Equal(
+                progressBeforeSkip.RecentWeeks.Sum(week => week.CompletedSessions),
+                progressAfterSkip.RecentWeeks.Sum(week => week.CompletedSessions));
+            await using (var checkSkipped = new LearnPipDbContext(options))
+            {
+                Assert.False(await checkSkipped.StudyAttempts.AnyAsync(item => item.StudySessionId == mixed.Id));
+            }
+
+            var catalogItems = await ownerClient.GetStringAsync($"/api/v1/catalogs/{catalogId}/questions");
+            Assert.Contains(privateDraftId.ToString(), catalogItems);
+            var expectedResult18 = HttpStatusCode.NoContent;
+            var actualResult19 = (await ownerClient.PutAsJsonAsync(
+                $"/api/v1/questions/{privateDraftId}/catalog",
+                new CatalogMoveRequest(null))).StatusCode;
+            Assert.Equal(
+                expectedResult18,
+                actualResult19);
+            Assert.Equal(
+                HttpStatusCode.NoContent,
+                (await ownerClient.DeleteAsync($"/api/v1/catalogs/{catalogId}")).StatusCode);
+            Assert.Equal(
+                HttpStatusCode.NotFound,
+                (await ownerClient.GetAsync($"/api/v1/catalogs/{catalogId}/questions")).StatusCode);
+
+            using var scope = factory.Services.CreateScope();
+            var authorization = scope.ServiceProvider.GetRequiredService<IAuthorizationService>();
+            var memberPrincipal = PrincipalFor(member);
+            Assert.True((await authorization.AuthorizeAsync(memberPrincipal, null, ApiPolicies.Moderation)).Succeeded);
+            Assert.False((await authorization.AuthorizeAsync(memberPrincipal, null, ApiPolicies.Admin)).Succeeded);
+            Assert.False((await authorization.AuthorizeAsync(PrincipalFor(stranger), null, ApiPolicies.Moderation)).Succeeded);
+
+            await using (var db = new LearnPipDbContext(options))
+            {
+                var share = await db.GroupQuestionShares.SingleAsync();
+                share.RevokedAtUtc = DateTimeOffset.UtcNow;
+                var media = await db.MediaAssets.SingleAsync(item => item.Id == mediaId);
+                media.DeletedAtUtc = DateTimeOffset.UtcNow;
+                await db.SaveChangesAsync();
+            }
+
+            Assert.Equal(
+                HttpStatusCode.NotFound,
+                (await memberClient.GetAsync($"/api/v1/questions/{questionId}")).StatusCode);
+            Assert.Equal(
+                HttpStatusCode.NotFound,
+                (await ownerClient.GetAsync($"/api/v1/media/{mediaId}")).StatusCode);
+            await VerifyOfflinePackageImport(factory, options);
+        }
+        finally
+        {
+            await using var admin = new NpgsqlConnection(maintenance.ConnectionString);
+            await admin.OpenAsync();
+            await using (var terminate = new NpgsqlCommand(
+                "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = @name AND pid <> pg_backend_pid()",
+                admin))
+            {
+                terminate.Parameters.AddWithValue("name", databaseName);
+                await terminate.ExecuteNonQueryAsync();
+            }
+
+            await using var drop = new NpgsqlCommand($"DROP DATABASE IF EXISTS \"{databaseName}\"", admin);
+            await drop.ExecuteNonQueryAsync();
+        }
+    }
+
+    /// <summary>Prüft fünf eigene Fragen, Teilauswahl und wiederholten Import zwischen zwei frischen unabhängigen Datenbanken.</summary>
+    /// <returns>Die vollständige Instanz-A/Instanz-B-Prüfung.</returns>
+    [Fact]
+    public async Task PrivatePackageSelectionRoundtripsBetweenIndependentInstances()
+    {
+        var source = Environment.GetEnvironmentVariable("ConnectionStrings__LearnPip")
+            ?? throw new InvalidOperationException("Set ConnectionStrings__LearnPip to disposable PostgreSQL.");
+        var maintenance = new NpgsqlConnectionStringBuilder(source) { Database = "postgres" };
+        var firstConnection = new NpgsqlConnectionStringBuilder(source) { Database = "learnpip_export_a_" + Guid.NewGuid().ToString("N") };
+        var secondConnection = new NpgsqlConnectionStringBuilder(source) { Database = "learnpip_export_b_" + Guid.NewGuid().ToString("N") };
+        var names = new[] { firstConnection.Database, secondConnection.Database };
+        try
+        {
+            await using (var admin = new NpgsqlConnection(maintenance.ConnectionString))
+            {
+                await admin.OpenAsync();
+                foreach (var name in names)
+                {
+                    await using var create = new NpgsqlCommand($"CREATE DATABASE \"{name}\"", admin);
+                    await create.ExecuteNonQueryAsync();
+                }
+            }
+
+            var owner = Guid.NewGuid();
+            var stranger = Guid.NewGuid();
+            var recipient = Guid.NewGuid();
+            var firstOptions = new DbContextOptionsBuilder<LearnPipDbContext>().UseNpgsql(firstConnection.ConnectionString).Options;
+            var secondOptions = new DbContextOptionsBuilder<LearnPipDbContext>().UseNpgsql(secondConnection.ConnectionString).Options;
+            await using (var db = new LearnPipDbContext(firstOptions))
+            {
+                await db.Database.MigrateAsync();
+                db.Accounts.AddRange(new Account { Id = owner }, new Account { Id = stranger });
+                await db.SaveChangesAsync();
+            }
+
+            await using (var db = new LearnPipDbContext(secondOptions))
+            {
+                await db.Database.MigrateAsync();
+                db.Accounts.Add(new Account { Id = recipient });
+                await db.SaveChangesAsync();
+            }
+
+            using var firstFactory = ExportFactory(firstConnection.ConnectionString);
+            using var secondFactory = ExportFactory(secondConnection.ConnectionString);
+            using var client = ClientFor(firstFactory, owner);
+            using var other = ClientFor(firstFactory, stranger);
+            using var second = ClientFor(secondFactory, recipient);
+            using var anonymous = firstFactory.CreateClient();
+            using var bitmap = new SKBitmap(2, 2);
+            bitmap.Erase(SKColors.Blue);
+            using var png = bitmap.Encode(SKEncodedImageFormat.Png, 100);
+            using var upload = new MultipartFormDataContent();
+            var image = new ByteArrayContent(png.ToArray());
+            image.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/png");
+            upload.Add(image, "file", "synthetic.png");
+            upload.Add(new StringContent("Synthetisches blaues Quadrat"), "altText");
+            using var uploaded = await client.PostAsync("/api/v1/media/", upload);
+            Assert.Equal(HttpStatusCode.Created, uploaded.StatusCode);
+            var imageId = (await uploaded.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data").GetProperty("id").GetGuid();
+            var questions = new List<Guid>();
+            for (var index = 0; index < 5; index++)
+            {
+                var prompt = new List<ContentBlockInput> { new("text", "Synthetische Frage " + index, null) };
+                var explanation = new List<ContentBlockInput> { new("text", "Erklärung mit Umlauten: Größe", null) };
+                var answer = new List<ContentBlockInput> { new("text", "Richtige Lösung", null) };
+                if (index == 0)
+                {
+                    prompt.Add(new ContentBlockInput("image", null, imageId));
+                    explanation.Insert(0, new ContentBlockInput("image", null, imageId));
+                    answer.Add(new ContentBlockInput("image", null, imageId));
+                }
+
+                var content = new QuestionPublishRequest(
+                    index == 1 ? "multiple" : "single",
+                    "Biologie",
+                    "Zellen",
+                    "de",
+                    string.Empty,
+                    "LicenseRef-Private",
+                    prompt,
+                    explanation,
+                    [new AnswerInput(true, answer), new AnswerInput(index == 1, [new ContentBlockInput("text", "Zweite Antwort", null)])]);
+                using var created = await client.PostAsJsonAsync("/api/v1/questions/drafts", new DraftSaveRequest(content, null));
+                Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+                questions.Add((await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data").GetProperty("questionId").GetGuid());
+            }
+
+            var license = JsonSerializer.SerializeToElement(new { id = "LicenseRef-Private", holder = "Synthetischer Testautor", attribution = "Eigene synthetische Originaldaten" });
+            var request = new CatalogExportRequest(
+                questions.Take(3).ToArray(),
+                "Synthetische Teilauswahl",
+                "Testautor",
+                license,
+                license,
+                "LicenseRef-Private: ausschließlich private Nutzung. Synthetische Testdaten.",
+                false,
+                null);
+            Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.PostAsJsonAsync("/api/v1/catalog-exports/preview", request)).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await other.PostAsJsonAsync("/api/v1/catalog-exports/preview", request)).StatusCode);
+            Assert.Equal(5, (await client.GetFromJsonAsync<JsonElement>("/api/v1/catalog-exports/questions")).GetProperty("data").GetArrayLength());
+            Assert.Empty((await other.GetFromJsonAsync<JsonElement>("/api/v1/catalog-exports/questions")).GetProperty("data").EnumerateArray());
+            using var previewResponse = await client.PostAsJsonAsync("/api/v1/catalog-exports/preview", request);
+            Assert.True(previewResponse.IsSuccessStatusCode, await previewResponse.Content.ReadAsStringAsync());
+            var preview = (await previewResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data");
+            Assert.Equal(3, preview.GetProperty("questionCount").GetInt32());
+            Assert.Equal(1, preview.GetProperty("mediaCount").GetInt32());
+            var hash = preview.GetProperty("previewSha256").GetString();
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/catalog-exports/download", request with { PreviewSha256 = hash })).StatusCode);
+            var confirmed = request with { RightsConfirmed = true, PreviewSha256 = hash };
+            Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/v1/catalog-exports/download", confirmed with { Title = "Geändert" })).StatusCode);
+            using var download = await client.PostAsJsonAsync("/api/v1/catalog-exports/download", confirmed);
+            Assert.Equal(HttpStatusCode.OK, download.StatusCode);
+            Assert.True(download.Headers.CacheControl!.Private);
+            Assert.True(download.Headers.CacheControl.NoStore);
+            var bytes = await download.Content.ReadAsByteArrayAsync();
+            var package = CatalogPackageReader.Read(bytes);
+            var text = System.Text.Encoding.UTF8.GetString(bytes);
+            Assert.DoesNotContain(owner.ToString(), text);
+            Assert.DoesNotContain(owner.ToString("N"), text);
+            Assert.DoesNotContain(recipient.ToString("N"), text);
+            Assert.DoesNotContain("Synthetische Frage 3", text);
+            Assert.DoesNotContain("Synthetische Frage 4", text);
+            using var repeated = await client.PostAsJsonAsync("/api/v1/catalog-exports/download", confirmed);
+            Assert.Equal(bytes, await repeated.Content.ReadAsByteArrayAsync());
+            Assert.Equal(HttpStatusCode.Created, (await PostPackage(second, "import", bytes, Convert.ToHexStringLower(SHA256.HashData(bytes)))).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await PostPackage(second, "import", bytes, Convert.ToHexStringLower(SHA256.HashData(bytes)))).StatusCode);
+            await using (var db = new LearnPipDbContext(secondOptions))
+            {
+                Assert.Equal(3, await db.Questions.CountAsync());
+                Assert.Empty(await db.StudyAttempts.ToListAsync());
+                var install = await db.CatalogPackageImports.SingleAsync();
+                var mapping = JsonSerializer.Deserialize<Dictionary<string, Guid>>(install.QuestionIdsJson)!;
+                foreach (var id in questions.Take(3))
+                {
+                    Assert.Contains("learnpip-question:" + id.ToString("N"), mapping.Keys);
+                }
+
+                var first = mapping["learnpip-question:" + questions[0].ToString("N")];
+                var version = await db.QuestionVersions.SingleAsync(item => item.QuestionId == first);
+                Assert.Equal("private", version.Visibility);
+                Assert.Equal("Biologie", version.Subject);
+                Assert.Equal("Zellen", version.Topic);
+                Assert.Equal(string.Empty, version.Source);
+                Assert.Equal(["image", "text"], await db.QuestionContentBlocks.Where(block => block.QuestionVersionId == version.Id && block.Section == "explanation").OrderBy(block => block.SortOrder).Select(block => block.Kind).ToArrayAsync());
+                var answerId = await db.AnswerOptions.Where(answer => answer.QuestionVersionId == version.Id && answer.SortOrder == 0).Select(answer => answer.Id).SingleAsync();
+                Assert.Equal(["text", "image"], await db.QuestionContentBlocks.Where(block => block.AnswerOptionId == answerId).OrderBy(block => block.SortOrder).Select(block => block.Kind).ToArrayAsync());
+                Assert.Equal("multiple", (await db.QuestionVersions.SingleAsync(item => item.QuestionId == mapping["learnpip-question:" + questions[1].ToString("N")])).SelectionMode);
+                Assert.Equal(package.Archive, install.Archive);
+            }
+
+            // A larger overlapping selection reuses source IDs instead of creating duplicate questions.
+            var allRequest = request with { QuestionIds = questions.ToArray() };
+            using var allPreview = await client.PostAsJsonAsync("/api/v1/catalog-exports/preview", allRequest);
+            Assert.Equal(HttpStatusCode.OK, allPreview.StatusCode);
+            var allHash = (await allPreview.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data").GetProperty("previewSha256").GetString();
+            using var allDownload = await client.PostAsJsonAsync("/api/v1/catalog-exports/download", allRequest with { RightsConfirmed = true, PreviewSha256 = allHash });
+            var allBytes = await allDownload.Content.ReadAsByteArrayAsync();
+            using var overlap = await PostPackage(second, "preview", allBytes);
+            var overlapPreview = (await overlap.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data");
+            Assert.Equal(2, overlapPreview.GetProperty("newQuestionCount").GetInt32());
+            Assert.Equal(3, overlapPreview.GetProperty("identicalQuestionCount").GetInt32());
+            Assert.Equal(0, overlapPreview.GetProperty("conflictQuestionCount").GetInt32());
+            Assert.Equal(HttpStatusCode.Created, (await PostPackage(second, "import", allBytes, Convert.ToHexStringLower(SHA256.HashData(allBytes)))).StatusCode);
+            await using (var db = new LearnPipDbContext(secondOptions))
+            {
+                Assert.Equal(5, await db.Questions.CountAsync());
+                Assert.Equal(1, await db.MediaAssets.CountAsync());
+                Assert.Equal(2, await db.CatalogPackageImports.CountAsync());
+            }
+
+            // Re-export from B retains original metadata and is recognized despite changed ZIP media paths.
+            Guid firstImportedId;
+            await using (var db = new LearnPipDbContext(secondOptions))
+            {
+                firstImportedId = JsonSerializer.Deserialize<Dictionary<string, Guid>>((await db.CatalogPackageImports.OrderBy(item => item.ImportedAtUtc).FirstAsync()).QuestionIdsJson)!["learnpip-question:" + questions[0].ToString("N")];
+            }
+
+            var singleRequest = request with { QuestionIds = [firstImportedId] };
+            using var singlePreview = await second.PostAsJsonAsync("/api/v1/catalog-exports/preview", singleRequest);
+            Assert.Equal(HttpStatusCode.OK, singlePreview.StatusCode);
+            var singleHash = (await singlePreview.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data").GetProperty("previewSha256").GetString();
+            using var singleDownload = await second.PostAsJsonAsync("/api/v1/catalog-exports/download", singleRequest with { RightsConfirmed = true, PreviewSha256 = singleHash });
+            var singleBytes = await singleDownload.Content.ReadAsByteArrayAsync();
+            using var identicalPreview = await PostPackage(second, "preview", singleBytes);
+            var same = (await identicalPreview.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data");
+            Assert.Equal("identical", same.GetProperty("state").GetString());
+            Assert.Equal(1, same.GetProperty("identicalQuestionCount").GetInt32());
+            Assert.Equal(HttpStatusCode.OK, (await PostPackage(second, "import", singleBytes, Convert.ToHexStringLower(SHA256.HashData(singleBytes)))).StatusCode);
+
+            // Direct API references cannot export an image owned by another account.
+            await using (var db = new LearnPipDbContext(firstOptions))
+            {
+                var foreign = new MediaAsset { OwnerAccountId = stranger, MediaType = "image/png", AltText = "Fremdes Bild", ByteLength = png.Size, StorageKey = "synthetic-private" };
+                db.MediaAssets.Add(foreign);
+                db.MediaBlobs.Add(new MediaBlob { MediaAssetId = foreign.Id, Data = png.ToArray() });
+                var draft = await db.QuestionDrafts.SingleAsync(item => item.QuestionId == questions[4]);
+                var content = JsonSerializer.Deserialize<QuestionPublishRequest>(draft.PayloadJson)!;
+                draft.PayloadJson = JsonSerializer.Serialize(content with { Prompt = [new ContentBlockInput("image", null, foreign.Id)] });
+                await db.SaveChangesAsync();
+            }
+
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/catalog-exports/preview", request with { QuestionIds = [questions[4]] })).StatusCode);
+
+            // An actual edit invalidates an earlier preview; no download of stale contents.
+            await using (var db = new LearnPipDbContext(firstOptions))
+            {
+                var draft = await db.QuestionDrafts.SingleAsync(item => item.QuestionId == questions[0]);
+                var content = JsonSerializer.Deserialize<QuestionPublishRequest>(draft.PayloadJson)!;
+                draft.PayloadJson = JsonSerializer.Serialize(content with { Prompt = [new ContentBlockInput("text", "Geänderte Frage", null)] });
+                draft.UpdatedAtUtc = DateTimeOffset.UtcNow;
+                await db.SaveChangesAsync();
+            }
+
+            Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/v1/catalog-exports/download", confirmed)).StatusCode);
+            var old = CatalogPackageReaderTests.Golden();
+            Assert.Equal(HttpStatusCode.Created, (await PostPackage(client, "import", old, Convert.ToHexStringLower(SHA256.HashData(old)))).StatusCode);
+            Guid importedId;
+            await using (var db = new LearnPipDbContext(firstOptions))
+            {
+                importedId = JsonSerializer.Deserialize<Dictionary<string, Guid>>((await db.CatalogPackageImports.SingleAsync()).QuestionIdsJson)!.Single().Value;
+            }
+
+            var originalRequest = confirmed with { QuestionIds = [importedId], PreviewSha256 = null };
+            using var originalPreview = await client.PostAsJsonAsync("/api/v1/catalog-exports/preview", originalRequest);
+            Assert.Equal(HttpStatusCode.OK, originalPreview.StatusCode);
+            var originalHash = (await originalPreview.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data").GetProperty("previewSha256").GetString();
+            using var originalDownload = await client.PostAsJsonAsync("/api/v1/catalog-exports/download", originalRequest with { PreviewSha256 = originalHash });
+            var preserved = CatalogPackageReader.Read(await originalDownload.Content.ReadAsByteArrayAsync());
+            var originalQuestion = Assert.Single(preserved.Questions);
+            Assert.Equal("CC-BY-SA-4.0", originalQuestion.GetProperty("license").GetProperty("id").GetString());
+            Assert.Equal(CatalogPackageReader.Read(old).Manifest.GetProperty("source_revision").GetString(), originalQuestion.GetProperty("origin").GetProperty("source_revision").GetString());
+            Assert.Equal("image/png", preserved.Manifest.GetProperty("files").EnumerateArray().Single(file => file.GetProperty("path").GetString()!.StartsWith("media/", StringComparison.Ordinal)).GetProperty("media_type").GetString());
+            Assert.Equal("CC-BY-4.0", originalQuestion.GetProperty("media")[0].GetProperty("license").GetProperty("id").GetString());
+            Assert.True(System.Text.Json.Nodes.JsonNode.DeepEquals(System.Text.Json.Nodes.JsonNode.Parse(CatalogPackageReader.Read(old).Questions[0].GetProperty("provenance").GetRawText()), System.Text.Json.Nodes.JsonNode.Parse(originalQuestion.GetProperty("provenance").GetRawText())));
+            await using (var db = new LearnPipDbContext(firstOptions))
+            {
+                db.QuestionDrafts.Add(new QuestionDraft { QuestionId = importedId, PayloadJson = "{}" });
+                await db.SaveChangesAsync();
+            }
+
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/catalog-exports/preview", originalRequest)).StatusCode);
+        }
+        finally
+        {
+            NpgsqlConnection.ClearAllPools();
+            await using var admin = new NpgsqlConnection(maintenance.ConnectionString);
+            await admin.OpenAsync();
+            foreach (var name in names)
+            {
+                await using var drop = new NpgsqlCommand($"DROP DATABASE IF EXISTS \"{name}\" WITH (FORCE)", admin);
+                await drop.ExecuteNonQueryAsync();
+            }
+        }
+    }
+
+    private static WebApplicationFactory<Program> ExportFactory(string connectionString) => new WebApplicationFactory<Program>()
+        .WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<DbContextOptions<LearnPipDbContext>>();
+            services.RemoveAll<IDbContextOptionsConfiguration<LearnPipDbContext>>();
+            services.AddDbContext<LearnPipDbContext>(options => options.UseNpgsql(connectionString));
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = TestAuthenticationHandler.TestScheme;
+                options.DefaultChallengeScheme = TestAuthenticationHandler.TestScheme;
+                options.DefaultForbidScheme = TestAuthenticationHandler.TestScheme;
+            }).AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(TestAuthenticationHandler.TestScheme, _ => { });
+        }));
+
+    private static async Task VerifyOfflinePackageImport(
+        WebApplicationFactory<Program> factory,
+        DbContextOptions<LearnPipDbContext> options)
+    {
+        var owner = Guid.NewGuid();
+        var stranger = Guid.NewGuid();
+        await using (var db = new LearnPipDbContext(options))
+        {
+            db.Accounts.AddRange(new Account { Id = owner }, new Account { Id = stranger });
+            await db.SaveChangesAsync();
+        }
+
+        using var client = ClientFor(factory, owner);
+        using var other = ClientFor(factory, stranger);
+        using var anonymous = factory.CreateClient();
+        var original = CatalogPackageReaderTests.Golden();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await PostPackage(anonymous, "preview", original)).StatusCode);
+        using var previewResponse = await PostPackage(client, "preview", original);
+        Assert.Equal(HttpStatusCode.OK, previewResponse.StatusCode);
+        var preview = (await previewResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data");
+        Assert.Equal("new", preview.GetProperty("state").GetString());
+        var hash = preview.GetProperty("archiveSha256").GetString()!;
+        Assert.Equal(HttpStatusCode.BadRequest, (await PostPackage(client, "import", original, hash, false)).StatusCode);
+        await using (var db = new LearnPipDbContext(options))
+        {
+            Assert.False(await db.CatalogPackageImports.AnyAsync(item => item.OwnerAccountId == owner));
+            Assert.False(await db.Questions.AnyAsync(item => item.OwnerAccountId == owner));
+        }
+
+        var requests = await Task.WhenAll(PostPackage(client, "import", original, hash), PostPackage(client, "import", original, hash));
+        Assert.Contains(requests, response => response.StatusCode == HttpStatusCode.Created);
+        Assert.Contains(requests, response => response.StatusCode == HttpStatusCode.OK);
+        foreach (var response in requests)
+        {
+            response.Dispose();
+        }
+
+        Guid installId;
+        Guid questionId;
+        Guid catalogId;
+        await using (var db = new LearnPipDbContext(options))
+        {
+            var install = await db.CatalogPackageImports.SingleAsync(item => item.OwnerAccountId == owner);
+            installId = install.Id;
+            catalogId = install.PrivateCatalogId!.Value;
+            Assert.Equal(original, install.Archive);
+            var mappings = JsonSerializer.Deserialize<Dictionary<string, Guid>>(install.QuestionIdsJson)!;
+            questionId = Assert.Single(mappings).Value;
+            var question = await db.Questions.Include(item => item.Versions).SingleAsync(item => item.Id == questionId);
+            var version = Assert.Single(question.Versions);
+            Assert.Equal("private", version.Visibility);
+            Assert.Equal(2, await db.AnswerOptions.CountAsync(item => item.QuestionVersionId == version.Id));
+            Assert.Single(await db.MediaAssets.Where(item => item.QuestionVersionId == version.Id).ToListAsync());
+            db.QuestionDrafts.Add(new QuestionDraft { QuestionId = questionId, PayloadJson = "{}" });
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/v1/catalog-packages/{installId}/original")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/v1/questions/{questionId}")).StatusCode);
+        var download = await client.GetAsync($"/api/v1/catalog-packages/{installId}/original");
+        Assert.Equal(original, await download.Content.ReadAsByteArrayAsync());
+        Assert.True(download.Headers.CacheControl!.Private);
+        Assert.True(download.Headers.CacheControl.NoStore);
+        var repacked = CatalogPackageReaderTests.Rewrite(null, null);
+        var repackedHash = Convert.ToHexStringLower(SHA256.HashData(repacked));
+        Assert.Equal(HttpStatusCode.OK, (await PostPackage(client, "import", repacked, repackedHash)).StatusCode);
+        var changed = CatalogPackageReaderTests.Rewrite(null, "Geänderte synthetische Frage");
+        Assert.Equal(HttpStatusCode.BadRequest, (await PostPackage(client, "import", changed, hash)).StatusCode);
+        using var conflictPreview = await PostPackage(client, "preview", changed);
+        Assert.Equal("conflict", (await conflictPreview.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data").GetProperty("state").GetString());
+        Assert.Equal(HttpStatusCode.Conflict, (await PostPackage(client, "import", changed, Convert.ToHexStringLower(SHA256.HashData(changed)))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await PostPackage(client, "preview", CatalogPackageReaderTests.Rewrite("checksum", null))).StatusCode);
+        await using (var db = new LearnPipDbContext(options))
+        {
+            Assert.Equal(1, await db.Questions.CountAsync(item => item.OwnerAccountId == owner));
+            Assert.True(await db.QuestionDrafts.AnyAsync(item => item.QuestionId == questionId));
+            db.PrivateCatalogs.Remove(await db.PrivateCatalogs.SingleAsync(item => item.Id == catalogId));
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Equal(HttpStatusCode.OK, (await PostPackage(client, "import", original, hash)).StatusCode);
+        await using (var db = new LearnPipDbContext(options))
+        {
+            Assert.Null((await db.CatalogPackageImports.SingleAsync(item => item.Id == installId)).PrivateCatalogId);
+            Assert.Equal(1, await db.Questions.CountAsync(item => item.OwnerAccountId == owner));
+        }
+    }
+
+    private static async Task<HttpResponseMessage> PostPackage(
+        HttpClient client,
+        string operation,
+        byte[] bytes,
+        string? hash = null,
+        bool confirmed = true)
+    {
+        using var form = new MultipartFormDataContent();
+        form.Add(new ByteArrayContent(bytes), "file", "synthetic.zip");
+        if (hash != null)
+        {
+            form.Add(new StringContent(hash), "archiveSha256");
+            form.Add(new StringContent(confirmed ? "true" : "false"), "rightsConfirmed");
+        }
+
+        return await client.PostAsync("/api/v1/catalog-packages/" + operation, form);
+    }
+
+    private static HttpClient ClientFor(
+        WebApplicationFactory<Program> factory,
+        Guid accountId)
+    {
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Test-Account", accountId.ToString());
+        return client;
+    }
+
+    private static ClaimsPrincipal PrincipalFor(Guid accountId) =>
+        new(new ClaimsIdentity(
+            [new Claim(AccountIdentity.AccountIdClaim, accountId.ToString())],
+            TestAuthenticationHandler.TestScheme));
+
+    private sealed class TestAuthenticationHandler(
+            IOptionsMonitor<AuthenticationSchemeOptions> options,
+            ILoggerFactory logger,
+            UrlEncoder encoder) : AuthenticationHandler<AuthenticationSchemeOptions>(
+            options,
+            logger,
+            encoder)
+    {
+        public const string TestScheme = "Test";
+
+        protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+        {
+            if (!this.Request.Headers.TryGetValue("X-Test-Account", out var accountId) ||
+                !Guid.TryParse(accountId, out var parsed))
+            {
+                return Task.FromResult(AuthenticateResult.NoResult());
+            }
+
+            var ticket = new AuthenticationTicket(PrincipalFor(parsed), TestScheme);
+            return Task.FromResult(AuthenticateResult.Success(ticket));
+        }
+    }
+}

@@ -1,5 +1,5 @@
 {
   "tests/fixtures/catalog/0.2.0/golden.zip": "a7275803731114f6c2b6cde8fc66eaec2ddedff46b0549d7fe8da489c22a00d8",
   "schemas/catalog/0.2.0/manifest.schema.json": "3c6bbaca6790a5f7a7f855cd75cf6b2c58937038145413c34e67944d201c6f06",
-  "schemas/catalog/0.2.0/questions.schema.json": "b870ddb5f776dc38da8e5eae25445e6407695efe8d8b7924412918cc6d98d550"
+  "schemas/catalog/0.2.0/questions.schema.json": "6a30736026676055c2ec7ae9efc5254abfa2a274d6d2cfb5ee6784e51fdfc71a"
 }
