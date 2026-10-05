@@ -81,7 +81,7 @@ jobs:
         run: python3 scripts/security-inventory.py --images --resolved-sources "$RUNNER_TEMP/sources.json" --output "$RUNNER_TEMP/images.json" >> "$GITHUB_OUTPUT"
       - name: Keep datestamped inventory
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: security-inventory
           path: |
@@ -128,7 +128,7 @@ jobs:
 
       - name: Upload override trial candidate for review
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: npm-override-trial-${{ matrix.label }}
           path: |
@@ -171,7 +171,7 @@ jobs:
 
       - name: Upload full audit reports
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: dependency-security-reports-${{ matrix.label }}
           path: ${{ runner.temp }}/security-reports/*.json
@@ -233,7 +233,7 @@ jobs:
         run: python3 scripts/security-scan-metadata.py trivy "$RUNNER_TEMP"
       - name: Retain image report
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: image-security-reports-${{ matrix.label }}
           path: |
@@ -336,7 +336,7 @@ jobs:
         run: python3 scripts/security-scan-metadata.py trivy "$RUNNER_TEMP"
       - name: Retain candidate report
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: image-security-reports-candidate-${{ matrix.component }}-${{ matrix.arch }}
           path: |
@@ -361,7 +361,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Download scan artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           pattern: '*security-reports-*'
           path: reports
@@ -375,7 +375,7 @@ jobs:
         run: python3 scripts/security-ledger.py --reports reports --previous previous.json --output security-ledger.json
       - name: Retain ledger for next scheduled scan
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: security-ledger
           path: security-ledger.json
