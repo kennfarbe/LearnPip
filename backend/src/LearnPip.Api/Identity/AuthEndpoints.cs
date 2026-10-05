@@ -91,7 +91,7 @@ public static class AuthEndpoints
         secured.MapPost(
             "/recovery/rotate",
             RotateRecovery)
-            .RequireRateLimiting("auth")
+            .RequireAuthorization(ApiPolicies.FreshIdentity).RequireRateLimiting("auth")
             .Produces<ApiResponse<NewAccount>>();
         secured.MapPost(
             "/email/link/start",

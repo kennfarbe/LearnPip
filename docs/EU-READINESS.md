@@ -1,6 +1,6 @@
 # EU-Produktreife: Prüfmatrix und Freigabegates
 
-**Arbeitsstand vom 03.10.2026 – offen, keine Rechts- oder Konformitätsbestätigung.**
+**Prüfstand vom 05.10.2026 – erste fachlich zu prüfende Fassung, keine Rechts- oder Konformitätsbestätigung.**
 Diese Übersicht ordnet die in #93 bis #103 angefragten Prüfungen. Sie erfindet
 weder eine juristische Einordnung noch einen verantwortlichen Betreiber.
 Tatsächliche Nutzung, Umsatzmodell, Rollenteilung, Länder, Datenflüsse und
@@ -24,6 +24,15 @@ juristischer Nachweis.
 
 ## Nachweisregister und Abhängigkeiten
 
+Detailnachweise: [CRA](CRA-READINESS.md), [Betrieb/NIS2](NIS2-OPERATIONS.md),
+[Datenschutz](privacy/EU-OPERATING-RECORD.md),
+[Barrierefreiheit](ACCESSIBILITY-ACCEPTANCE.md),
+[öffentliche Dienste](PUBLIC-SERVICE-READINESS.md), [KI](AI-READINESS.md).
+
+Die Tabellen unterscheiden die Abnahme dieser Projektunterlagen von der
+Freigabe einer konkreten fremden Instanz. Unbekannte Betreiberangaben werden
+nicht ergänzt oder als erfüllt angenommen.
+
 | Issue | Zu prüfender Bereich | Nachweis vor Abnahme | Stand |
 | --- | --- | --- | --- |
 | #93 | Gesamteinordnung | Je Szenario Verantwortliche, betroffene Normen, Quelle/Datum, Maßnahmen und fachliche Freigabe | Offen |
@@ -43,7 +52,7 @@ Registrierungs-, Melde-, CE- oder Informationspflicht dürfen erst nach
 qualifizierter Prüfung als Pflicht der konkret betroffenen Stelle markiert
 werden. Neue Betriebsmodelle und Funktionen lösen eine Neubewertung aus.
 
-## Quellen zur weiteren Prüfung (nicht abschließend)
+## Amtliche Grundlagen (am 05.10.2026 geprüft)
 
 - [Cyber Resilience Act und Rollen](https://digital-strategy.ec.europa.eu/en/policies/cyber-resilience-act)
 - [CRA für Open Source](https://digital-strategy.ec.europa.eu/en/policies/cra-open-source)
@@ -53,5 +62,56 @@ werden. Neue Betriebsmodelle und Funktionen lösen eine Neubewertung aus.
 - [Digital Services Act](https://digital-strategy.ec.europa.eu/en/policies/digital-services-act)
 - [AI Act](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai)
 
-Diese Quellen sind Ausgangspunkte für die noch ausstehende konkrete Prüfung
-und keine Behauptung einer bereits erteilten rechtlichen Freigabe.
+Die Detailnachweise nennen Rechtsakte, Artikel, Rollen, Maßnahmen und
+Abschlussgrenzen. Eine Entwurfsfassung oder politische Einigung ersetzt
+keinen geltenden Änderungsrechtsakt.
+
+
+## Begründete Arbeitsentscheidungen pro Betriebsmodell
+
+| Szenario | Rollen und Einordnung unter den Annahmen | Zeitpunkt und offene Tatsachen |
+| --- | --- | --- |
+| Community ohne Monetarisierung | OSS-Ausnahme außerhalb kommerzieller Tätigkeit prüfen; AGPL allein reicht nicht. Ein Steward ist eine gesonderte gesetzliche Rolle. | Vor Finanzierung/Vertrieb Träger und Verantwortung bestimmen; [CRA](CRA-READINESS.md). |
+| Kommerzielles Softwareprodukt | Herstellerprüfung einschließlich Support, Klassifizierung und gegebenenfalls CE; Betreiber bleibt für seine Daten verantwortlich. | Vor Angebot Verträge, Vertriebsländer und Supportdauer freigeben. |
+| Eigener öffentlicher Dienst | Anbieter/Datenschutz-Verantwortlicher, Hosting-/Plattformrolle prüfen. SaaS nicht pauschal CRA-Produkt nennen; zugehörige Remote-Datenverarbeitungslösung gesondert. | Vor Öffnung Rechtsperson, Kontakt, Empfänger und Moderationsverfahren; [Dienstbewertung](PUBLIC-SERVICE-READINESS.md). |
+| Rein private Erprobung | Keine NIS2-Einrichtung allein durch Installation; DSGVO-Haushaltsausnahme nur bei tatsächlich persönlicher/haushaltsbezogener Verarbeitung. | LAN allein genügt nicht; bei fremden Konten oder neuer Nutzung neu bewerten. |
+| Schule/Unternehmen | Träger bzw. Unternehmen bestimmt Zwecke, Grundlage und Rollen; Einrichtung statt Lernsoftware nach NIS2 prüfen. | Vor echten Daten Landes-/Schulrecht, Minderjährige, Verträge und zuständige Stellen klären. |
+
+Aktivierte Funktionen und Kombinationen verändern die Bewertung: SMTP/externe
+Identitäten brauchen Empfänger-/Transferprüfung; Cloud-KI zusätzlich Zweck- und
+DSFA-Prüfung; Schule mit Lernprofilen ist nicht durch die private Testinstanz
+freigegeben. Elternübersicht bleibt begrenzt. Öffentliche Inhalte brauchen Rechte
+und gegebenenfalls DSA-Verfahren. Kein Schalter hebt Grundpflichten auf.
+
+Bei Verbraucherverträgen [§ 327 BGB](https://www.gesetze-im-internet.de/bgb/__327.html)
+und [§ 327f BGB](https://www.gesetze-im-internet.de/bgb/__327f.html) prüfen:
+Vertrags-/Widerrufsinformation, Preise, Leistungsumfang und erforderliche Updates;
+auch bestimmte Daten-gegen-Leistung-Verträge können erfasst sein.
+Bei SaaS [Data Act Kapitel VI](https://eur-lex.europa.eu/eli/reg/2023/2854/oj)
+für den konkreten Datenverarbeitungsdienst prüfen: Wechsel, Export,
+Übergangsunterstützung und Vertragsbedingungen. Keine pauschale Anwendbarkeit auf
+jedes Lernprogramm. Software-, Bild-, Übersetzungs- und Katalogrechte anhand
+[LICENSING](LICENSING.md), [CLA-ROLLOUT](CLA-ROLLOUT.md) und
+[CATALOG-INTERCHANGE](CATALOG-INTERCHANGE.md) getrennt führen.
+
+### Überprüfbare Abschlussgrenzen
+
+Projektführung verantwortet Produkt/Release, Betreiber die Instanz;
+Rechts-/Datenschutzfachstellen entscheiden konkrete ungeklärte Angebote.
+Privates Register: Fakten, verantwortliche Rolle/Vertretung, Quellenstand,
+Maßnahme, Commit/Test, Restrisiko, Freigabe und nächste Überprüfung.
+
+- #93: Roadmap mit Szenarien, Primärquellen, Verantwortungsrollen und Folgeaufgaben.
+- #94/#96: Bereits abgeschlossen; keine erneute Implementierung.
+- #95: Frische Anmeldung bei Identitätsänderungen, dazu API-/Callback-Regressionen.
+- #97: Kanalprüfung und vollständiges dauerhaftes Release-Nachweispaket bleiben offen.
+- #98/#99: Betreiberprüfung und Nachweisverfahren vorhanden; echte Trägerdaten,
+  Behördenzugänge, Verträge und gegebenenfalls DSFA bleiben einsatzabhängig.
+- #100: Tatsächliche Desktop-/Mobil-Screenreader-Abnahme bleibt offen.
+- #101: Allgemeines Meldesystem, Zustellung, Begründung und Beschwerdeweg fehlen.
+- #102: Vorhandene assistierende Zwecke sind bewertet; eine spätere Benotung/
+  Zulassung erfordert gesonderte Freigabe.
+- #103: Admin-Aktivierungsdialog bleibt separater technischer Auftrag.
+
+Offene Punkte sind keine bestandene Prüfung. Neue Rollen oder technische
+Funktionen dürfen nicht mit der Abnahme dieser Unterlagen als freigegeben gelten.

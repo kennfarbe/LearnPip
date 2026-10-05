@@ -13,7 +13,8 @@ werden. Die API begrenzt den Export auf fünf Abrufe je Konto und Stunde.
 
 Die freiwillige Auflösung benötigt eine aktive Sitzung, die Bestätigung `DELETE`
 und das gültige Wiederherstellungsgeheimnis. Wer das Geheimnis nicht mehr besitzt,
-kann es mit einer bestehenden Sitzung über die Recovery-Rotation erneuern. Der
+muss sich zunächst erneut über einen vorhandenen Anmeldeweg authentifizieren
+und kann es dann binnen 15 Minuten über die Recovery-Rotation erneuern. Der
 Löschdienst löscht in einer Datenbanktransaktion private Fragen und Bilder,
 Lernverlauf, Identitäten, Sitzungen, Familien- und Gruppenbeziehungen. Nach
 Erfolg ist keine Anmeldung oder Wiederherstellung dieses Kontos mehr möglich.
@@ -26,8 +27,11 @@ lassen sich durch die Löschung **nicht** zurückrufen. Beiträge in der lokalen
 Datenbank und Gruppenfreigaben werden mit dem Konto entfernt; dies kann
 Gruppeninhalte und Antworten anderer Lernender betreffen. Sicherungen laufen
 lokal und extern nach 30 Tagen ab. Nach einem Restore muss vor erneuter
-öffentlicher Freigabe der Löschlauf ausgeführt werden; für sofortige Auflösung
-ist die Backup-Aufbewahrung organisatorisch zu beachten.
+öffentlicher Freigabe der Löschlauf ausgeführt werden. Freiwillige sofortige
+Auflösungen müssen zusätzlich anhand eines privaten Löschregisters erneut
+angewendet werden; der Inaktivitätslauf allein erkennt sie nicht zuverlässig.
+Die konkrete Lösch-/Restorekontrolle ist vor organisatorischem Betrieb
+nachzuweisen; siehe [Betriebsnachweis](privacy/EU-OPERATING-RECORD.md).
 
 Für Missbrauchsschutz gelten bestehende Größen- und Bildtypgrenzen plus
 höchstens 100 aktive private Bilder bzw. 100 MiB pro Konto. Ein DB-Lock schützt

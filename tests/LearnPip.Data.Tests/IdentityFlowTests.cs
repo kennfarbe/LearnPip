@@ -184,7 +184,8 @@ public sealed class IdentityFlowTests
             Assert.Equal(
                 expectedResult5,
                 actualResult6);
-            // Ordinary authenticated reads do not reauthenticate an old session.
+            // Ordinary reads and credential rotation cannot promote an old session.
+            Assert.Equal(HttpStatusCode.Forbidden, (await first.PostAsync("/api/v1/auth/recovery/rotate", null)).StatusCode);
             Assert.Equal(HttpStatusCode.Forbidden, (await first.PostAsJsonAsync(
                 "/api/v1/auth/email/link/start", new EmailStartRequest("fresh@example.org"))).StatusCode);
             Assert.Equal(HttpStatusCode.Forbidden, (await first.PostAsJsonAsync(

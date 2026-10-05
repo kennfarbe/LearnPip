@@ -32,7 +32,7 @@ Die Kontoinaktivitätslogik (Warnungen, Deaktivierung und anschließende Löschu
 | Lernende Person | Lesen, erstellen, bearbeiten, exportieren und löschen | Nur in Gruppen, in denen sie Mitglied ist, und nur im freigegebenen Umfang | Nur Inhalte, die ausdrücklich öffentlich freigegeben wurden | Kein Zugriff auf fremde Konten |
 | Gruppenverantwortliche Person | Eigene Inhalte wie Lernende | Nur nach Gruppenrolle und dokumentierter Freigabe | Keine automatische Veröffentlichung aus einer Gruppe | Gruppenmitglieder und Gruppeninhalte im vereinbarten Umfang verwalten |
 | Weitere Gruppenmitglieder | Keine fremden privaten Inhalte | Nur ausdrücklich geteilte Gruppeninhalte | Keine automatische Veröffentlichung | Keine Konten- oder Systemverwaltung |
-| Systemadministration | Kein regulärer Zugriff auf Lerninhalte | Kein regulärer Zugriff auf Lerninhalte | Nur technische Moderation nach festzulegendem Verfahren | Technischen Betrieb; privilegierter Zugriff muss begrenzt und protokolliert sein |
+| Systemadministration | Gesonderter zweckgebundener Moderationszugriff möglich | Gesonderter Moderationszugriff möglich | Moderation mit Rollenprüfung | Technischen Betrieb; privilegierter Zugriff muss begrenzt und protokolliert sein |
 | Eltern oder Sorgeberechtigte | Kein automatischer Zugriff auf ein Lernkonto | Kein automatischer Zugriff | Kein automatischer Zugriff | **OFFEN:** altersgerechter Kontozugang, Nachweis und Umfang eines möglichen Elternzugriffs müssen vor dem Betrieb mit Minderjährigen entschieden werden. |
 
 Gruppenfreigaben, moderierte öffentliche Einreichungen und ein gesondert verifiziertes Familienverfahren besitzen technische Berechtigungsabläufe. Daraus folgt kein pauschaler Zugriff auf private Inhalte und keine automatische rechtliche Freigabe des Betriebs.
@@ -83,3 +83,13 @@ LearnPip kann für schulische Lerninhalte und damit auch für Minderjährige ver
 7. Öffentliche Inhaltslizenz, Moderation und Widerrufs- beziehungsweise Beschwerdeprozess.
 
 Diese Liste ist ein Architektur-Backlog und keine Rechtsberatung. Die Punkte müssen vor dem jeweiligen Produktumfang entschieden werden; optionale Funktionen dürfen nur nach Prüfung der jeweils erforderlichen Voraussetzungen im Betrieb aktiviert werden.
+
+
+## Konkreter EU-Betriebsnachweis
+
+Der [Betriebsnachweis vom 05.10.2026](EU-OPERATING-RECORD.md) ergänzt Zwecke,
+Rollen, Aufbewahrung, Datenrechte, Kinderinformation, Storage, DSFA-Schwellenprüfung
+und Vorfallfristen. Der Systemadministrationszugriff ist nicht pauschal unsichtbar:
+Die gesonderten Moderationsrouten können private Fragen einsehen; hierfür gelten
+[Zweck und Audit](../MODERATION-ACCESS.md). Noch offene automatische
+Fristbereinigung und Restore-Löschkontrolle werden ausdrücklich benannt.

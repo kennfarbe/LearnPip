@@ -145,3 +145,10 @@ deren Schema mit der neuen Migration kompatibel ist; andernfalls vor öffentlich
 Freigabe den vor dem Upgrade geprüften Dump auf einem frischen Volume zurückspielen.
 Dabei gehen Änderungen seit dem Dump verloren: Wartungsfenster und Zeitpunkt
 mit den Nutzern abstimmen.
+
+
+## Sicherheitsbetrieb und EU-Nachweise
+
+Siehe [Betreiberprüfung und Vorfallübung](NIS2-OPERATIONS.md),
+[EU-Szenariomatrix](EU-READINESS.md) und
+[Datenschutz-Betriebsnachweis](privacy/EU-OPERATING-RECORD.md).

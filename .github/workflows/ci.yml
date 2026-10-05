@@ -72,6 +72,9 @@ jobs:
       - name: Test offline catalog interchange contract
         run: python3 -m unittest discover -s tests/ops -p 'test_catalog_contract.py' -v
 
+      - name: Exercise synthetic incident escalation and reporting deadlines
+        run: node scripts/incident-exercise.mjs
+
       - name: Reject tab characters in tracked text files
         run: |
           python3 - <<'PY'

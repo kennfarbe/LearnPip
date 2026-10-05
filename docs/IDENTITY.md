@@ -75,3 +75,20 @@ Die GitHub-OAuth-App verwendet die feste Callback-Adresse `https://<öffentliche
 ### Facebook Login (eigener OAuth-Webflow)
 
 Die optionale Meta-App erhält als Callback `https://<öffentlicher-host>/signin-facebook`. Die App-ID steht in `LEARNPIP_FACEBOOK_OAUTH_CLIENT_ID`, das App-Secret ausschließlich in `shared/secrets/FacebookOAuth__ClientSecret`. Der Anmeldeweg `/api/v1/auth/facebook/start` ist bei fehlenden Angaben nicht verfügbar. Mit aktiver Sitzung verknüpft `/api/v1/auth/facebook/link/start` die app-spezifische, über den Graph-Endpunkt `/me?fields=id` abgefragte Kennung ausdrücklich mit dem vorhandenen Konto. Keine Zusammenführung allein anhand von E-Mail-Adressen, keine angeforderten zusätzlichen Profil- oder Freundesberechtigungen; externes Zugangstoken wird nicht gespeichert. Vor Produktivfreigabe müssen die Meta-App-Einstellungen, Data-Deletion-Anforderungen, geltenden Freigaben und reale Ende-zu-Ende-Tests einschließlich Ablehnung und Konflikt geprüft werden.
+
+
+## Erneute Anmeldung vor Identitätsänderungen (#95)
+
+E-Mail-/Provider-Verknüpfung, Provider-Trennung und Recovery-Rotation verlangen
+zusätzlich eine höchstens 15 Minuten alte, aktive lokale Sitzung. Normale
+Lesezugriffe aktualisieren Aktivität, aber nicht den Authentifizierungszeitpunkt.
+Bei HTTP 403 erneut mit Wiederherstellungsgeheimnis, verifiziertem E-Mail-Code,
+Passwort oder vorhandenem Anbieter anmelden und den Vorgang neu starten.
+Der externe Rücksprung prüft die initiierende Sitzung erneut auf Alter, Widerruf,
+Deaktivierung und Ablauf. Rotation mit einer alten Sitzung kann diese Grenze
+nicht umgehen. Inhalte und Kontokennung bleiben erhalten.
+
+Die erneute Anmeldung ist keine pauschale MFA-Zusage. Die Testabnahme umfasst
+lokale Kontoanlage, E-Mail-Verifizierung, Identitätskonflikte, Kontoinhalte,
+Rollen-/Sitzungsentzug und alte Sitzungen. Produktive App-Registrierungen und
+Anbieterbedingungen werden pro Betreiber geprüft.

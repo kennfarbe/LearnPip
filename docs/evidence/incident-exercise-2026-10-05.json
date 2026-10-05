@@ -1,0 +1,35 @@
+{
+  "synthetic": true,
+  "exerciseDate": "2026-10-05",
+  "externalNotifications": 0,
+  "scenarios": [
+    {
+      "id": "SYN-DEPENDENCY",
+      "routes": []
+    },
+    {
+      "id": "SYN-EXPLOIT",
+      "routes": [
+        "CRA"
+      ]
+    },
+    {
+      "id": "SYN-COMBINED",
+      "routes": [
+        "CRA",
+        "NIS2",
+        "DSGVO"
+      ]
+    }
+  ],
+  "deadlines": {
+    "earlyWarning": "2026-10-06T09:00:00.000Z",
+    "fullNotification": "2026-10-08T09:00:00.000Z",
+    "gdprNotificationIfRequired": "2026-10-08T09:00:00.000Z",
+    "craVulnerabilityFinal": "2026-10-23T09:00:00.000Z",
+    "craIncidentFinal": "2026-11-07T12:00:00.000Z",
+    "nis2FinalOrProgress": "2026-11-07T12:00:00.000Z"
+  },
+  "overdueWarningDetected": true,
+  "limitation": "Technical tabletop exercise; real applicability, contacts and representation require operator verification."
+}
