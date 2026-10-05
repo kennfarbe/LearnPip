@@ -46,6 +46,14 @@ def context():
                 or pr["head"]["repo"]["full_name"] != repo
                 or pr["head"]["sha"] != run["head_sha"]):
             continue
+        # The list endpoint omits changed_files. Fetch the full PR and recheck
+        # its identity/head because Dependabot can update it between requests.
+        pr = api(f"repos/{repo}/pulls/{pr['number']}")
+        if (pr["state"] != "open" or pr["user"]["login"] != "dependabot[bot]"
+                or pr["base"]["ref"] != "main"
+                or pr["head"]["repo"]["full_name"] != repo
+                or pr["head"]["sha"] != run["head_sha"]):
+            continue
         files = api(f"repos/{repo}/pulls/{pr['number']}/files?per_page=100")
         if pr["changed_files"] != len(files) or not eligible_files(files):
             continue
