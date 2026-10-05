@@ -43,7 +43,7 @@ def write_catalog(snapshot, destination: str | Path) -> None:
     if set(files) != {record["path"] for record in manifest["files"]}:
         raise _validator.InvalidPackage("Snapshot does not match manifest file list")
     manifest["files"] = [
-        {"path": record["path"], "size": len(files[record["path"]]),
+        {**record, "size": len(files[record["path"]]),
          "sha256": hashlib.sha256(files[record["path"]]).hexdigest()}
         for record in manifest["files"]
     ]

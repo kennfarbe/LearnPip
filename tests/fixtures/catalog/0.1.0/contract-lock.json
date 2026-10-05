@@ -1,0 +1,7 @@
+{
+  "tests/fixtures/catalog/0.1.0/golden.zip": "e9fd1e5a17f7c8dc31e214008cbb5303c7b7cddbc4d9293f9cec6005b61e388e",
+  "tests/fixtures/catalog/0.1.0/frozen.json": "ea19b90d151cc0093728f946363223c06a74175edd4487bd82267382f22a6c2f",
+  "tests/fixtures/catalog/0.1.0/provenance.json": "b15581ce41d09518cf7a326463420032ba1a747154a7e58e47422ec819de5ac1",
+  "schemas/catalog/0.1.0/manifest.schema.json": "d890e5cbe9a8a03bd1328e73815a4fbe6d0d936bfa7da5d9ab01d123a9fce056",
+  "schemas/catalog/0.1.0/questions.schema.json": "3bac6c800803c0d862b1748111dc85c2c035ccbccf6dc21e91004d36fa30287b"
+}
