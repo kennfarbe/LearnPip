@@ -1,6 +1,7 @@
 """Regression checks for the privileged screenshot publisher's data boundaries."""
 
 import importlib.util
+import copy
 import json
 import os
 from pathlib import Path
@@ -108,11 +109,64 @@ class ScreenshotPublisherTests(unittest.TestCase):
             with patch.object(SCREENSHOTS, "api", return_value=[pr]) as mocked:
                 self.assertIsNone(SCREENSHOTS.context())
                 self.assertEqual(mocked.call_count, 1)
+
             pr["head"]["sha"] = "old-head"
             pr["user"]["login"] = "another-user"
             with patch.object(SCREENSHOTS, "api", return_value=[pr]) as mocked:
                 self.assertIsNone(SCREENSHOTS.context())
                 self.assertEqual(mocked.call_count, 1)
+
+    def candidate_context(self, detail_changes=None, files=None):
+        event = self.directory / "event.json"
+        run = {"id": 42, "event": "pull_request", "path": ".github/workflows/ci.yml",
+               "head_repository": {"full_name": "owner/repo"},
+               "head_branch": "dependabot/npm", "head_sha": "current-head"}
+        event.write_text(json.dumps({"workflow_run": run}))
+        # Reproduce the real list response: no changed_files field.
+        summary = {"number": 7, "user": {"login": "dependabot[bot]"},
+                   "base": {"ref": "main"},
+                   "head": {"repo": {"full_name": "owner/repo"}, "sha": "current-head"}}
+        detail = copy.deepcopy(summary)
+        detail.update(state="open", changed_files=2)
+        if detail_changes:
+            detail.update(detail_changes)
+        if files is None:
+            files = [{"filename": name, "status": "modified"} for name in SCREENSHOTS.DEPENDENCIES]
+        artifacts = {"artifacts": [{"name": "dependabot-screenshots", "expired": False,
+                                    "size_in_bytes": 1000}]}
+        responses = {
+            "repos/owner/repo/pulls?state=open&head=owner:dependabot/npm": [summary],
+            "repos/owner/repo/pulls/7": detail,
+            "repos/owner/repo/pulls/7/files?per_page=100": files,
+            "repos/owner/repo/actions/runs/42/artifacts?per_page=100": artifacts,
+        }
+        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "owner/repo", "GITHUB_EVENT_PATH": str(event)}):
+            with patch.object(SCREENSHOTS, "api", side_effect=lambda endpoint: responses[endpoint]) as mocked:
+                result = SCREENSHOTS.context()
+                calls = [call.args[0] for call in mocked.call_args_list]
+        return result, calls
+
+    def test_context_fetches_detail_when_list_omits_changed_files(self):
+        result, calls = self.candidate_context()
+        self.assertEqual(result[2]["changed_files"], 2)
+        self.assertEqual(calls[1], "repos/owner/repo/pulls/7")
+
+    def test_context_rechecks_head_and_state_from_detail(self):
+        for change in ({"state": "closed"}, {"head": {
+                "repo": {"full_name": "owner/repo"}, "sha": "newer-head"}}):
+            result, calls = self.candidate_context(change)
+            self.assertIsNone(result)
+            self.assertEqual(len(calls), 2)
+
+    def test_context_rejects_incomplete_or_disallowed_file_list(self):
+        result, calls = self.candidate_context({"changed_files": 101})
+        self.assertIsNone(result)
+        self.assertEqual(len(calls), 3)
+        result, calls = self.candidate_context(files=[
+            {"filename": "frontend/web/package.json", "status": "modified"},
+            {"filename": ".github/workflows/ci.yml", "status": "modified"}])
+        self.assertIsNone(result)
+        self.assertEqual(len(calls), 3)
 
 
 if __name__ == "__main__":
