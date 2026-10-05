@@ -66,7 +66,6 @@ Die Detailnachweise nennen Rechtsakte, Artikel, Rollen, Maßnahmen und
 Abschlussgrenzen. Eine Entwurfsfassung oder politische Einigung ersetzt
 keinen geltenden Änderungsrechtsakt.
 
-
 ## Begründete Arbeitsentscheidungen pro Betriebsmodell
 
 | Szenario | Rollen und Einordnung unter den Annahmen | Zeitpunkt und offene Tatsachen |

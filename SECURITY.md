@@ -18,6 +18,5 @@ Bitte beschreibe den Fehler, die betroffene Datei oder Version, mögliche Auswir
 
 Die Projektverantwortlichen übernehmen Triage und Release-Koordination; eine Vertretung ist im privaten Betriebsregister zu benennen. Interne Zielzeiten sind eine Eingangsbestätigung binnen zwei und eine erste Triage binnen fünf Arbeitstagen, keine zugesicherte Reaktionsgarantie. Sie prüfen den Bericht und stimmen die nächsten Schritte vertraulich mit der meldenden Person ab. Bitte veröffentliche Details nicht, bevor eine Lösung oder abgestimmte Offenlegung möglich ist.
 
-
 Supportumfang, vertraulicher Kanalnachweis, koordinierte Offenlegung und bedingte
 CRA-Meldungsfristen stehen in [CRA-READINESS](docs/CRA-READINESS.md).

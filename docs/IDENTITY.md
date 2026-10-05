@@ -76,7 +76,6 @@ Die GitHub-OAuth-App verwendet die feste Callback-Adresse `https://<öffentliche
 
 Die optionale Meta-App erhält als Callback `https://<öffentlicher-host>/signin-facebook`. Die App-ID steht in `LEARNPIP_FACEBOOK_OAUTH_CLIENT_ID`, das App-Secret ausschließlich in `shared/secrets/FacebookOAuth__ClientSecret`. Der Anmeldeweg `/api/v1/auth/facebook/start` ist bei fehlenden Angaben nicht verfügbar. Mit aktiver Sitzung verknüpft `/api/v1/auth/facebook/link/start` die app-spezifische, über den Graph-Endpunkt `/me?fields=id` abgefragte Kennung ausdrücklich mit dem vorhandenen Konto. Keine Zusammenführung allein anhand von E-Mail-Adressen, keine angeforderten zusätzlichen Profil- oder Freundesberechtigungen; externes Zugangstoken wird nicht gespeichert. Vor Produktivfreigabe müssen die Meta-App-Einstellungen, Data-Deletion-Anforderungen, geltenden Freigaben und reale Ende-zu-Ende-Tests einschließlich Ablehnung und Konflikt geprüft werden.
 
-
 ## Erneute Anmeldung vor Identitätsänderungen (#95)
 
 E-Mail-/Provider-Verknüpfung, Provider-Trennung und Recovery-Rotation verlangen

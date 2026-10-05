@@ -146,7 +146,6 @@ Freigabe den vor dem Upgrade geprüften Dump auf einem frischen Volume zurücksp
 Dabei gehen Änderungen seit dem Dump verloren: Wartungsfenster und Zeitpunkt
 mit den Nutzern abstimmen.
 
-
 ## Sicherheitsbetrieb und EU-Nachweise
 
 Siehe [Betreiberprüfung und Vorfallübung](NIS2-OPERATIONS.md),

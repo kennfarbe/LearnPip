@@ -84,7 +84,6 @@ LearnPip kann für schulische Lerninhalte und damit auch für Minderjährige ver
 
 Diese Liste ist ein Architektur-Backlog und keine Rechtsberatung. Die Punkte müssen vor dem jeweiligen Produktumfang entschieden werden; optionale Funktionen dürfen nur nach Prüfung der jeweils erforderlichen Voraussetzungen im Betrieb aktiviert werden.
 
-
 ## Konkreter EU-Betriebsnachweis
 
 Der [Betriebsnachweis vom 05.10.2026](EU-OPERATING-RECORD.md) ergänzt Zwecke,
