@@ -23,6 +23,8 @@ import { AdminUpdates } from './admin-updates';
 import { ModerationQueue } from './moderation-queue';
 import { CatalogLibrary } from './catalog-library';
 import { ExamAdministration } from './exam-administration';
+import { CatalogPackageExport } from './catalog-package-export';
+import { CatalogPackageImport } from './catalog-package-import';
 
 @Component({
   selector: 'app-overview-workspace',
@@ -66,9 +68,34 @@ export class OverviewWorkspace {
 
 @Component({
   selector: 'app-questions-workspace',
-  imports: [QuestionEditor, PhotoDraft, Translations, AiAssistant],
+  imports: [
+    QuestionEditor,
+    PhotoDraft,
+    Translations,
+    AiAssistant,
+    CatalogPackageExport,
+    CatalogPackageImport,
+  ],
   template: `
     <app-question-editor />
+    <details
+      class="workspace-disclosure"
+      (toggle)="exportOpened.set(exportOpened() || $any($event.target).open)"
+    >
+      <summary>{{ language.t('Fragen auswählen und exportieren') }}</summary>
+      @if (exportOpened()) {
+        <app-catalog-package-export />
+      }
+    </details>
+    <details
+      class="workspace-disclosure"
+      (toggle)="importOpened.set(importOpened() || $any($event.target).open)"
+    >
+      <summary>{{ language.t('Fragen importieren') }}</summary>
+      @if (importOpened()) {
+        <app-catalog-package-import />
+      }
+    </details>
     <details
       class="workspace-disclosure"
       (toggle)="photoOpened.set(photoOpened() || $any($event.target).open)"
@@ -99,6 +126,8 @@ export class OverviewWorkspace {
   `,
 })
 export class QuestionsWorkspace {
+  readonly exportOpened = signal(false);
+  readonly importOpened = signal(false);
   readonly language = inject(LanguageService);
   readonly photoOpened = signal(false);
   readonly aiOpened = signal(false);

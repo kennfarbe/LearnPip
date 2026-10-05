@@ -270,6 +270,7 @@ app.MapExamEndpoints();
 app.MapAiEndpoints();
 app.MapCatalogEditorEndpoints();
 app.MapCatalogPackageEndpoints();
+app.MapCatalogExportEndpoints();
 app.MapGroupEndpoints();
 app.MapAdministrationEndpoints();
 

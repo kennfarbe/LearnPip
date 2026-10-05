@@ -24,6 +24,9 @@ namespace LearnPip.Api.CatalogPackages;
 /// <param name="ArchiveSha256">Die Prüfsumme zur Bindung der Bestätigung an die Vorschau.</param>
 /// <param name="State">Neu, bereits importiert oder Konflikt.</param>
 /// <param name="CatalogId">Der vorhandene private Zielkatalog.</param>
+/// <param name="NewQuestionCount">Neu anzulegende Fragen.</param>
+/// <param name="IdenticalQuestionCount">Bereits enthaltene unveränderte Quellfragen.</param>
+/// <param name="ConflictQuestionCount">Fragen, deren Übernahme gesperrt ist.</param>
 public sealed record CatalogPackagePreview(
     string PackageId,
     string Title,
@@ -42,4 +45,7 @@ public sealed record CatalogPackagePreview(
     IReadOnlyList<string> Topics,
     string ArchiveSha256,
     string State,
-    Guid? CatalogId);
+    Guid? CatalogId,
+    int NewQuestionCount,
+    int IdenticalQuestionCount,
+    int ConflictQuestionCount);

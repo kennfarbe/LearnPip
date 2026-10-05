@@ -1,6 +1,6 @@
 # Austauschformat für eigenständige LearnPip-Kataloge
 
-Status: **Entwurf 0.1.0, noch kein freigegebenes stabiles Format**. Dieses Dokument und die JSON-Schemas legen den öffentlichen Vertragsentwurf fest. Ein Offline-Reader, ein lokaler Writer und ein privater API-/Browserimport mit Vorschau und Datenbanktransaktion sind vorhanden. Gezielter Export aus Benutzerkonten, kontrollierte Updates, stabile Formatmigrationen und Instanztests fehlen noch. Ein öffentliches stabiles 1.0.0 darf erst mit entsprechend getesteten Readern und Golden-Files veröffentlicht werden. Siehe Issues #108, #114, #115, #116 und #118.
+Status: **Entwürfe 0.1.0 und 0.2.0, noch kein freigegebenes stabiles Format**. Dieses Dokument und die JSON-Schemas legen den öffentlichen Vertragsentwurf fest. Ein Offline-Reader, ein lokaler Writer und ein privater API-/Browserimport mit Vorschau und Datenbanktransaktion sind vorhanden. Ausgewählte eigene Originalfragen und unveränderte importierte Fragen sind lokal exportierbar; ein Test zwischen zwei unabhängigen Datenbanken ist vorhanden. Vollständige Einzelnachweise für bearbeitete Importfragen, kontrollierte Updates und stabile Formatmigrationen bleiben offen. Ein öffentliches stabiles 1.0.0 darf erst mit entsprechend getesteten Readern und Golden-Files veröffentlicht werden. Siehe Issues #108, #114, #115, #116 und #118.
 
 ## Trennung und Versionierung
 
@@ -81,7 +81,7 @@ Dies ist **noch kein Export aus Benutzerkonten oder der Datenbank**: Rollen- und
 
 Unter **Kataloge und Inhalte > Fragenpaket importieren** kann ein angemeldetes Konto eine lokale ZIP-Datei hochladen. Die Vorschau zeigt Originaltitel, Inhalts-/Formatversion, Quellenstand, Sprache, Themen, Fragen- und Medienanzahl sowie die Lizenz- und Attributionstexte. Erst die ausdrückliche Bestätigung der privaten Nutzungsrechte legt einen neuen privaten Katalog mit lernbaren Fragen an. Es erfolgt kein Download aus externen Quellen und keine Veröffentlichung.
 
-Die API prüft Pfade, doppelte ZIP-/JSON-Einträge, Größen und Kompressionsverhältnis, Dateiprüfsummen, Pflichtfelder, Datentypen und Wertebereiche des archivierten 0.1.0-Vertrags sowie Antworten, Medienverweise und getrennte Herkunftsnachweise. Unbekannte Felder oder Schema-Versionen werden abgewiesen. Die Importbestätigung enthält die SHA-256-Prüfsumme der Vorschau; eine zwischenzeitlich geänderte Datei benötigt eine neue Vorschau. Sämtliche Datenbankänderungen erfolgen in einer Transaktion mit einer Kontensperre, die auch die vorhandenen Bildkontingente schützt.
+Die API prüft Pfade, doppelte ZIP-/JSON-Einträge, Größen und Kompressionsverhältnis, Dateiprüfsummen, Pflichtfelder, Datentypen und Wertebereiche des archivierten 0.1.0-Vertrags sowie Antworten, Medienverweise und getrennte Herkunftsnachweise. Der Nachfolgeentwurf 0.2.0 wird durch ausdrücklich zusätzliche Blockprüfungen eingelesen. Unbekannte Felder oder Schema-Versionen werden abgewiesen. Die Importbestätigung enthält die SHA-256-Prüfsumme der Vorschau; eine zwischenzeitlich geänderte Datei benötigt eine neue Vorschau. Sämtliche Datenbankänderungen erfolgen in einer Transaktion mit einer Kontensperre, die auch die vorhandenen Bildkontingente schützt.
 
 Paketkennung und Inhaltsvergleich verhindern doppelte Importe auch bei gleichzeitigem Bestätigen. Geänderte JSON-Formatierung oder ZIP-Kompression allein erzeugen keinen neuen Katalog. Ein geänderter Inhalt, Quellen-/Lizenztext oder Paketstand wird als Konflikt abgewiesen. Bestehende Fragen, Entwürfe und Lernstände werden niemals durch einen Reimport überschrieben. Das Entfernen des Katalogordners lässt Fragen und Importidentität bestehen und löst keinen erneuten Import aus.
 
@@ -89,7 +89,7 @@ Die unveränderte Originaldatei und die Zuordnung externer Frage-IDs zu lokalen 
 
 ### Unterstützte Inhalte und Grenzen
 
-- Format: weiterhin **Entwurf 0.1.0**. Ein stabiler Formatvertrag wird damit nicht behauptet.
+- Format: weiterhin **Entwürfe 0.1.0 und 0.2.0**. Ein stabiler Formatvertrag wird damit nicht behauptet.
 - Für die Lernanzeige: gültige, nicht animierte JPEG-/PNG-Bilder bis 5 MiB und 4096 × 4096 Pixel; Bildbeschreibung maximal 300 Zeichen. Anzeigebilder werden wie vorhandene Uploads neu kodiert, damit Metadaten nicht unbeabsichtigt mit angezeigt werden. Das nur privat herunterladbare Originalarchiv bleibt bytegenau erhalten und kann solche Metadaten weiterhin enthalten.
 - Fragetext, Erklärung und einzelne Antworttexte: derzeit maximal 4000 Zeichen entsprechend dem vorhandenen Inhaltsblockmodell; Inhaltslizenz-Identifier maximal 120 Zeichen. Andere gültige Paketmedien, größere Inhalte und nicht speicherbare Nullzeichen werden mit verständlichem Fehler vollständig abgewiesen, niemals still weggelassen.
 - Pro Konto maximal 20 Originalpakete mit zusammen 100 MiB; bestehende Bildkontingente von 100 Bildern/100 MiB gelten zusätzlich. Die Datenbank benötigt auch Platz für die entpackten Lernfragen und bereinigten Anzeigebilder. Das Backup muss die neue Tabelle `CatalogPackageImports` einschließen; vollständige PostgreSQL-Sicherungen tun dies automatisch.
@@ -105,3 +105,105 @@ Die unveränderte Originaldatei und die Zuordnung externer Frage-IDs zu lokalen 
 Tests prüfen den produktiven Reader am unveränderten Golden-ZIP, bildbezogene Rechteangaben, Inhaltsvergleich trotz anderer JSON-Formatierung, manipulierte Dateien, Versions-/Schemafehler, Vorschau-/Bestätigungsbindung, fehlende Zustimmung, gleichzeitigen Reimport, Konflikte, erhaltene eigene Entwürfe und fremde Zugriffe. Browserprüfungen sichern ausdrückliche Zustimmung, gesperrte Konflikte, zurückgesetzte Vorschauen bei einer neuen Dateiauswahl sowie die mobile Darstellung. Die neue Datenbankmigration ist additiv und lässt bestehende Fragen unverändert.
 
 Instanzweite Administrationspakete, Setup-Auswahl, kontrollierte Updates/Entfernung, vollständiger Fragenexport aus Konten, stabile Formatmigrationen und der Abnahmetest auf zwei frischen unabhängigen Installationen bleiben als weitere Abnahmeschritte in #108, #110, #115 und #118 offen.
+
+## Lokaler Export eigener Fragen
+
+Unter **Fragen > Fragen auswählen und exportieren** die gespeicherten Inhalte
+aktualisieren. Alle eigenen Fragen, einen Katalog oder einzelne Fragen wählen;
+Fach, Thema, Sprache und Textsuche lassen sich kombinieren. Die Filterauswahl
+ersetzt die bisherigen Häkchen; einzelne Häkchen ergänzen oder entfernen Fragen.
+Der Server prüft jede ausgewählte Fragenkennung auf Eigentum und Nichtlöschung.
+Gruppenfreigaben oder eine Moderatorenrolle erlauben keinen fremden Massenexport.
+
+Gespeicherte Entwürfe haben Vorrang; andernfalls wird die neueste gespeicherte
+Fassung verwendet. Nicht gespeicherte Editoränderungen sind nicht enthalten.
+Titel und Herausgeber werden ausdrücklich eingegeben. Sie stehen im ZIP und
+werden nicht automatisch aus Kontonamen oder E-Mail-Adressen übernommen.
+
+Eigene Originaltexte und eigene Originalbilder erhalten getrennte Lizenz-,
+Rechteinhaber- und Attributionsangaben. `LicenseRef-Private` ist die Voreinstellung
+für ausschließlich private Nutzung durch berechtigte Empfänger, keine offene
+Lizenz und keine Community-Freigabe. Eine andere Lizenz benötigt eine bewusste
+Angabe einschließlich Lizenztext oder Lizenzverweis. Die Bestätigung bezieht
+sich ausdrücklich auf Originalrechte und Exportrechte. Technische Validierung
+belegt keine Rechteinhaberschaft oder Lizenzkompatibilität.
+
+Unveränderte Importfragen behalten sämtliche originalen Einzellizenzen,
+Herkunftsdaten, Themen, Zielstufen, Quellenrevisionen und Originalmedienbytes.
+Bestehende Lizenzen eigener Fragen müssen mit der ausdrücklichen Exportangabe
+übereinstimmen; es gibt keine automatische Umetikettierung. Fragen mit externen
+Quellenadressen und bearbeitete Importfragen werden bis zur vollständigen
+Erfassung ihrer gesonderten Bearbeitungs-/Quellennachweise abgewiesen. Ein freier
+Herkunftshinweis eigener Originale bleibt als `source_note` erhalten; er ist kein
+Ersatz für den Nachweis einer Drittquelle. Die Originalarchive bleiben separat
+herunterladbar. Vorhandene Lizenz- und Attributionsnachweise werden erhalten,
+auch wenn ein Originalpaket einen weiter gefassten Hinweistext mitliefert.
+
+**Exportvorschau prüfen** erzeugt und validiert das vollständige ZIP in einem
+konsistenten Datenbank-Lesesnapshot. Anzahl, Themen, Medien, Größe und sämtliche
+Lizenznachweise werden angezeigt. Der Download verlangt danach eine ausdrückliche
+Rechtebestätigung und die SHA-256-Prüfsumme dieser Vorschau. Änderungen an Fragen,
+Auswahl oder Metadaten erfordern eine neue Vorschau. Es wird kein Exportdatensatz
+angelegt und keine Veröffentlichung oder Netzwerkverbindung ausgelöst.
+
+Der Download enthält ausschließlich die ausgewählten Frageinhalte mit den
+benötigten Medien und Nachweisen. Konten, Wiederherstellungsgeheimnisse,
+Lernstände, Gruppencodes, fremde Kommentare und Verwaltungsdaten werden nicht
+abgefragt oder serialisiert. Eine lokal erzeugte Fragenkennung trägt den Namespace
+`learnpip-question:`; er enthält eine Inhaltskennung und keine Kontokennung.
+Ausgewählte Quell-IDs bestimmen eine reproduzierbare Paketkennung; unveränderte
+Inhalte ergeben identische ZIP-Bytes. ZIP-Zeitstempel sind dafür fest definiert.
+
+Auf Instanz B dieselbe Datei unter **Fragen > Fragen importieren** auswählen.
+Bilder in Fragen, Antworten und Erklärungen behalten ihre Reihenfolge und
+Alternativtexte. Der Import bleibt privat. Überlappende Auswahlen verwenden
+unveränderte importierte Quellfragen erneut, einschließlich identischer Bildbytes
+bei anderen Archivpfaden. Neue Fragen landen in einem neuen privaten Katalog;
+bereits vorhandene bleiben in ihren bisherigen Katalogen. Konflikte sperren das
+gesamte Paket. Bereits bearbeitete oder gelöschte Quellfragen werden weder ersetzt
+noch als zweite Kopie angelegt. Ein unverändertes bereits installiertes
+Originalpaket bleibt auch nach eigenen Änderungen idempotent.
+
+Grenzen: maximal 500 Fragen je Export, Auswahlübersicht bis 1000 eigenen Fragen,
+ZIP bis 25 MiB und weiterhin die bestehenden Bildgrenzen. Es gibt keinen
+verlustbehafteten Teilexport und keine automatische Herabstufung auf 0.1.0.
+Kontrollierte Änderungen an importierten Fragen, instanzweite Paketverwaltung,
+Community-Veröffentlichung und stabile Formatmigrationen sind weitere Schritte.
+Die Issues #115, #116 und #118 bleiben bis zur vollständigen Abnahme offen.
+
+| API | Zweck |
+| --- | --- |
+| GET `/api/v1/catalog-exports/questions` | Ausschließlich eigene gespeicherte Fragen für die Auswahl |
+| POST `/api/v1/catalog-exports/preview` | Vollständige ZIP-Validierung und Nachweisvorschau, ohne Schreiboperation |
+| POST `/api/v1/catalog-exports/download` | Bestätigter Download derselben Inhalte mit `rightsConfirmed` und `previewSha256` |
+
+## Blockformat 0.2.0 und Kompatibilität
+
+0.1.0 bleibt unverändert archiviert und wird weiterhin importiert. Der ausdrücklich
+neue Entwurf 0.2.0 ergänzt die vollständigen Inhaltsblöcke des Fragenmodells:
+
+| Feld | Bedeutung |
+| --- | --- |
+| `subject`, `topic` | Fach und Thema getrennt von der vollständigen Themenliste |
+| `question_version` | Inhaltsrevision der einzelnen Frage, unabhängig von lokalen Datenbankversionen |
+| `selection_mode` | Einfach- oder Mehrfachauswahl mit passender Anzahl richtiger Antworten |
+| `source_note` | Optionaler freier Herkunftshinweis eigener Originale |
+| `origin` | Originalmanifest eines übernommenen 0.1.0-Pakets ohne dessen Dateiliste, einschließlich ursprünglicher Paket- und Quellenrevision |
+| `prompt_blocks`, `explanation_blocks` | Geordnete Text-/Bildblöcke; Bildpfade müssen vollständig ausgezeichnete Medien referenzieren |
+| `answers[].blocks` | Geordnete Antwortblöcke einschließlich Bildern |
+
+Textblöcke haben `kind: text` und `text`; Bildblöcke `kind: image` und `path`.
+Textzusammenfassungen müssen den Textblöcken entsprechen; reine Bildinhalte
+verwenden `[Bild]`. Medien dürfen nicht unreferenziert bleiben. Einzellizenzen,
+Alternativtexte und Herkunftsinformationen stehen weiterhin an jedem Medium.
+Ein scheinbar erfolgreiches Weglassen von Antwort- oder Erklärungsbildern ist
+unzulässig. Unbekannte Versionen werden ausdrücklich abgewiesen.
+
+`tests/fixtures/catalog/0.2.0/golden.zip` enthält synthetische Antwort- und
+Erklärungsbilder, getrennte Lizenzen und Sonderzeichen. Seine Prüfsummen und die
+Schemas werden separat gesperrt; die 0.1.0-Sperrdatei wird nicht verändert. Python
+und .NET prüfen beide tatsächlichen Archive und Roundtrips. Ein PostgreSQL-Test
+legt zwei frische unabhängige Datenbanken an, erstellt fünf Fragen auf A, überträgt
+eine Teilmenge auf B, prüft Reimport und überlappende Auswahl ohne Duplikate sowie
+Bildreihenfolge, Quellen-IDs, private Sichtbarkeit und fehlende Lernstände.
+Dies ist keine Freigabe eines stabilen Schemas und keine stabile Major-Migration.

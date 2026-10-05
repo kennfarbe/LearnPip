@@ -215,6 +215,39 @@ public static class QuestionEndpoints
                 .ToArray());
     }
 
+    /// <summary>Prüft Vollständigkeit und Darstellungsgrenzen einer Frage.</summary>
+    /// <param name="request">Die zu prüfenden Inhalte.</param>
+    /// <returns>Eine Fehlermeldung oder null bei gültigem Inhalt.</returns>
+    internal static string? Validate(QuestionPublishRequest request)
+    {
+        if (request == null || request.SelectionMode is not ("single" or "multiple") ||
+            !ValidText(request.Subject, 120) || !ValidText(request.Topic, 120) ||
+            !ValidText(request.Source, 500) || !ValidText(request.License, 120) ||
+            string.IsNullOrWhiteSpace(request.Language) || request.Language.Length > 35 ||
+            !Regex.IsMatch(request.Language, "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$", RegexOptions.None, TimeSpan.FromSeconds(1)))
+        {
+            return "Selection mode and subject, topic, language, source and license are required.";
+        }
+
+        if (!ValidBlocks(request.Prompt, true) || !ValidBlocks(request.Explanation, false) ||
+            request.Answers is not { Count: >= 2 and <= 8 } ||
+            request.Answers.Any(answer => answer == null || !ValidBlocks(answer.Blocks, true) ||
+                Summary(answer.Blocks).Length > 4000) ||
+            Summary(request.Prompt).Length > 12000 || Summary(request.Explanation).Length > 12000)
+        {
+            return "Prompt, explanation and 2 to 8 answers must contain valid ordered text or image blocks.";
+        }
+
+        var correct = request.Answers.Count(answer => answer.IsCorrect);
+        if ((request.SelectionMode == "single" && correct != 1) ||
+            (request.SelectionMode == "multiple" && correct < 2))
+        {
+            return "Single choice needs one correct answer; multiple choice needs at least two.";
+        }
+
+        return null;
+    }
+
     private static async Task<IResult> ReadVersion(
         Guid id,
         int number,
@@ -394,36 +427,6 @@ public static class QuestionEndpoints
 
     private static string Summary(IEnumerable<ContentBlockInput> blocks) =>
         string.Join(" ", blocks.Select(block => block.Kind == "text" ? block.Text!.Trim() : "[Bild]"));
-
-    private static string? Validate(QuestionPublishRequest request)
-    {
-        if (request == null || request.SelectionMode is not ("single" or "multiple") ||
-            !ValidText(request.Subject, 120) || !ValidText(request.Topic, 120) ||
-            !ValidText(request.Source, 500) || !ValidText(request.License, 120) ||
-            string.IsNullOrWhiteSpace(request.Language) || request.Language.Length > 35 ||
-            !Regex.IsMatch(request.Language, "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$", RegexOptions.None, TimeSpan.FromSeconds(1)))
-        {
-            return "Selection mode and subject, topic, language, source and license are required.";
-        }
-
-        if (!ValidBlocks(request.Prompt, true) || !ValidBlocks(request.Explanation, false) ||
-            request.Answers is not { Count: >= 2 and <= 8 } ||
-            request.Answers.Any(answer => answer == null || !ValidBlocks(answer.Blocks, true) ||
-                Summary(answer.Blocks).Length > 4000) ||
-            Summary(request.Prompt).Length > 12000 || Summary(request.Explanation).Length > 12000)
-        {
-            return "Prompt, explanation and 2 to 8 answers must contain valid ordered text or image blocks.";
-        }
-
-        var correct = request.Answers.Count(answer => answer.IsCorrect);
-        if ((request.SelectionMode == "single" && correct != 1) ||
-            (request.SelectionMode == "multiple" && correct < 2))
-        {
-            return "Single choice needs one correct answer; multiple choice needs at least two.";
-        }
-
-        return null;
-    }
 
     private static bool ValidText(string? value, int max) =>
         !string.IsNullOrWhiteSpace(value) && value.Trim().Length <= max;

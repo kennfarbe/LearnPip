@@ -1,4 +1,53 @@
 export const uiEnglish: Record<string, string> = {
+  'Neue / identische / gesperrte Quellfragen': 'New / identical / blocked source questions',
+  'Neue Fragen werden in einem neuen privaten Katalog angelegt. Identische Quellfragen bleiben in ihren bisherigen Katalogen. Es wird nichts veröffentlicht. Originalpaket und neue Anzeigebilder belegen Speicherplatz.':
+    'New questions are created in a new private catalog. Identical source questions remain in their existing catalogs. Nothing is published. The original package and new display images use storage space.',
+  'Eigene Fragen als Paket exportieren': 'Export your questions as a package',
+  'Der lokale ZIP-Download enthält nur ausgewählte Frageinhalte. Konten, Lernstände und Gruppencodes werden nicht exportiert. Es wird nichts veröffentlicht.':
+    'The local ZIP contains only selected question content. Accounts, learning progress and group codes are excluded. Nothing is published.',
+  'Gespeicherte Entwürfe haben Vorrang vor veröffentlichten Fassungen. Speichere Änderungen im Editor und aktualisiere anschließend die Auswahl.':
+    'Saved drafts take precedence over published versions. Save editor changes, then refresh the selection.',
+  'Auswahl aktualisieren': 'Refresh selection',
+  'Fragen auswählen': 'Select questions',
+  'Alle eigenen Fragen': 'All your questions',
+  'Alle eigenen Fragen auswählen': 'Select all your questions',
+  'Gefilterte Fragen auswählen': 'Select filtered questions',
+  'Auswahl leeren': 'Clear selection',
+  'Fragen ausgewählt (maximal 500)': 'questions selected (maximum 500)',
+  Entwurf: 'Draft',
+  'Gespeicherte Fassung': 'Saved version',
+  Pakettitel: 'Package title',
+  'Herausgeber / Attributionsname': 'Publisher / attribution name',
+  'Diese Metadaten stehen im ZIP. Verwende keine E-Mail-Adresse oder andere vertrauliche Angaben als Attributionsnamen.':
+    'These metadata are included in the ZIP. Do not use email addresses or confidential information as attribution names.',
+  'Rechte eigener Originaltexte und Originalbilder': 'Rights for your original texts and images',
+  'Die folgenden Angaben gelten ausschließlich für eigene Originalinhalte. Importierte Originalfragen behalten ihre tatsächlichen Einzellizenzen und Quellen. Bearbeitete Importfragen oder unvollständige Drittquellennachweise sperren den Export.':
+    'These details apply only to your original content. Imported originals retain their individual licenses and sources. Edited imports or incomplete third-party evidence block export.',
+  'Lizenz eigener Texte': 'License for your texts',
+  'Rechteinhaber der Texte': 'Text rights holder',
+  'Attribution der Texte': 'Text attribution',
+  'Lizenz eigener Bilder': 'License for your images',
+  'Rechteinhaber der Bilder': 'Image rights holder',
+  'Attribution der Bilder': 'Image attribution',
+  'Lizenztexte, Lizenzverweise und Nutzungsbedingungen':
+    'License texts, references and terms of use',
+  'LicenseRef-Private ist keine offene Lizenz. Der private Export verlangt keine Community-Freigabe. Eine andere Lizenz darf nur bewusst und mit den nötigen Rechten gewählt werden; die technische Prüfung bestätigt keine rechtliche Zulässigkeit.':
+    'LicenseRef-Private is not an open license. Private export does not require community approval. Choose another license only deliberately and with the necessary rights; technical validation does not establish legal permission.',
+  'Exportvorschau prüfen': 'Check export preview',
+  Exportvorschau: 'Export preview',
+  'Ich bestätige die Exportrechte. Die als eigene Originale ausgezeichneten Texte und Bilder stammen von mir und dürfen mit diesen Angaben exportiert werden.':
+    'I confirm the export rights. Texts and images marked as my originals were created by me and may be exported with these details.',
+  'LearnPip-Paket (.zip) herunterladen': 'Download LearnPip package (.zip)',
+  'Auswahl konnte nicht geladen werden. Bitte Anmeldung prüfen.':
+    'Selection could not be loaded. Please check your sign-in.',
+  'Export geprüft. Bitte Inhalte, Lizenzen und Attribution vor dem Download kontrollieren.':
+    'Export validated. Review content, licenses and attribution before downloading.',
+  'ZIP heruntergeladen. Auf der anderen Instanz unter Fragen importieren oder Kataloge und Inhalte auswählen.':
+    'ZIP downloaded. On the other instance, choose Import questions or Catalogs and content.',
+  'Export fehlgeschlagen. Bitte Auswahl und Rechteangaben prüfen.':
+    'Export failed. Check the selection and rights information.',
+  'Fragen auswählen und exportieren': 'Select and export questions',
+  'Fragen importieren': 'Import questions',
   'Ablauf in Tagen': 'Expires in days',
   Ablehnen: 'Reject',
   'Aktivität aktualisieren': 'Refresh activity',

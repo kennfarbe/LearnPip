@@ -120,6 +120,46 @@ class CatalogContractTests(unittest.TestCase):
                 self.assertEqual(hashlib.sha256((root / name).read_bytes()).hexdigest(), digest,
                                  "Archived contract changed; add a new version instead")
 
+    def test_blocks_archive_is_frozen_and_roundtrips(self):
+        root = Path(__file__).resolve().parents[2]
+        fixture = root / "tests/fixtures/catalog/0.2.0"
+        hashes = json.loads((fixture / "contract-lock.json").read_text())
+        expected = {"tests/fixtures/catalog/0.2.0/golden.zip",
+                    "schemas/catalog/0.2.0/manifest.schema.json",
+                    "schemas/catalog/0.2.0/questions.schema.json"}
+        self.assertEqual(set(hashes), expected)
+        for name, digest in hashes.items():
+            self.assertEqual(hashlib.sha256((root / name).read_bytes()).hexdigest(), digest)
+        snapshot = read_catalog(fixture / "golden.zip")
+        question = snapshot.questions["questions"][0]
+        self.assertEqual(question["answers"][0]["blocks"][0]["kind"], "image")
+        self.assertEqual(question["explanation_blocks"][1]["kind"], "image")
+        target = Path(self.tempdir.name) / "blocks.zip"
+        write_catalog(snapshot, target)
+        restored = read_catalog(target)
+        self.assertEqual(restored.questions, snapshot.questions)
+        self.assertEqual(restored.media, snapshot.media)
+        self.assertEqual(restored.notices, snapshot.notices)
+        selected = select_from_file(target, {question["id"]})
+        self.assertEqual(selected.questions, snapshot.questions)
+
+    def test_blocks_reader_rejects_invalid_references_and_summaries(self):
+        fixture = Path(__file__).resolve().parents[1] / "fixtures/catalog/0.2.0/golden.zip"
+        for mutation in ("reference", "summary", "mode", "extra"):
+            snapshot = read_catalog(fixture)
+            question = snapshot.questions["questions"][0]
+            if mutation == "reference":
+                question["answers"][0]["blocks"][0]["path"] = "media/missing.png"
+            elif mutation == "summary":
+                question["prompt"] = "Wrong summary"
+            elif mutation == "mode":
+                question["selection_mode"] = "multiple"
+            else:
+                question["prompt_blocks"][0]["private_account"] = "not allowed"
+            with self.subTest(mutation=mutation):
+                with self.assertRaises(WriterInvalidPackage):
+                    write_catalog(snapshot, Path(self.tempdir.name) / "invalid-blocks.zip")
+
     def test_actual_golden_archive_roundtrip_and_selection(self):
         golden = (Path(__file__).resolve().parents[1] / "fixtures/catalog/0.1.0/golden.zip")
         original = golden.read_bytes()
