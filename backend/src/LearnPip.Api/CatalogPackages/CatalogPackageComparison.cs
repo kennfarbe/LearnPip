@@ -77,7 +77,7 @@ internal static class CatalogPackageComparison
             }
 
             var previousQuestion = original.Questions.Single(item => item.GetProperty("id").GetString() == sourceId);
-            var same = JsonNode.DeepEquals(Normalize(question, package.Files), Normalize(previousQuestion, original.Files));
+            var same = JsonNode.DeepEquals(Normalize(question, package.Files, package.Manifest), Normalize(previousQuestion, original.Files, original.Manifest));
             if (same)
             {
                 identical.Add(sourceId, origin.QuestionId);
@@ -91,9 +91,41 @@ internal static class CatalogPackageComparison
         return (identical, conflicts);
     }
 
-    private static JsonObject Normalize(JsonElement question, IReadOnlyDictionary<string, byte[]> files)
+    /// <summary>Ergänzt alte Originalfragen verlustfrei um die explizite Blockzuordnung.</summary>
+    /// <param name="original">Die unveränderte Quellfrage.</param>
+    /// <param name="manifest">Die ursprünglichen Paketmetadaten.</param>
+    /// <returns>Die Frage im aktuellen Entwurfsformat.</returns>
+    internal static JsonObject Promote(JsonElement original, JsonElement manifest)
     {
-        var node = JsonNode.Parse(question.GetRawText())!.AsObject();
+        var result = JsonNode.Parse(original.GetRawText())!.AsObject();
+        if (!result.ContainsKey("prompt_blocks"))
+        {
+            var origin = JsonNode.Parse(manifest.GetRawText())!.AsObject();
+            origin.Remove("files");
+            result["origin"] = origin;
+            result["subject"] = string.Concat(original.GetProperty("topics")[0].GetString()!.EnumerateRunes().Take(120));
+            result["topic"] = result["subject"]!.DeepClone();
+            result["question_version"] = manifest.GetProperty("catalog_version").GetString();
+            result["selection_mode"] = original.GetProperty("correct_answer_ids").GetArrayLength() == 1 ? "single" : "multiple";
+            result["prompt_blocks"] = new JsonArray(new JsonObject { ["kind"] = "text", ["text"] = result["prompt"]!.DeepClone() });
+            result["explanation_blocks"] = original.GetProperty("explanation").GetString()!.Length == 0 ? new JsonArray() : new JsonArray(new JsonObject { ["kind"] = "text", ["text"] = result["explanation"]!.DeepClone() });
+            foreach (var answer in result["answers"]!.AsArray())
+            {
+                answer!["blocks"] = new JsonArray(new JsonObject { ["kind"] = "text", ["text"] = answer["text"]!.DeepClone() });
+            }
+
+            foreach (var asset in result["media"]!.AsArray())
+            {
+                result["prompt_blocks"]!.AsArray().Add(new JsonObject { ["kind"] = "image", ["path"] = asset!["path"]!.DeepClone() });
+            }
+        }
+
+        return result;
+    }
+
+    private static JsonObject Normalize(JsonElement question, IReadOnlyDictionary<string, byte[]> files, JsonElement manifest)
+    {
+        var node = Promote(question, manifest);
         var paths = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var asset in question.GetProperty("media").EnumerateArray())
         {

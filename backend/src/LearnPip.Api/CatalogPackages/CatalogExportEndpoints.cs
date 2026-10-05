@@ -324,28 +324,7 @@ public static class CatalogExportEndpoints
     private static JsonObject Original(CatalogPackage package, string id, Dictionary<string, byte[]> media, Dictionary<string, string> mediaTypes)
     {
         var original = package.Questions.Single(question => question.GetProperty("id").GetString() == id);
-        var result = JsonNode.Parse(original.GetRawText())!.AsObject();
-        if (!result.ContainsKey("prompt_blocks"))
-        {
-            var origin = JsonNode.Parse(package.Manifest.GetRawText())!.AsObject();
-            origin.Remove("files");
-            result["origin"] = origin;
-            result["subject"] = string.Concat(original.GetProperty("topics")[0].GetString()!.EnumerateRunes().Take(120));
-            result["topic"] = result["subject"]!.DeepClone();
-            result["question_version"] = package.Manifest.GetProperty("catalog_version").GetString();
-            result["selection_mode"] = original.GetProperty("correct_answer_ids").GetArrayLength() == 1 ? "single" : "multiple";
-            result["prompt_blocks"] = new JsonArray(new JsonObject { ["kind"] = "text", ["text"] = result["prompt"]!.DeepClone() });
-            result["explanation_blocks"] = original.GetProperty("explanation").GetString()!.Length == 0 ? new JsonArray() : new JsonArray(new JsonObject { ["kind"] = "text", ["text"] = result["explanation"]!.DeepClone() });
-            foreach (var answer in result["answers"]!.AsArray())
-            {
-                answer!["blocks"] = new JsonArray(new JsonObject { ["kind"] = "text", ["text"] = answer["text"]!.DeepClone() });
-            }
-
-            foreach (var asset in result["media"]!.AsArray())
-            {
-                result["prompt_blocks"]!.AsArray().Add(new JsonObject { ["kind"] = "image", ["path"] = asset!["path"]!.DeepClone() });
-            }
-        }
+        var result = CatalogPackageComparison.Promote(original, package.Manifest);
 
         var rename = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var asset in result["media"]!.AsArray())

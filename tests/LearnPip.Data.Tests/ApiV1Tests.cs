@@ -890,7 +890,14 @@ public sealed class ApiV1Tests
             Assert.Equal(HttpStatusCode.OK, originalPreview.StatusCode);
             var originalHash = (await originalPreview.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data").GetProperty("previewSha256").GetString();
             using var originalDownload = await client.PostAsJsonAsync("/api/v1/catalog-exports/download", originalRequest with { PreviewSha256 = originalHash });
-            var preserved = CatalogPackageReader.Read(await originalDownload.Content.ReadAsByteArrayAsync());
+            var originalBytes = await originalDownload.Content.ReadAsByteArrayAsync();
+            var preserved = CatalogPackageReader.Read(originalBytes);
+            using var promotedPreview = await PostPackage(client, "preview", originalBytes);
+            Assert.Equal(HttpStatusCode.OK, promotedPreview.StatusCode);
+            var promoted = (await promotedPreview.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data");
+            Assert.Equal("identical", promoted.GetProperty("state").GetString());
+            Assert.Equal(1, promoted.GetProperty("identicalQuestionCount").GetInt32());
+            Assert.Equal(HttpStatusCode.OK, (await PostPackage(client, "import", originalBytes, Convert.ToHexStringLower(SHA256.HashData(originalBytes)))).StatusCode);
             var originalQuestion = Assert.Single(preserved.Questions);
             Assert.Equal("CC-BY-SA-4.0", originalQuestion.GetProperty("license").GetProperty("id").GetString());
             Assert.Equal(CatalogPackageReader.Read(old).Manifest.GetProperty("source_revision").GetString(), originalQuestion.GetProperty("origin").GetProperty("source_revision").GetString());
