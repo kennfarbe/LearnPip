@@ -14,6 +14,9 @@ interface Preview {
   sourceRevision: string;
   language: string;
   questionCount: number;
+  newQuestionCount?: number;
+  identicalQuestionCount?: number;
+  conflictQuestionCount?: number;
   mediaCount: number;
   archiveBytes: number;
   expandedBytes: number;
@@ -73,6 +76,11 @@ interface Imported {
               {{ item.questionCount }} {{ language.t('Fragen') }}, {{ item.mediaCount }}
               {{ language.t('Medien') }}
             </dd>
+            <dt>{{ language.t('Neue / identische / gesperrte Quellfragen') }}</dt>
+            <dd>
+              {{ item.newQuestionCount ?? item.questionCount }} /
+              {{ item.identicalQuestionCount ?? 0 }} / {{ item.conflictQuestionCount ?? 0 }}
+            </dd>
             <dt>{{ language.t('Archivgröße / entpackte Originaldateien') }}</dt>
             <dd>{{ size(item.archiveBytes) }} / {{ size(item.expandedBytes) }}</dd>
             <dt>{{ language.t('Themen') }}</dt>
@@ -113,7 +121,7 @@ interface Imported {
             <p>
               {{
                 language.t(
-                  'Alle Fragen werden in einem neuen privaten Katalog angelegt. Es wird nichts veröffentlicht. Originalpaket und Anzeigebilder belegen Speicherplatz; Bilder werden für die Anzeige bereinigt.'
+                  'Neue Fragen werden in einem neuen privaten Katalog angelegt. Identische Quellfragen bleiben in ihren bisherigen Katalogen. Es wird nichts veröffentlicht. Originalpaket und neue Anzeigebilder belegen Speicherplatz.'
                 )
               }}
             </p>

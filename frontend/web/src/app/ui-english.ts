@@ -1,4 +1,53 @@
 export const uiEnglish: Record<string, string> = {
+  'Neue / identische / gesperrte Quellfragen': 'New / identical / blocked source questions',
+  'Neue Fragen werden in einem neuen privaten Katalog angelegt. Identische Quellfragen bleiben in ihren bisherigen Katalogen. Es wird nichts veröffentlicht. Originalpaket und neue Anzeigebilder belegen Speicherplatz.':
+    'New questions are created in a new private catalog. Identical source questions remain in their existing catalogs. Nothing is published. The original package and new display images use storage space.',
+  'Eigene Fragen als Paket exportieren': 'Export your questions as a package',
+  'Der lokale ZIP-Download enthält nur ausgewählte Frageinhalte. Konten, Lernstände und Gruppencodes werden nicht exportiert. Es wird nichts veröffentlicht.':
+    'The local ZIP contains only selected question content. Accounts, learning progress and group codes are excluded. Nothing is published.',
+  'Gespeicherte Entwürfe haben Vorrang vor veröffentlichten Fassungen. Speichere Änderungen im Editor und aktualisiere anschließend die Auswahl.':
+    'Saved drafts take precedence over published versions. Save editor changes, then refresh the selection.',
+  'Auswahl aktualisieren': 'Refresh selection',
+  'Fragen auswählen': 'Select questions',
+  'Alle eigenen Fragen': 'All your questions',
+  'Alle eigenen Fragen auswählen': 'Select all your questions',
+  'Gefilterte Fragen auswählen': 'Select filtered questions',
+  'Auswahl leeren': 'Clear selection',
+  'Fragen ausgewählt (maximal 500)': 'questions selected (maximum 500)',
+  Entwurf: 'Draft',
+  'Gespeicherte Fassung': 'Saved version',
+  Pakettitel: 'Package title',
+  'Herausgeber / Attributionsname': 'Publisher / attribution name',
+  'Diese Metadaten stehen im ZIP. Verwende keine E-Mail-Adresse oder andere vertrauliche Angaben als Attributionsnamen.':
+    'These metadata are included in the ZIP. Do not use email addresses or confidential information as attribution names.',
+  'Rechte eigener Originaltexte und Originalbilder': 'Rights for your original texts and images',
+  'Die folgenden Angaben gelten ausschließlich für eigene Originalinhalte. Importierte Originalfragen behalten ihre tatsächlichen Einzellizenzen und Quellen. Bearbeitete Importfragen oder unvollständige Drittquellennachweise sperren den Export.':
+    'These details apply only to your original content. Imported originals retain their individual licenses and sources. Edited imports or incomplete third-party evidence block export.',
+  'Lizenz eigener Texte': 'License for your texts',
+  'Rechteinhaber der Texte': 'Text rights holder',
+  'Attribution der Texte': 'Text attribution',
+  'Lizenz eigener Bilder': 'License for your images',
+  'Rechteinhaber der Bilder': 'Image rights holder',
+  'Attribution der Bilder': 'Image attribution',
+  'Lizenztexte, Lizenzverweise und Nutzungsbedingungen':
+    'License texts, references and terms of use',
+  'LicenseRef-Private ist keine offene Lizenz. Der private Export verlangt keine Community-Freigabe. Eine andere Lizenz darf nur bewusst und mit den nötigen Rechten gewählt werden; die technische Prüfung bestätigt keine rechtliche Zulässigkeit.':
+    'LicenseRef-Private is not an open license. Private export does not require community approval. Choose another license only deliberately and with the necessary rights; technical validation does not establish legal permission.',
+  'Exportvorschau prüfen': 'Check export preview',
+  Exportvorschau: 'Export preview',
+  'Ich bestätige die Exportrechte. Die als eigene Originale ausgezeichneten Texte und Bilder stammen von mir und dürfen mit diesen Angaben exportiert werden.':
+    'I confirm the export rights. Texts and images marked as my originals were created by me and may be exported with these details.',
+  'LearnPip-Paket (.zip) herunterladen': 'Download LearnPip package (.zip)',
+  'Auswahl konnte nicht geladen werden. Bitte Anmeldung prüfen.':
+    'Selection could not be loaded. Please check your sign-in.',
+  'Export geprüft. Bitte Inhalte, Lizenzen und Attribution vor dem Download kontrollieren.':
+    'Export validated. Review content, licenses and attribution before downloading.',
+  'ZIP heruntergeladen. Auf der anderen Instanz unter Fragen importieren oder Kataloge und Inhalte auswählen.':
+    'ZIP downloaded. On the other instance, choose Import questions or Catalogs and content.',
+  'Export fehlgeschlagen. Bitte Auswahl und Rechteangaben prüfen.':
+    'Export failed. Check the selection and rights information.',
+  'Fragen auswählen und exportieren': 'Select and export questions',
+  'Fragen importieren': 'Import questions',
   'Ablauf in Tagen': 'Expires in days',
   Ablehnen: 'Reject',
   'Aktivität aktualisieren': 'Refresh activity',
@@ -193,113 +242,4 @@ export const uiEnglish: Record<string, string> = {
   'Offiziellen Katalog und Profilfassungen verwalten':
     'Manage official catalog and profile versions',
   'Ohne KI selbst erfassen': 'Enter manually without AI',
-  'Ohne Katalog': 'No catalog',
-  'Optionale KI-Unterstützung': 'Optional AI assistance',
-  'Optionaler Prüfungstermin': 'Optional exam date',
-  Originalfragen: 'Original questions',
-  'Pausentage (Datum, kommagetrennt)': 'Break days (comma separated dates)',
-  'Persönliche Daten': 'Personal data',
-  'Persönliche Daten geprüft': 'Personal data checked',
-  'Planungshorizont in Tagen': 'Planning horizon in days',
-  'Posteingang aktualisieren': 'Refresh inbox',
-  Powertest: 'Power test',
-  'Powertest fortsetzen': 'Resume power test',
-  'Powertest starten': 'Start power test',
-  'Privat speichern': 'Save privately',
-  'Private Bilder': 'Private images',
-  'Private Kataloge': 'Private catalogs',
-  'Private Vorschau prüfen': 'Review private preview',
-  'Privater Entwurf gespeichert. Er ist oben im Frageneditor geöffnet; Veröffentlichung und öffentliche Einreichung sind eigene Schritte.':
-    'Private draft saved and opened in the question editor above. Publishing and public submission are separate steps.',
-  'Privates Bild verwerfen': 'Discard private image',
-  'Problem melden': 'Report problem',
-  Profilfassung: 'Profile version',
-  'Profilfassung (JSON)': 'Profile version (JSON)',
-  'Profilfassung speichern': 'Save profile version',
-  Prüfungssimulation: 'Exam simulation',
-  'Prüfungsziel planen': 'Plan an exam goal',
-  'Punkte gibt es für bewusstes Üben und Erklärungen, begrenzt pro Inhalt und Tag. Die Antwortgeschwindigkeit zählt nicht.':
-    'Points reward deliberate practice and reading explanations, with limits per content and day. Answer speed does not count.',
-  Quelle: 'Source',
-  Rechte: 'Rights',
-  Regelquelle: 'Rules source',
-  Richtig: 'Correct',
-  Schließen: 'Close',
-  'Schlüssel löschen': 'Delete key',
-  'Schlüssel speichern/ersetzen': 'Save or replace key',
-  'Schultage (halbe verfügbare Lernzeit)': 'School days (half the available study time)',
-  'Schwierigkeiten überwunden': 'Difficulties overcome',
-  Schätzen: 'Estimate',
-  'Simulation fortsetzen': 'Resume simulation',
-  'Simulation starten': 'Start simulation',
-  Sonstiges: 'Other',
-  Sprache: 'Language',
-  Stoffumfang: 'Material volume',
-  'Tageslimit in Minuten': 'Daily limit in minutes',
-  'Teile einen eigenen Katalog mit deiner Gruppe. Ein Einladungscode dient nur zum Beitritt.':
-    'Share your own catalog with your group. An invitation code only grants membership.',
-  Terminquelle: 'Date source',
-  'Text für den gewählten Anbieter': 'Text for the selected provider',
-  Thema: 'Topic',
-  Umbenennen: 'Rename',
-  'Ungeprüfter Vorschlag. Unleserliche Zeichen, Formeln und Zeichnungen im Foto vergleichen.':
-    'Unverified suggestion. Compare illegible characters, formulas and drawings with the photo.',
-  Unklar: 'Unclear',
-  Urheberangabe: 'Author credit',
-  Varianten: 'Variants',
-  'Version zurückziehen': 'Withdraw version',
-  Volljährig: 'Adult',
-  'Von mir als richtig geprüft': 'I checked this answer as correct',
-  'Vorschau der einzureichenden Fassung': 'Preview of the version to submit',
-  'Weitere Aufgabe erfassen': 'Add another question',
-  'Wähle zwei Größen aus. Die dritte wird grob geschätzt; es gibt keine Erfolgsgarantie.':
-    'Choose two values. The third is estimated roughly; there is no guarantee of success.',
-  'Zeichnung/Bildbeschreibung': 'Drawing / image description',
-  'Zu schätzende Größe': 'Value to estimate',
-  'Zugeschnittenes Bild privat gespeichert.': 'Cropped image saved privately.',
-  'Zuschnitt anzeigen': 'Preview crop',
-  'Zuschnitt privat hochladen': 'Upload crop privately',
-  'Zuschnitt und Vorschau entstehen zuerst auf deinem Gerät. Das zugeschnittene Foto wird nur nach deiner Freigabe in deinem privaten Konto gespeichert. Eine KI-Auswertung ist optional.':
-    'Crop and preview are created on your device. The cropped photo is stored in your private account only after you approve it. AI analysis is optional.',
-  'Öffentliche Einreichung vorbereiten und Vorschau anzeigen':
-    'Prepare public submission and show preview',
-  'Öffentliche Einreichungen prüfen': 'Review public submissions',
-  'Überarbeitung anfordern': 'Request changes',
-  'Fragenpaket importieren': 'Import question package',
-  'Wähle eine lokale LearnPip-ZIP-Datei. Der Import bleibt privat und benötigt keinen externen Dienst.':
-    'Choose a local LearnPip ZIP file. The import remains private and needs no external service.',
-  'LearnPip-Paket (.zip, maximal 25 MiB)': 'LearnPip package (.zip, maximum 25 MiB)',
-  'Importvorschau prüfen': 'Review import preview',
-  Paketversion: 'Package version',
-  Formatversion: 'Format version',
-  Quellenstand: 'Source revision',
-  'Archivgröße / entpackte Originaldateien': 'Archive size / unpacked original files',
-  Inhalt: 'Contents',
-  Medien: 'Media',
-  Themen: 'Topics',
-  'Lizenzen, Quellen und Attribution prüfen': 'Review licenses, sources and attribution',
-  'Dieses Paket wurde geändert. Der Import ist gesperrt, damit vorhandene Fragen und Lernstände erhalten bleiben. Kontrollierte Paketupdates sind noch nicht verfügbar.':
-    'This package has changed. Import is blocked to preserve existing questions and progress. Controlled package updates are not yet available.',
-  'Dieses Paket wurde bereits importiert. Es werden keine Duplikate angelegt; eigene Änderungen bleiben erhalten.':
-    'This package has already been imported. No duplicates will be created; your changes are preserved.',
-  'Alle Fragen werden in einem neuen privaten Katalog angelegt. Es wird nichts veröffentlicht. Originalpaket und Anzeigebilder belegen Speicherplatz; Bilder werden für die Anzeige bereinigt.':
-    'All questions will be added to a new private catalog. Nothing will be published. The original package and display images use storage; images are sanitized for display.',
-  'Ich habe die Lizenzangaben geprüft und darf diese Inhalte privat nutzen.':
-    'I have reviewed the licenses and may use these contents privately.',
-  'Import bestätigen': 'Confirm import',
-  'Importierte Fragen anzeigen': 'Show imported questions',
-  'Importierte Originalpakete': 'Imported original packages',
-  'Der Download enthält das unveränderte Originalpaket mit sämtlichen Lizenz- und Quellenangaben. Spätere Änderungen in LearnPip sind darin nicht enthalten.':
-    'The download contains the unchanged original package with all license and source information. Later changes in LearnPip are not included.',
-  'Originalpaket herunterladen': 'Download original package',
-  'Bitte eine ZIP-Datei von maximal 25 MiB auswählen.':
-    'Please choose a ZIP file of no more than 25 MiB.',
-  'Paket geprüft. Bitte die Vorschau und Lizenzangaben lesen.':
-    'Package checked. Please review the preview and licenses.',
-  'Fragenpaket privat importiert. Es wurde nichts veröffentlicht.':
-    'Question package imported privately. Nothing was published.',
-  'Paket konnte nicht verarbeitet werden. Bitte Anmeldung und Datei prüfen.':
-    'The package could not be processed. Please check your session and file.',
-  'Paket konnte nicht verarbeitet werden.': 'The package could not be processed.',
-  'Paket wird verarbeitet …': 'Processing package …',
-};
+  'Ohne Kat

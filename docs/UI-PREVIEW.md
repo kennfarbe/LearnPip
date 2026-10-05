@@ -15,8 +15,11 @@ Darunter wird der persönliche Lernfortschritt zusammengefasst.
 
 Fragen lassen sich suchen und nach Katalog oder Fassungsstatus filtern.
 Der Editor zeigt die ausgewählte Frage und ihre Antwortmöglichkeiten.
+Darunter liegen die aufklappbaren Bereiche für lokale Exportauswahl und Import.
+Der Export bietet kombinierte Filter, eine Lizenzvorschau und einen bestätigten
+ZIP-Download ohne öffentliche Veröffentlichung.
 
-![Frageneditor mit der Mathematikfrage „Was ergibt 2 + 2?“, den Antworten Vier und Fünf sowie Such- und Filterfeldern für eigene Fragen.](screenshots/question-editor.png)
+![Frageneditor mit der Mathematikfrage „Was ergibt 2 + 2?“, den Antworten Vier und Fünf sowie Such- und Filterfeldern für eigene Fragen und aufklappbaren Bereichen für Export und Import.](screenshots/question-editor.png)
 
 ## Kataloge und Inhalte
 
