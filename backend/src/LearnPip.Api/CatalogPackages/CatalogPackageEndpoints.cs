@@ -147,9 +147,13 @@ public static class CatalogPackageEndpoints
             var ids = CatalogPackageImporter.AddQuestions(db, package, images, owner, catalog);
             db.CatalogPackageImports.Add(new CatalogPackageImport
             {
-                OwnerAccountId = owner, PrivateCatalogId = catalog.Id, PackageId = packageId,
+                OwnerAccountId = owner,
+                PrivateCatalogId = catalog.Id,
+                PackageId = packageId,
                 CatalogVersion = package.Manifest.GetProperty("catalog_version").GetString()!,
-                Fingerprint = package.Fingerprint, Archive = package.Archive, QuestionIdsJson = JsonSerializer.Serialize(ids),
+                Fingerprint = package.Fingerprint,
+                Archive = package.Archive,
+                QuestionIdsJson = JsonSerializer.Serialize(ids),
             });
             await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);

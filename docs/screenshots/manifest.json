@@ -1,5 +1,5 @@
 {
-  "sourceHash": "cd8bed64f0bec2ae79384b0980311049622dd08d7cc59f81e2332d7f4e4ffc18",
+  "sourceHash": "181298a880a1dd8d2ac00484e6755fe0b878b77b4b6701a0911a2bdd8e2bdfe0",
   "images": {
     "overview.png": {
       "sha256": "85c93c29333540c6ef47a074db31524561829bc2900a9a4161e4123a2ff8f1b4",
@@ -12,9 +12,9 @@
       "height": 2595
     },
     "catalogs.png": {
-      "sha256": "550b05465763a2df6e8f87dc7eed5fc2638a93526133d676b047ee2c79cbe5e5",
+      "sha256": "898aeeec9e9b2ccbab69252e4776ae82d2308bfb4712cdffdff75915f23b8349",
       "width": 1440,
-      "height": 1347
+      "height": 1689
     },
     "learning-mobile-dark.png": {
       "sha256": "755c986e740aace9e037b0ccfb3d5dbb79e08afb2a55a8b1bdbffe8b8fb3368e",

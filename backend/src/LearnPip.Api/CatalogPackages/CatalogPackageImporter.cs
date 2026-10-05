@@ -97,11 +97,17 @@ public static class CatalogPackageImporter
             db.QuestionVersions.Add(version);
             db.QuestionContentBlocks.Add(new QuestionContentBlock
             {
-                QuestionVersionId = version.Id, Section = "prompt", Kind = "text", Text = version.Prompt,
+                QuestionVersionId = version.Id,
+                Section = "prompt",
+                Kind = "text",
+                Text = version.Prompt,
             });
             db.QuestionContentBlocks.Add(new QuestionContentBlock
             {
-                QuestionVersionId = version.Id, Section = "explanation", Kind = "text", Text = version.Explanation,
+                QuestionVersionId = version.Id,
+                Section = "explanation",
+                Kind = "text",
+                Text = version.Explanation,
             });
             var correct = original.GetProperty("correct_answer_ids").EnumerateArray().Select(answer => answer.GetString()).ToHashSet(StringComparer.Ordinal);
             var index = 0;
@@ -109,14 +115,18 @@ public static class CatalogPackageImporter
             {
                 var option = new AnswerOption
                 {
-                    QuestionVersionId = version.Id, SortOrder = index++,
+                    QuestionVersionId = version.Id,
+                    SortOrder = index++,
                     IsCorrect = correct.Contains(answer.GetProperty("id").GetString()),
                     Text = answer.GetProperty("text").GetString()!,
                 };
                 db.AnswerOptions.Add(option);
                 db.QuestionContentBlocks.Add(new QuestionContentBlock
                 {
-                    AnswerOptionId = option.Id, Section = "answer", Kind = "text", Text = option.Text,
+                    AnswerOptionId = option.Id,
+                    Section = "answer",
+                    Kind = "text",
+                    Text = option.Text,
                 });
             }
 
@@ -126,16 +136,22 @@ public static class CatalogPackageImporter
                 var path = asset.GetProperty("path").GetString()!;
                 var image = new MediaAsset
                 {
-                    OwnerAccountId = owner, QuestionVersionId = version.Id,
-                    StorageKey = $"postgres/{Guid.NewGuid():N}", MediaType = MediaType(path),
-                    AltText = asset.GetProperty("alt").GetString()!, ByteLength = images[path].Length,
+                    OwnerAccountId = owner,
+                    QuestionVersionId = version.Id,
+                    StorageKey = $"postgres/{Guid.NewGuid():N}",
+                    MediaType = MediaType(path),
+                    AltText = asset.GetProperty("alt").GetString()!,
+                    ByteLength = images[path].Length,
                 };
                 db.MediaAssets.Add(image);
                 db.MediaBlobs.Add(new MediaBlob { MediaAssetId = image.Id, Data = images[path] });
                 db.QuestionContentBlocks.Add(new QuestionContentBlock
                 {
-                    QuestionVersionId = version.Id, Section = "prompt", SortOrder = index++,
-                    Kind = "image", MediaAssetId = image.Id,
+                    QuestionVersionId = version.Id,
+                    Section = "prompt",
+                    SortOrder = index++,
+                    Kind = "image",
+                    MediaAssetId = image.Id,
                 });
             }
 

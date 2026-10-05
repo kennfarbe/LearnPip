@@ -80,8 +80,11 @@ public sealed class AccountLifecycleTests
                 db.MediaBlobs.Add(new MediaBlob { MediaAssetId = mediaId, Data = [1, 2, 3] });
                 db.CatalogPackageImports.Add(new CatalogPackageImport
                 {
-                    OwnerAccountId = accountId, PackageId = "synthetic.lifecycle",
-                    CatalogVersion = "1.0.0", Fingerprint = new string('a', 64), Archive = [1, 2, 3],
+                    OwnerAccountId = accountId,
+                    PackageId = "synthetic.lifecycle",
+                    CatalogVersion = "1.0.0",
+                    Fingerprint = new string('a', 64),
+                    Archive = [1, 2, 3],
                 });
                 await db.SaveChangesAsync();
             }
@@ -187,8 +190,11 @@ public sealed class AccountLifecycleTests
                 db.MediaBlobs.Add(new MediaBlob { MediaAssetId = mediaId, Data = [1, 2, 3] });
                 db.CatalogPackageImports.Add(new CatalogPackageImport
                 {
-                    OwnerAccountId = accountId, PackageId = "synthetic.lifecycle",
-                    CatalogVersion = "1.0.0", Fingerprint = new string('a', 64), Archive = [1, 2, 3],
+                    OwnerAccountId = accountId,
+                    PackageId = "synthetic.lifecycle",
+                    CatalogVersion = "1.0.0",
+                    Fingerprint = new string('a', 64),
+                    Archive = [1, 2, 3],
                 });
                 await db.SaveChangesAsync();
             }
