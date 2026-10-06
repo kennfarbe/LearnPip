@@ -10,7 +10,9 @@ using LearnPip.Api.Administration;
 using LearnPip.Api.Identity;
 using LearnPip.Data;
 using LearnPip.Data.Domain;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
@@ -182,6 +184,32 @@ public sealed class IdentityFlowTests
             Assert.Equal(
                 expectedResult5,
                 actualResult6);
+
+            // Isolate freshness checks from the separate rate-limit regression below.
+            using var freshnessFactory = factory.WithWebHostBuilder(_ => { });
+            using var stale = ClientFor(freshnessFactory, created.Session.Token);
+            Assert.Equal(HttpStatusCode.Forbidden, (await stale.PostAsync("/api/v1/auth/recovery/rotate", null)).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await stale.PostAsJsonAsync("/api/v1/auth/email/link/start", new EmailStartRequest("fresh@example.org"))).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await stale.PostAsJsonAsync("/api/v1/auth/email/link/complete", new EmailCompleteRequest("fresh@example.org", "000000"))).StatusCode);
+            foreach (var path in new[] { "/oidc/link/start", "/oidc/apple/link/start", "/github/link/start", "/facebook/link/start" })
+            {
+                Assert.Equal(HttpStatusCode.Forbidden, (await stale.GetAsync("/api/v1/auth" + path)).StatusCode);
+            }
+
+            Assert.Equal(HttpStatusCode.Forbidden, (await stale.DeleteAsync("/api/v1/auth/providers/apple/link")).StatusCode);
+            await using (var db = new LearnPipDbContext(options))
+            {
+                Assert.Empty(await db.EmailLoginCodes.ToListAsync());
+                Assert.Single(await db.Questions.Where(question => question.OwnerAccountId == created.AccountId).ToListAsync());
+                using var scope = freshnessFactory.Services.CreateScope();
+                var callback = new DefaultHttpContext { RequestServices = scope.ServiceProvider };
+                var properties = new AuthenticationProperties();
+                properties.Items[OidcSetup.LinkSessionKey] = (await db.AccountSessions.SingleAsync()).Id.ToString();
+                await ExternalLoginCompletion.CompleteAsync(callback, properties, "https://appleid.apple.com", "stale-subject", "/");
+                Assert.Equal(StatusCodes.Status401Unauthorized, callback.Response.StatusCode);
+                Assert.Empty(await db.ExternalIdentities.ToListAsync());
+            }
+
             var recoveredResponse = await anonymous.PostAsJsonAsync(
                 "/api/v1/auth/recovery",
                 new RecoveryRequest(created.RecoverySecret));

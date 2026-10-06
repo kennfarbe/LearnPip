@@ -48,6 +48,8 @@ public static class ExternalLoginCompletion
                 .Where(session => session.Id == sessionId &&
                                   session.RevokedAtUtc == null &&
                                   session.ExpiresAtUtc > now &&
+                                  session.CreatedAtUtc >= now.AddMinutes(-15) &&
+                                  session.Account.DisabledAtUtc == null &&
                                   session.Account.DeletedAtUtc == null)
                 .Select(session => (Guid?)session.AccountId)
                 .SingleOrDefaultAsync(context.RequestAborted);

@@ -92,3 +92,7 @@ keinen Test mit einem tatsächlichen Screenreader. Diese Abnahme ist noch offen:
 Grundlagen sind [WCAG 2.2](https://www.w3.org/TR/WCAG22/) sowie die WAI-Anleitungen
 für [Seitenstruktur](https://www.w3.org/WAI/tutorials/page-structure/) und
 [Formulare](https://www.w3.org/WAI/tutorials/forms/).
+
+Die vollständige Kernablauf- und Rechtsprüfung steht im
+[Abnahmeprotokoll](ACCESSIBILITY-ACCEPTANCE.md). Eine Projektfreigabe ersetzt
+keinen noch nicht ausgeführten Screenreader-Test.

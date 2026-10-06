@@ -65,7 +65,7 @@ public sealed class ResourceAuthorizationHandler(LearnPipDbContext dbContext) :
                     (group.OwnerAccountId == accountId ||
                      await dbContext.GroupMemberships.AsNoTracking()
                          .AnyAsync(member => member.StudyGroupId == group.Id && member.AccountId == accountId)):
-                case FreshAdminSessionRequirement when
+                case FreshIdentitySessionRequirement or FreshAdminSessionRequirement when
                     SessionAuthentication.TryGetSessionId(context.User, out var sessionId) &&
                     await dbContext.AccountSessions.AsNoTracking().AnyAsync(session =>
                         session.Id == sessionId && session.AccountId == accountId &&
