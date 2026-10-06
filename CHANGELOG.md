@@ -1,3 +1,22 @@
+# [1.14.0](https://github.com/kennfarbe/LearnPip/compare/v1.13.1...v1.14.0) (2026-10-06)
+
+
+### Bug Fixes
+
+* **catalog:** recognize unchanged legacy questions after re-export ([0a59583](https://github.com/kennfarbe/LearnPip/commit/0a595837ba85c68eb1f1b3a9856ff90ab49fb826))
+* **catalog:** retain original revision and media metadata and verify complete file transfer ([cc143f8](https://github.com/kennfarbe/LearnPip/commit/cc143f8ea0750c128dda2b215b8fe4138bcbf9b6))
+* **catalog:** reuse identical source questions across overlapping imports ([a3ec16c](https://github.com/kennfarbe/LearnPip/commit/a3ec16cbc5b0e35401d885f94dee4d5575771a23))
+* **catalog:** verify cache semantics and complete import lifecycle handling ([e47d4e4](https://github.com/kennfarbe/LearnPip/commit/e47d4e4f52a07ee07bc8292642f319a4ccf45627))
+* **identity:** require fresh authentication when changing login methods ([36a5364](https://github.com/kennfarbe/LearnPip/commit/36a5364dcbb18f891d0a6376f871063c5e7dd91d))
+
+
+### Features
+
+* **catalog:** add confirmed transactional private ZIP imports ([896fb7a](https://github.com/kennfarbe/LearnPip/commit/896fb7a296c3b56ba5d4e97c372fc8b4263dd21e))
+* **catalog:** export selected private questions with ordered content blocks ([764eee8](https://github.com/kennfarbe/LearnPip/commit/764eee80dd6d5aa27b534e680c692774aa257145))
+* **web:** add filtered package export and explicit rights preview ([b0d162c](https://github.com/kennfarbe/LearnPip/commit/b0d162c223d10cadda68cab9e27539c8904e906b))
+* **web:** add private package preview and import consent ([ad03919](https://github.com/kennfarbe/LearnPip/commit/ad03919286416c37acf7c8177f8c095e0406cdc6))
+
 ## [1.13.1](https://github.com/kennfarbe/LearnPip/compare/v1.13.0...v1.13.1) (2026-10-05)
 
 
