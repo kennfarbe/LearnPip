@@ -4,6 +4,7 @@ set -euo pipefail
 base="${RUNNER_TEMP:?}/learnpip-override-trial"
 mkdir -p "$base"
 cp package.json package-lock.json "$base/"
+[[ ! -f .npmrc ]] || cp .npmrc "$base/"
 python3 - "$base/package.json" <<'PY'
 import json
 from pathlib import Path

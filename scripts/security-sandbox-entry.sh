@@ -14,6 +14,7 @@ if [[ ${1:?} == npm ]]; then
     done
   done
   cp source/package.json source/package-lock.json .
+  [[ ! -f source/.npmrc ]] || cp source/.npmrc .
   bash scripts/try-security-overrides.sh
   exit "$status"
 fi

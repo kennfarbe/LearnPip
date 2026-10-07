@@ -39,6 +39,7 @@ fi
 trial="$private_dir/fix-trial"
 mkdir -p "$trial"
 cp "$directory/package.json" "$directory/package-lock.json" "$trial/"
+[[ ! -f "$directory/.npmrc" ]] || cp "$directory/.npmrc" "$trial/"
 fix_status=0
 (cd "$trial" && npm audit fix --package-lock-only --ignore-scripts --no-fund --json) > "$private_dir/npm-fix-private.json" 2> "$private_dir/npm-fix-stderr.log" || fix_status=$?
 if (( fix_status > 1 )); then
