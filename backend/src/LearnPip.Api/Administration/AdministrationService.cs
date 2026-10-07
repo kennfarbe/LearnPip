@@ -113,7 +113,7 @@ public sealed class AdministrationService(LearnPipDbContext db)
         if (!grant && code == "admin" && !await db.AccountRoles.AnyAsync(
             item =>
                 item.AccountId != targetId && item.RoleDefinition.Scope == "system" &&
-                item.RoleDefinition.Code == "admin" && item.Account.DeletedAtUtc == null,
+                item.RoleDefinition.Code == "admin" && item.Account.DeletedAtUtc == null && item.Account.DisabledAtUtc == null,
             cancellationToken))
         {
             return "last_admin";

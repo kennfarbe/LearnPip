@@ -343,12 +343,15 @@ public static class AuthEndpoints
 
     private static async Task<IResult> GetCapabilities(
         ClaimsPrincipal principal,
-        IAuthorizationService authorization)
+        IAuthorizationService authorization,
+        LearnPipDbContext db,
+        CancellationToken cancellationToken)
     {
         var administration = await authorization.AuthorizeAsync(principal, null, ApiPolicies.Admin);
-        var moderation = await authorization.AuthorizeAsync(principal, null, ApiPolicies.Moderation);
+        var moderation = AccountIdentity.TryGetAccountId(principal, out var accountId) &&
+            await QuestionPermissions.Allows(db, accountId, "readForeign", cancellationToken);
         return Results.Ok(new ApiResponse<ApplicationCapabilities>(
-            new ApplicationCapabilities(administration.Succeeded, moderation.Succeeded)));
+            new ApplicationCapabilities(administration.Succeeded, moderation)));
     }
 
     private static async Task<IResult> Logout(

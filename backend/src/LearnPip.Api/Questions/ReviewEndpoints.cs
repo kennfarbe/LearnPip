@@ -23,11 +23,11 @@ public static class ReviewEndpoints
     public static IEndpointRouteBuilder MapReviewEndpoints(this IEndpointRouteBuilder app)
     {
         var learning = app.MapGroup("/api/v1/learning").WithTags("Adaptive review")
-            .RequireAuthorization(ApiPolicies.ActiveAccount);
+            .RequireAuthorization(ApiPolicies.ActiveAccount).RequireQuestionPermissions("readOwn");
         learning.MapGet("/review", Read);
         learning.MapPut("/contents/{id:guid}/often-for-me", AddFrequent);
         learning.MapDelete("/contents/{id:guid}/often-for-me", RemoveFrequent);
-        learning.MapPut("/questions/{id:guid}/content", AssignContent);
+        learning.MapPut("/questions/{id:guid}/content", AssignContent).RequireQuestionPermissions("editOwn");
         return app;
     }
 
@@ -43,8 +43,10 @@ public static class ReviewEndpoints
         Guid accountId,
         CancellationToken cancellationToken)
     {
+        var readable = QuestionAccess.ReadableVersions(db, accountId).Select(version => version.Id);
         var candidates = await db.Questions.AsNoTracking()
-            .Where(question => question.OwnerAccountId == accountId && question.DeletedAtUtc == null)
+            .Where(question => question.OwnerAccountId == accountId && question.DeletedAtUtc == null &&
+                question.Versions.Any(version => readable.Contains(version.Id)))
             .Select(question => new
             {
                 question.Id,

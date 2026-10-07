@@ -3,6 +3,7 @@
 // </copyright>
 
 using System.Security.Claims;
+using System.Text.Json;
 using LearnPip.Api.Security;
 using LearnPip.Data;
 using LearnPip.Data.Domain;
@@ -31,14 +32,16 @@ public static class CommunityFeedbackEndpoints
         feedback.MapDelete("/helpful", RemoveVote);
 
         var moderation = app.MapGroup("/api/v1/moderation/feedback")
-            .WithTags("Question feedback moderation").RequireAuthorization(ApiPolicies.Moderation);
+            .WithTags("Question feedback moderation").RequireAuthorization(ApiPolicies.ActiveAccount)
+            .RequireQuestionPermissions("readForeign", "readPrivate", "reports");
         moderation.MapGet("/", Inbox);
         moderation.MapGet("/{versionId:guid}", Detail);
         moderation.MapPost("/{versionId:guid}/actions", Act);
 
         // Sensitive questions stay separate from ordinary learning endpoints.
         var questions = app.MapGroup("/api/v1/moderation/questions")
-            .WithTags("Private question moderation").RequireAuthorization(ApiPolicies.Moderation);
+            .WithTags("Private question moderation").RequireAuthorization(ApiPolicies.ActiveAccount)
+            .RequireQuestionPermissions("readForeign");
         questions.MapPost("/browse", BrowseForModeration).RequireRateLimiting("content-write");
         questions.MapPost("/{versionId:guid}/inspect", InspectForModeration)
             .RequireRateLimiting("content-write");
@@ -66,24 +69,30 @@ public static class CommunityFeedbackEndpoints
             return Invalid("reason", "Provide a moderation purpose (10-500 characters) and page 0-1000.");
         }
 
-        var items = await db.QuestionVersions.AsNoTracking()
-            .Where(version => version.Question.DeletedAtUtc == null &&
-                !db.QuestionVersions.Any(other =>
-                    other.QuestionId == version.QuestionId &&
-                    other.VersionNumber > version.VersionNumber))
-            .OrderBy(version => version.QuestionId)
-            .Select(version => new
+        var privateAccess = await QuestionPermissions.Allows(db, moderatorId, "readPrivate", cancellationToken);
+        var rows = await db.Questions.AsNoTracking().Include(question => question.Draft).Include(question => question.Versions)
+            .Where(question => question.DeletedAtUtc == null && (privateAccess || question.Versions.Any(version =>
+                version.Visibility == "public" && db.PublicSubmissions.Any(submission => submission.QuestionVersionId == version.Id && submission.Status == "approved"))))
+            .OrderBy(question => question.Id).Skip(input.Page * 50).Take(50).ToListAsync(cancellationToken);
+        var questionIds = rows.Select(question => question.Id).ToArray();
+        var approved = privateAccess ? Array.Empty<Guid>() : await db.PublicSubmissions.AsNoTracking()
+            .Where(submission => questionIds.Contains(submission.QuestionVersion.QuestionId) && submission.Status == "approved" && submission.QuestionVersion.Visibility == "public")
+            .Select(submission => submission.QuestionVersionId).ToArrayAsync(cancellationToken);
+        var items = rows.Select(question =>
+        {
+            var version = question.Versions.Where(version => privateAccess || approved.Contains(version.Id))
+                .MaxBy(version => version.VersionNumber);
+            var draft = question.Draft == null ? null : JsonSerializer.Deserialize<QuestionPublishRequest>(question.Draft.PayloadJson);
+            return new
             {
-                version.QuestionId,
-                VersionId = version.Id,
-                version.VersionNumber,
-                version.Visibility,
-                version.Subject,
-                version.Topic,
-            })
-            .Skip(input.Page * 50)
-            .Take(50)
-            .ToListAsync(cancellationToken);
+                QuestionId = question.Id,
+                VersionId = version?.Id ?? question.Id,
+                VersionNumber = version?.VersionNumber ?? 0,
+                Visibility = version?.Visibility ?? "private",
+                Subject = version?.Subject ?? draft?.Subject ?? "Entwurf",
+                Topic = version?.Topic ?? draft?.Topic ?? "Unvollständige Frage",
+            };
+        }).ToArray();
 
         db.AdministrationAuditEvents.Add(new AdministrationAuditEvent
         {
@@ -114,11 +123,40 @@ public static class CommunityFeedbackEndpoints
             return Invalid("reason", "Provide a moderation purpose of 10-500 characters.");
         }
 
-        if (!await db.QuestionVersions.AsNoTracking().AnyAsync(
-            version => version.Id == versionId && version.Question.DeletedAtUtc == null,
-            cancellationToken))
+        var version = await db.QuestionVersions.AsNoTracking().SingleOrDefaultAsync(
+            item => item.Id == versionId && item.Question.DeletedAtUtc == null,
+            cancellationToken);
+        var privateAccess = await QuestionPermissions.Allows(db, moderatorId, "readPrivate", cancellationToken);
+        if (version == null)
         {
-            return Results.NotFound();
+            if (!privateAccess)
+            {
+                return Results.Forbid();
+            }
+
+            var json = await db.QuestionDrafts.AsNoTracking().Where(draft => draft.QuestionId == versionId &&
+                draft.Question.DeletedAtUtc == null && !draft.Question.Versions.Any()).Select(draft => draft.PayloadJson).SingleOrDefaultAsync(cancellationToken);
+            if (json == null)
+            {
+                return Results.NotFound();
+            }
+
+            db.AdministrationAuditEvents.Add(new AdministrationAuditEvent
+            {
+                ActorAccountId = moderatorId,
+                Action = "moderation.draft.inspect",
+                Target = versionId.ToString(),
+                NewValue = input.Reason.Trim(),
+            });
+            await db.SaveChangesAsync(cancellationToken);
+            return Results.Ok(new ApiResponse<QuestionPublishRequest>(JsonSerializer.Deserialize<QuestionPublishRequest>(json)!));
+        }
+
+        if (!privateAccess && (version.Visibility != "public" || !await db.PublicSubmissions.AnyAsync(
+            submission => submission.QuestionVersionId == version.Id && submission.Status == "approved",
+            cancellationToken)))
+        {
+            return Results.Forbid();
         }
 
         var result = await QuestionEndpoints.LoadVersion(db, versionId, cancellationToken);
@@ -432,6 +470,11 @@ public static class CommunityFeedbackEndpoints
             return Invalid("action", "Choose an action and provide a note of up to 1000 characters.");
         }
 
+        if (input.Action == "delete" && !input.Confirmed)
+        {
+            return Results.BadRequest(new { error = "Löschung ausdrücklich bestätigen." });
+        }
+
         if (input.Action == "correct" && (string.IsNullOrWhiteSpace(input.CorrectedPrompt) ||
             input.CorrectedPrompt.Length > 12000))
         {
@@ -448,6 +491,19 @@ public static class CommunityFeedbackEndpoints
         }
 
         await db.Entry(version).Reference(item => item.Question).LoadAsync(cancellationToken);
+        var own = version.Question.OwnerAccountId == moderatorId;
+        var permission = input.Action switch
+        {
+            "correct" => own ? "editOwn" : "editForeign",
+            "delete" => own ? "deleteOwn" : "deleteForeign",
+            "withdraw" => "withdraw",
+            _ => "reports",
+        };
+        if (!await QuestionPermissions.Allows(db, moderatorId, permission, cancellationToken))
+        {
+            return Results.Forbid();
+        }
+
         await db.Entry(version).Collection(item => item.Blocks).LoadAsync(cancellationToken);
         await db.Entry(version).Collection(item => item.AnswerOptions).LoadAsync(cancellationToken);
         foreach (var option in version.AnswerOptions)

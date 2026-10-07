@@ -30,11 +30,11 @@ public static class MediaEndpoints
             .WithTags("Public media");
         var media = app.MapGroup("/api/v1/media").WithTags("Private media")
             .RequireAuthorization(ApiPolicies.ActiveAccount);
-        media.MapPost("/", Upload).DisableAntiforgery().RequireRateLimiting("content-write")
+        media.MapPost("/", Upload).RequireQuestionPermissions("create").DisableAntiforgery().RequireRateLimiting("content-write")
             .WithMetadata(new RequestSizeLimitAttribute(PrivateImageProcessor.MaxUploadBytes + (1024 * 1024)))
             .Produces<ApiResponse<MediaDetails>>(StatusCodes.Status201Created);
         media.MapGet("/{id:guid}/content", Read);
-        media.MapDelete("/{id:guid}", Delete);
+        media.MapDelete("/{id:guid}", Delete).RequireQuestionPermissions("deleteOwn");
         return app;
     }
 

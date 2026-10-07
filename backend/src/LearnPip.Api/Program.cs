@@ -273,6 +273,8 @@ app.MapCatalogPackageEndpoints();
 app.MapCatalogExportEndpoints();
 app.MapGroupEndpoints();
 app.MapAdministrationEndpoints();
+app.MapQuestionPermissionEndpoints();
+app.MapQuestionManagementEndpoints();
 
 if (args.Contains("--migrate", StringComparer.OrdinalIgnoreCase))
 {

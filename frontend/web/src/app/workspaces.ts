@@ -24,6 +24,9 @@ import { ModerationQueue } from './moderation-queue';
 import { CatalogLibrary } from './catalog-library';
 import { ExamAdministration } from './exam-administration';
 import { CatalogPackageExport } from './catalog-package-export';
+import { QuestionRights } from './question-rights';
+import { QuestionPermissions } from './question-permissions';
+import { QuestionModeration } from './question-moderation';
 import { CatalogPackageImport } from './catalog-package-import';
 
 @Component({
@@ -83,7 +86,7 @@ export class OverviewWorkspace {
       (toggle)="exportOpened.set(exportOpened() || $any($event.target).open)"
     >
       <summary>{{ language.t('Fragen auswählen und exportieren') }}</summary>
-      @if (exportOpened()) {
+      @if (exportOpened() && rights.allows('export')) {
         <app-catalog-package-export />
       }
     </details>
@@ -92,7 +95,7 @@ export class OverviewWorkspace {
       (toggle)="importOpened.set(importOpened() || $any($event.target).open)"
     >
       <summary>{{ language.t('Fragen importieren') }}</summary>
-      @if (importOpened()) {
+      @if (importOpened() && rights.allows('import') && rights.allows('create')) {
         <app-catalog-package-import />
       }
     </details>
@@ -126,6 +129,7 @@ export class OverviewWorkspace {
   `,
 })
 export class QuestionsWorkspace {
+  readonly rights = inject(QuestionRights);
   readonly exportOpened = signal(false);
   readonly importOpened = signal(false);
   readonly language = inject(LanguageService);
@@ -226,16 +230,27 @@ export class CatalogsWorkspace {
 
 @Component({
   selector: 'app-administration-workspace',
-  imports: [AdminUpdates, ModerationQueue, ExamAdministration],
+  imports: [
+    AdminUpdates,
+    ModerationQueue,
+    ExamAdministration,
+    QuestionPermissions,
+    QuestionModeration,
+  ],
   template: `
     @if (access.capabilities().administration) {
       <app-admin-updates />
+      <details class="workspace-disclosure">
+        <summary>Benutzer und Rollen: Fragenberechtigungen</summary>
+        <app-question-permissions />
+      </details>
       <details class="workspace-disclosure">
         <summary>{{ language.t('Offizielle Kataloge und Prüfungsprofile') }}</summary>
         <app-exam-administration />
       </details>
     }
     @if (access.capabilities().moderation) {
+      <app-question-moderation />
       <app-moderation-queue />
     }
     <button type="button" class="secondary-action" (click)="access.refresh()">

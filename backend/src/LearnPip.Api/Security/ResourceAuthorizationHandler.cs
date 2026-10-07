@@ -41,13 +41,13 @@ public sealed class ResourceAuthorizationHandler(LearnPipDbContext dbContext) :
                 case ActiveAccountRequirement:
                 case QuestionReadRequirement when context.Resource is Question question &&
                     question.DeletedAtUtc == null &&
-                    (question.OwnerAccountId == accountId ||
+                    ((question.OwnerAccountId == accountId && await QuestionPermissions.Allows(dbContext, accountId, "readOwn", CancellationToken.None)) ||
                      await QuestionAccess.ReadableVersions(
                 dbContext,
                 accountId)
                          .AnyAsync(version => version.QuestionId == question.Id)):
                 case MediaReadRequirement when context.Resource is MediaAsset media &&
-                    media.DeletedAtUtc == null && (media.OwnerAccountId == accountId ||
+                    media.DeletedAtUtc == null && ((media.OwnerAccountId == accountId && await QuestionPermissions.Allows(dbContext, accountId, "readOwn", CancellationToken.None)) ||
                      await QuestionAccess.ReadableVersions(
                 dbContext,
                 accountId)

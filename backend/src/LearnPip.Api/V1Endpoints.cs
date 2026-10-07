@@ -32,6 +32,7 @@ public static class V1Endpoints
             "/questions",
             ListQuestions)
             .WithName("ListOwnQuestions")
+            .RequireQuestionPermissions("readOwn")
             .WithSummary("List private questions owned by the current account")
             .Produces<ApiResponse<PageResponse<QuestionSummary>>>()
             .ProducesValidationProblem();
@@ -183,7 +184,13 @@ public static class V1Endpoints
             return Results.NotFound();
         }
 
-        var visible = QuestionAccess.GroupVersions(dbContext, groupId);
+        if (!AccountIdentity.TryGetAccountId(user, out var accountId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var readable = QuestionAccess.ReadableVersions(dbContext, accountId).Select(version => version.Id);
+        var visible = QuestionAccess.GroupVersions(dbContext, groupId).Where(version => readable.Contains(version.Id));
         var questions = dbContext.Questions.AsNoTracking()
             .Where(question => visible.Any(version => version.QuestionId == question.Id));
 

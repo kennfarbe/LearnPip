@@ -35,13 +35,13 @@ public static class TranslationEndpoints
         versions.MapGet("/history/{language}", History);
         versions.MapPost(
             "/drafts",
-            CreateDraft)
+            CreateDraft).RequireQuestionPermissions("editOwn")
             .WithMetadata(new RequestSizeLimitAttribute(70 * 1024));
         versions.MapPost(
             "/suggest",
-            Suggest)
+            Suggest).RequireQuestionPermissions("readOwn", "editOwn")
             .WithMetadata(new RequestSizeLimitAttribute(4 * 1024));
-        versions.MapPost("/{translationId:guid}/approve", Approve);
+        versions.MapPost("/{translationId:guid}/approve", Approve).RequireQuestionPermissions("editOwn");
         versions.MapPost(
             "/{translationId:guid}/reports",
             Report)

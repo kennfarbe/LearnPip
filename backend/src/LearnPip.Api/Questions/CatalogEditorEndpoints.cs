@@ -30,24 +30,24 @@ public static class CatalogEditorEndpoints
         catalogs.MapPost("/", CreateCatalog);
         catalogs.MapPut("/{id:guid}", RenameCatalog);
         catalogs.MapDelete("/{id:guid}", DeleteCatalog);
-        catalogs.MapGet("/{id:guid}/questions", ListCatalogQuestions);
+        catalogs.MapGet("/{id:guid}/questions", ListCatalogQuestions).RequireQuestionPermissions("readOwn");
 
         var drafts = app.MapGroup("/api/v1/questions").WithTags("Question editor")
             .RequireAuthorization(ApiPolicies.ActiveAccount);
-        drafts.MapGet("/drafts", ListDrafts);
-        drafts.MapPost("/drafts", CreateDraft).RequireRateLimiting("content-write")
+        drafts.MapGet("/drafts", ListDrafts).RequireQuestionPermissions("readOwn");
+        drafts.MapPost("/drafts", CreateDraft).RequireQuestionPermissions("create").RequireRateLimiting("content-write")
             .WithMetadata(new RequestSizeLimitAttribute(70 * 1024));
         drafts.MapPost(
             "/{id:guid}/variants/drafts",
-            CreateVariantDraft)
+            CreateVariantDraft).RequireQuestionPermissions("create", "readOwn")
             .WithMetadata(new RequestSizeLimitAttribute(70 * 1024));
-        drafts.MapGet("/{id:guid}/draft", ReadDraft);
+        drafts.MapGet("/{id:guid}/draft", ReadDraft).RequireQuestionPermissions("readOwn");
         drafts.MapPut(
             "/{id:guid}/draft",
-            SaveDraft)
+            SaveDraft).RequireQuestionPermissions("editOwn")
             .WithMetadata(new RequestSizeLimitAttribute(70 * 1024));
-        drafts.MapPost("/{id:guid}/publish", PublishDraft);
-        drafts.MapPut("/{id:guid}/catalog", MoveQuestion);
+        drafts.MapPost("/{id:guid}/publish", PublishDraft).RequireQuestionPermissions("editOwn");
+        drafts.MapPut("/{id:guid}/catalog", MoveQuestion).RequireQuestionPermissions("editOwn");
         return app;
     }
 
@@ -68,6 +68,11 @@ public static class CatalogEditorEndpoints
         if (!AccountIdentity.TryGetAccountId(user, out var accountId))
         {
             return Results.Unauthorized();
+        }
+
+        if (!await QuestionPermissions.Allows(db, accountId, "create", cancellationToken))
+        {
+            return Results.Forbid();
         }
 
         var json = DraftJson(input.Content);

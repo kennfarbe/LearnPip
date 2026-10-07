@@ -24,12 +24,13 @@ public static class PublicSubmissionEndpoints
     {
         var own = app.MapGroup("/api/v1/questions").WithTags("Public submissions")
             .RequireAuthorization(ApiPolicies.ActiveAccount);
-        own.MapGet("/{id:guid}/versions/{number:int}/submission-preview", Preview);
-        own.MapPost("/{id:guid}/versions/{number:int}/submission", Submit);
-        own.MapGet("/{id:guid}/versions/{number:int}/submission", Status);
+        own.MapGet("/{id:guid}/versions/{number:int}/submission-preview", Preview).RequireQuestionPermissions("readOwn", "community");
+        own.MapPost("/{id:guid}/versions/{number:int}/submission", Submit).RequireQuestionPermissions("editOwn", "community");
+        own.MapGet("/{id:guid}/versions/{number:int}/submission", Status).RequireQuestionPermissions("readOwn");
 
         var moderation = app.MapGroup("/api/v1/moderation/submissions")
-            .WithTags("Public moderation").RequireAuthorization(ApiPolicies.Moderation);
+            .WithTags("Public moderation").RequireAuthorization(ApiPolicies.ActiveAccount)
+            .RequireQuestionPermissions("readForeign", "readPrivate", "approve");
         moderation.MapGet("/", Queue);
         moderation.MapGet("/{versionId:guid}", ReviewPreview);
         moderation.MapGet("/{versionId:guid}/media/{mediaId:guid}", ReviewMedia);

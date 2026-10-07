@@ -26,7 +26,7 @@ public static class LearningSessionEndpoints
     public static IEndpointRouteBuilder MapLearningSessionEndpoints(this IEndpointRouteBuilder app)
     {
         var sessions = app.MapGroup("/api/v1/learning/sessions").WithTags("Learning")
-            .RequireAuthorization(ApiPolicies.ActiveAccount);
+            .RequireAuthorization(ApiPolicies.ActiveAccount).RequireQuestionPermissions("readOwn");
         sessions.MapPost("/", Start);
         sessions.MapGet("/{id:guid}", Read);
         sessions.MapPost("/{id:guid}/answer", Answer);
@@ -191,6 +191,11 @@ public static class LearningSessionEndpoints
             return Results.Conflict();
         }
 
+        if (!await QuestionAccess.ReadableVersions(db, accountId).AnyAsync(version => version.Id == current.VersionId, cancellationToken))
+        {
+            return Results.NotFound();
+        }
+
         var selected = request.SelectedOptionIds;
         var version = await QuestionEndpoints.LoadVersion(db, current.VersionId, cancellationToken);
         if (version == null)
@@ -349,7 +354,8 @@ public static class LearningSessionEndpoints
     {
         var current = plan.FirstOrDefault(item => item.State == "pending");
         LearningQuestion? question = null;
-        if (current != null)
+        if (current != null && await QuestionAccess.ReadableVersions(db, session.AccountId)
+            .AnyAsync(version => version.Id == current.VersionId, cancellationToken))
         {
             var version = await QuestionEndpoints.LoadVersion(db, current.VersionId, cancellationToken);
             if (version != null)
