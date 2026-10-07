@@ -61,3 +61,28 @@ Ungültige oder unvollständige Scans, fehlende Ziele und veraltete Datenbanken 
 Der Web-Build ersetzt den mit Node gebündelten npm-Paketmanager durch pnpm 12.9.1. npm und seine Bibliotheken werden aus der verwendeten Werkzeugstufe entfernt; die Prüfung wird nicht ausgenommen. pnpm importiert die eingecheckte `package-lock.json` und installiert anschließend mit unveränderlicher pnpm-Lockdatei ohne Installationsskripte. Die npm-Lockdatei bleibt für die vorhandenen Entwickler- und Audit-Abläufe maßgeblich. Der Angular-Build wird mit pnpm ausgeführt.
 
 Der Kandidaten-Audit prüft die tatsächlich verwendete Docker-Stufe `node-toolchain` für AMD64 und ARM64. Diese Stufe wird mit jedem Release zusätzlich als `build-node-vX.Y.Z` und `build-node-latest` veröffentlicht, einschließlich SBOM. Das Inventar neuer Releases prüft deren konkrete Plattform-Digests. Alte Releases behalten ihre bisherigen Inventarziele.
+
+## Release-Engine ohne npm-Publishing (07.10.2026)
+
+Die Release-Werkzeuge verwenden jetzt `@semantic-release/core@1.0.0-beta.8`
+anstelle des semantic-release-CLI. Die bestehende Plugin-Konfiguration bleibt
+maßgeblich: Commit-Auswertung, Release Notes, Changelog, Git-Commit und GitHub-Release.
+Das ungenutzte `@semantic-release/npm` und sein eingebettetes npm-CLI werden
+nicht mehr installiert. Die Engine ist eine bewusst festgelegte Vorabversion;
+Updates erfordern erneut die Prüfung der Plugin-Kompatibilität.
+
+Die Root-Datei `.npmrc` setzt `legacy-peer-deps=true`, weil die Plugins noch
+`semantic-release` als Peer deklarieren, obwohl sie direkt von Core ausgeführt
+werden. Ohne diese Einstellung würde npm das alte CLI samt npm-Publishing erneut
+installieren. Diese Ausnahme gilt für die Release-Werkzeuge im Repository-Root;
+das separate Angular-Projekt behält seine eigene Paketinstallation. Sie deaktiviert
+keine Sicherheitsprüfung. `npm ci` verwendet weiterhin das versionierte Lockfile.
+
+`npm run release` veröffentlicht nur bei einem GitHub-Actions-Push auf `main`.
+`npm run release -- --check-config` lädt die reale Konfiguration und alle Plugins
+ohne Veröffentlichung. `npm run release -- --dry-run` prüft den Ablauf ohne
+Release-Commit, neue Tags oder Veröffentlichung, benötigt mit dem GitHub-Plugin
+aber weiterhin passende Zugriffsrechte. Pull Requests werden übersprungen.
+`npm run test:release` prüft die Veröffentlichungsgrenzen, das Fehlen der entfernten
+Paketkette und die Versionsberechnung mit einem temporären lokalen Git-Repository.
+Die CI verlangt diese Prüfungen vor einer Freigabe.
