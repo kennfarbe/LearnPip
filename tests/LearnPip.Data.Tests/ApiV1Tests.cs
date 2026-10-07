@@ -878,7 +878,7 @@ public sealed partial class ApiV1Tests
 
             Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/catalog-exports/preview", request with { QuestionIds = [questions[4]] })).StatusCode);
 
-            // An actual edit invalidates an earlier preview; no download of stale contents.
+            // An actual edit invalidates both saved rights and the earlier preview; no stale download is allowed.
             await using (var db = new LearnPipDbContext(firstOptions))
             {
                 var draft = await db.QuestionDrafts.SingleAsync(item => item.QuestionId == questions[0]);
@@ -888,7 +888,7 @@ public sealed partial class ApiV1Tests
                 await db.SaveChangesAsync();
             }
 
-            Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/v1/catalog-exports/download", confirmed)).StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/catalog-exports/download", confirmed)).StatusCode);
             var old = CatalogPackageReaderTests.Golden();
             Assert.Equal(HttpStatusCode.Created, (await PostPackage(client, "import", old, Convert.ToHexStringLower(SHA256.HashData(old)))).StatusCode);
             Guid importedId;
