@@ -34,6 +34,39 @@ public static class CatalogPackageEndpoints
         return app;
     }
 
+    /// <summary>Liest einen begrenzten Upload ohne Dateiextraktion.</summary>
+    /// <param name="file">Die ausgewählte lokale ZIP-Datei.</param>
+    /// <param name="ct">Das Abbruchtoken.</param>
+    /// <returns>Das vollständig validierte Paket.</returns>
+    internal static async Task<CatalogPackage> Read(IFormFile file, CancellationToken ct)
+    {
+        if (file.Length is < 1 or > CatalogPackageReader.MaxArchiveBytes)
+        {
+            throw new InvalidDataException("Bitte eine ZIP-Datei von maximal 25 MiB auswählen.");
+        }
+
+        await using var source = file.OpenReadStream();
+        using var target = new MemoryStream();
+        var buffer = new byte[8192];
+        int count;
+        while ((count = await source.ReadAsync(buffer, ct)) != 0)
+        {
+            if (target.Length + count > file.Length)
+            {
+                throw new InvalidDataException("Ungültige Uploadgröße.");
+            }
+
+            await target.WriteAsync(buffer.AsMemory(0, count), ct);
+        }
+
+        if (target.Length != file.Length)
+        {
+            throw new InvalidDataException("Unvollständiger Upload.");
+        }
+
+        return CatalogPackageReader.Read(target.ToArray());
+    }
+
     private static async Task<IResult> Preview(IFormFile file, LearnPipDbContext db, ClaimsPrincipal user, CancellationToken ct)
     {
         if (!AccountIdentity.TryGetAccountId(user, out var owner))
@@ -47,7 +80,7 @@ public static class CatalogPackageEndpoints
             CatalogPackageImporter.PrepareImages(package);
             var packageId = package.Manifest.GetProperty("package_id").GetString()!;
             var existing = await db.CatalogPackageImports.AsNoTracking().Where(item => item.OwnerAccountId == owner && item.PackageId == packageId)
-                .Select(item => new { item.Fingerprint, item.PrivateCatalogId }).SingleOrDefaultAsync(ct);
+                .SingleOrDefaultAsync(ct);
             var state = "new";
             if (existing != null)
             {
@@ -72,6 +105,20 @@ public static class CatalogPackageEndpoints
                 else if (identical == package.Questions.Count)
                 {
                     state = "identical";
+                }
+            }
+
+            var canUpdate = false;
+            if (existing != null && existing.Fingerprint != package.Fingerprint)
+            {
+                try
+                {
+                    await CatalogPackageUpdates.Candidates(existing, db, ct);
+                    canUpdate = existing.PrivateCatalogId.HasValue;
+                }
+                catch (InvalidDataException)
+                {
+                    canUpdate = false;
                 }
             }
 
@@ -100,7 +147,7 @@ public static class CatalogPackageEndpoints
                 package.Questions.Count - identical - conflicts,
                 identical,
                 conflicts);
-            return Results.Ok(new ApiResponse<CatalogPackagePreview>(preview));
+            return Results.Ok(new ApiResponse<CatalogPackagePreview>(preview with { CanUpdate = canUpdate, PreviousFingerprint = existing?.Fingerprint }));
         }
         catch (InvalidDataException error)
         {
@@ -112,6 +159,9 @@ public static class CatalogPackageEndpoints
         IFormFile file,
         [FromForm] string archiveSha256,
         [FromForm] bool rightsConfirmed,
+        [FromForm] Guid? targetCatalogId,
+        [FromForm] bool? updateConfirmed,
+        [FromForm] string? previousFingerprint,
         LearnPipDbContext db,
         ClaimsPrincipal user,
         CancellationToken ct)
@@ -141,9 +191,59 @@ public static class CatalogPackageEndpoints
             var existing = await db.CatalogPackageImports.SingleOrDefaultAsync(item => item.OwnerAccountId == owner && item.PackageId == packageId, ct);
             if (existing != null)
             {
-                return existing.Fingerprint == package.Fingerprint
-                    ? Results.Ok(new ApiResponse<object>(new { CatalogId = existing.PrivateCatalogId, AlreadyImported = true }))
-                    : Results.Conflict(new { Message = "Das Paket wurde geändert. Bestehende Fragen und Lernstände bleiben erhalten. Kontrollierte Paketupdates sind noch nicht verfügbar." });
+                if (existing.Fingerprint == package.Fingerprint)
+                {
+                    return Results.Ok(new ApiResponse<object>(new { CatalogId = existing.PrivateCatalogId, AlreadyImported = true }));
+                }
+
+                if (updateConfirmed != true || previousFingerprint != existing.Fingerprint)
+                {
+                    return Results.Conflict(new { Message = "Das Paket wurde geändert. Bitte den aktuellen Paketstand und die Updateauswirkungen ausdrücklich bestätigen." });
+                }
+
+                var updates = await CatalogPackageUpdates.Candidates(existing, db, ct);
+                var updateCatalog = existing.PrivateCatalogId.HasValue
+                    ? await db.PrivateCatalogs.SingleOrDefaultAsync(item => item.Id == existing.PrivateCatalogId && item.OwnerAccountId == owner, ct)
+                    : null;
+                if (updateCatalog == null)
+                {
+                    return Invalid("Der ursprüngliche private Zielkatalog fehlt. Bitte Konflikt zuerst lösen.");
+                }
+
+                var storedArchives = await db.CatalogPackageImports.Where(item => item.OwnerAccountId == owner).SumAsync(item => (long)item.Archive.Length, ct);
+                var storedHistory = await db.CatalogPackageImportRevisions.Where(item => item.OwnerAccountId == owner).SumAsync(item => (long)item.Archive.Length, ct);
+                var imageSizes = await db.MediaAssets.Where(item => item.OwnerAccountId == owner && item.DeletedAtUtc == null).Select(item => item.ByteLength).ToListAsync(ct);
+                var incoming = package.Questions.SelectMany(question => question.GetProperty("media").EnumerateArray()).Select(asset => images[asset.GetProperty("path").GetString()!].LongLength).ToArray();
+                if (storedArchives + storedHistory + package.Archive.Length > 100L * 1024 * 1024 || imageSizes.Count + incoming.Length > 100 || imageSizes.Sum() + incoming.Sum() > 100L * 1024 * 1024)
+                {
+                    return Results.Problem("Updatekontingent erreicht. Historische Originalpakete und Bilder werden für den Erhalt von Nachweisen und Lernständen mitgerechnet.", statusCode: 413);
+                }
+
+                var updateComparison = await CatalogPackageComparison.Compare(package, db, owner, ct);
+                if (updateComparison.Conflicts.Any(sourceId => !updates.ContainsKey(sourceId)))
+                {
+                    return Results.Conflict(new { Message = "Andere importierte Quellfragen stehen im Konflikt. Kein Teilupdate." });
+                }
+
+                var identical = updateComparison.Identical.Where(pair => !updates.ContainsKey(pair.Key)).ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+                db.CatalogPackageImportRevisions.Add(new CatalogPackageImportRevision
+                {
+                    OwnerAccountId = owner,
+                    PackageId = existing.PackageId,
+                    Archive = existing.Archive,
+                    QuestionIdsJson = existing.QuestionIdsJson,
+                    QuestionVersionIdsJson = existing.QuestionVersionIdsJson,
+                });
+                var updateIds = CatalogPackageImporter.AddQuestions(db, package, images, owner, updateCatalog, identical, updates);
+                existing.Archive = package.Archive;
+                existing.CatalogVersion = package.Manifest.GetProperty("catalog_version").GetString()!;
+                existing.Fingerprint = package.Fingerprint;
+                existing.QuestionIdsJson = JsonSerializer.Serialize(updateIds);
+                existing.QuestionVersionIdsJson = await CatalogPackageUpdates.Versions(db, updateIds, ct);
+                existing.ImportedAtUtc = DateTimeOffset.UtcNow;
+                await db.SaveChangesAsync(ct);
+                await transaction.CommitAsync(ct);
+                return Results.Ok(new ApiResponse<object>(new { CatalogId = updateCatalog.Id, AlreadyImported = false, Updated = true }));
             }
 
             var comparison = await CatalogPackageComparison.Compare(package, db, owner, ct);
@@ -159,14 +259,25 @@ public static class CatalogPackageEndpoints
 
             var stored = await db.CatalogPackageImports.Where(item => item.OwnerAccountId == owner)
                 .Select(item => item.Archive.Length).ToListAsync(ct);
+            var historyBytes = await db.CatalogPackageImportRevisions.Where(item => item.OwnerAccountId == owner).SumAsync(item => (long)item.Archive.Length, ct);
             var media = await db.MediaAssets.Where(item => item.OwnerAccountId == owner && item.DeletedAtUtc == null)
                 .Select(item => item.ByteLength).ToListAsync(ct);
             var addedImages = package.Questions.Where(question => !comparison.Identical.ContainsKey(question.GetProperty("id").GetString()!)).SelectMany(question => question.GetProperty("media").EnumerateArray())
                 .Select(asset => images[asset.GetProperty("path").GetString()!].LongLength).ToArray();
-            if (stored.Count >= 20 || stored.Sum(size => (long)size) + package.Archive.Length > 100L * 1024 * 1024 ||
+            if (stored.Count >= 20 || stored.Sum(size => (long)size) + historyBytes + package.Archive.Length > 100L * 1024 * 1024 ||
                 media.Count + addedImages.Length > 100 || media.Sum() + addedImages.Sum() > 100L * 1024 * 1024)
             {
                 return Results.Problem("Importkontingent erreicht: maximal 20 Originalpakete/100 MiB und 100 Bilder/100 MiB pro Konto. Kein Teilimport.", statusCode: 413);
+            }
+
+            PrivateCatalog? destination = null;
+            if (targetCatalogId.HasValue)
+            {
+                destination = await db.PrivateCatalogs.SingleOrDefaultAsync(item => item.Id == targetCatalogId && item.OwnerAccountId == owner, ct);
+                if (destination == null)
+                {
+                    return Results.NotFound();
+                }
             }
 
             var title = package.Manifest.GetProperty("title").GetString()!;
@@ -177,8 +288,12 @@ public static class CatalogPackageEndpoints
                 name = string.Concat(title.EnumerateRunes().Take(100)) + " (Import " + (++suffix).ToString(System.Globalization.CultureInfo.InvariantCulture) + ")";
             }
 
-            var catalog = new PrivateCatalog { OwnerAccountId = owner, Name = name };
-            db.PrivateCatalogs.Add(catalog);
+            var catalog = destination ?? new PrivateCatalog { OwnerAccountId = owner, Name = name };
+            if (destination == null)
+            {
+                db.PrivateCatalogs.Add(catalog);
+            }
+
             var ids = CatalogPackageImporter.AddQuestions(db, package, images, owner, catalog, comparison.Identical);
             db.CatalogPackageImports.Add(new CatalogPackageImport
             {
@@ -189,6 +304,7 @@ public static class CatalogPackageEndpoints
                 Fingerprint = package.Fingerprint,
                 Archive = package.Archive,
                 QuestionIdsJson = JsonSerializer.Serialize(ids),
+                QuestionVersionIdsJson = await CatalogPackageUpdates.Versions(db, ids, ct),
             });
             await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
@@ -225,35 +341,6 @@ public static class CatalogPackageEndpoints
         context.Response.Headers.CacheControl = "private, no-store";
         context.Response.Headers.XContentTypeOptions = "nosniff";
         return archive == null ? Results.NotFound() : Results.File(archive, "application/zip", $"learnpip-{id:N}.zip");
-    }
-
-    private static async Task<CatalogPackage> Read(IFormFile file, CancellationToken ct)
-    {
-        if (file.Length is < 1 or > CatalogPackageReader.MaxArchiveBytes)
-        {
-            throw new InvalidDataException("Bitte eine ZIP-Datei von maximal 25 MiB auswählen.");
-        }
-
-        await using var source = file.OpenReadStream();
-        using var target = new MemoryStream();
-        var buffer = new byte[8192];
-        int count;
-        while ((count = await source.ReadAsync(buffer, ct)) != 0)
-        {
-            if (target.Length + count > file.Length)
-            {
-                throw new InvalidDataException("Ungültige Uploadgröße.");
-            }
-
-            await target.WriteAsync(buffer.AsMemory(0, count), ct);
-        }
-
-        if (target.Length != file.Length)
-        {
-            throw new InvalidDataException("Unvollständiger Upload.");
-        }
-
-        return CatalogPackageReader.Read(target.ToArray());
     }
 
     private static IResult Invalid(string message) => Results.ValidationProblem(new Dictionary<string, string[]> { ["package"] = [message] });

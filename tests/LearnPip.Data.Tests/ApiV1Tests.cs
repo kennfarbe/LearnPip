@@ -33,7 +33,7 @@ namespace LearnPip.Data.Tests;
 /// <summary>
 /// Enthält Regressionstests für die API-Zugriffsrechte.
 /// </summary>
-public sealed class ApiV1Tests
+public sealed partial class ApiV1Tests
 {
     /// <summary>
     /// Prüft den Zugriff auf private Ressourcen durch Besitzer oder ausdrückliche Gruppenfreigaben.
@@ -751,6 +751,17 @@ public sealed class ApiV1Tests
             }
 
             var license = JsonSerializer.SerializeToElement(new { id = "LicenseRef-Private", holder = "Synthetischer Testautor", attribution = "Eigene synthetische Originaldaten" });
+            var rightsPath = "/api/v1/catalog-rights/" + questions[0];
+            Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync(rightsPath)).StatusCode);
+            var rightsPreview = (await client.GetFromJsonAsync<JsonElement>(rightsPath)).GetProperty("data");
+            var contentHash = rightsPreview.GetProperty("contentSha256").GetString()!;
+            var evidence = new { license, provenance = new { kind = "original" } };
+            var rights = JsonSerializer.SerializeToElement(new { license, evidence.provenance, media = new Dictionary<string, object> { [imageId.ToString()] = evidence } });
+            Assert.Equal(HttpStatusCode.Conflict, (await client.PutAsJsonAsync(rightsPath, new CatalogRightsEndpoints.RightsInput(new string('0', 64), rights))).StatusCode);
+            var missingImage = JsonSerializer.SerializeToElement(new { license, evidence.provenance, media = new Dictionary<string, object>() });
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync(rightsPath, new CatalogRightsEndpoints.RightsInput(contentHash, missingImage))).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync(rightsPath, new CatalogRightsEndpoints.RightsInput(contentHash, rights))).StatusCode);
+
             var request = new CatalogExportRequest(
                 questions.Take(3).ToArray(),
                 "Synthetische Teilauswahl",
@@ -772,6 +783,7 @@ public sealed class ApiV1Tests
             var hash = preview.GetProperty("previewSha256").GetString();
             Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/catalog-exports/download", request with { PreviewSha256 = hash })).StatusCode);
             var confirmed = request with { RightsConfirmed = true, PreviewSha256 = hash };
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/catalog-exports/download", confirmed with { Purpose = "community", PublicationConfirmed = true })).StatusCode);
             Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/v1/catalog-exports/download", confirmed with { Title = "Geändert" })).StatusCode);
             using var download = await client.PostAsJsonAsync("/api/v1/catalog-exports/download", confirmed);
             Assert.Equal(HttpStatusCode.OK, download.StatusCode);
@@ -1077,7 +1089,13 @@ public sealed class ApiV1Tests
                 return Task.FromResult(AuthenticateResult.NoResult());
             }
 
-            var ticket = new AuthenticationTicket(PrincipalFor(parsed), TestScheme);
+            var principal = PrincipalFor(parsed);
+            if (this.Request.Headers.TryGetValue("X-Test-Session", out var session) && Guid.TryParse(session, out var sessionId))
+            {
+                ((ClaimsIdentity)principal.Identity!).AddClaim(new Claim(LearnPip.Api.Identity.SessionAuthentication.SessionIdClaim, sessionId.ToString()));
+            }
+
+            var ticket = new AuthenticationTicket(principal, TestScheme);
             return Task.FromResult(AuthenticateResult.Success(ticket));
         }
     }

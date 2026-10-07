@@ -56,6 +56,39 @@ public static partial class CatalogPackageReader
         }
     }
 
+    /// <summary>Prüft einzelne Lizenzangaben ohne automatische Rechtezuweisung.</summary>
+    /// <param name="license">Der vollständige Lizenznachweis.</param>
+    internal static void License(JsonElement license)
+    {
+        Fields(license, "id holder attribution license_url", "id holder attribution");
+        Text(license, "id", 1, 128);
+        Text(license, "holder", 1, 256);
+        Text(license, "attribution", 1, 2048);
+        OptionalUri(license, "license_url");
+    }
+
+    /// <summary>Prüft einzelne Quellen- und Bearbeitungsnachweise.</summary>
+    /// <param name="provenance">Der vollständige Herkunftsnachweis.</param>
+    internal static void Provenance(JsonElement provenance)
+    {
+        Fields(provenance, "kind source_url source_revision modification_note", "kind");
+        var kind = Text(provenance, "kind", 1, 16);
+        Require(kind is "original" or "adapted" or "verbatim", "Ungültige Herkunftsart.");
+        OptionalUri(provenance, "source_url");
+        OptionalText(provenance, "source_revision", 1, 256);
+        OptionalText(provenance, "modification_note", 0, 2048);
+        if (kind != "original")
+        {
+            Text(provenance, "source_url", 1, 2048);
+            Text(provenance, "source_revision", 1, 256);
+        }
+
+        if (kind == "adapted")
+        {
+            Text(provenance, "modification_note", 1, 2048);
+        }
+    }
+
     private static Dictionary<string, byte[]> ReadFiles(ZipArchive zip)
     {
         Require(
@@ -248,35 +281,6 @@ public static partial class CatalogPackageReader
         Require(summary == (text.Count == 0 && required ? "[Bild]" : string.Join("\n", text)), "Textzusammenfassung und Inhaltsblöcke stimmen nicht überein.");
     }
 
-    private static void License(JsonElement license)
-    {
-        Fields(license, "id holder attribution license_url", "id holder attribution");
-        Text(license, "id", 1, 128);
-        Text(license, "holder", 1, 256);
-        Text(license, "attribution", 1, 2048);
-        OptionalUri(license, "license_url");
-    }
-
-    private static void Provenance(JsonElement provenance)
-    {
-        Fields(provenance, "kind source_url source_revision modification_note", "kind");
-        var kind = Text(provenance, "kind", 1, 16);
-        Require(kind is "original" or "adapted" or "verbatim", "Ungültige Herkunftsart.");
-        OptionalUri(provenance, "source_url");
-        OptionalText(provenance, "source_revision", 1, 256);
-        OptionalText(provenance, "modification_note", 0, 2048);
-        if (kind != "original")
-        {
-            Text(provenance, "source_url", 1, 2048);
-            Text(provenance, "source_revision", 1, 256);
-        }
-
-        if (kind == "adapted")
-        {
-            Text(provenance, "modification_note", 1, 2048);
-        }
-    }
-
     private static bool SafePath(string path) => RequiredFiles.Contains(path) ||
         (MediaPathPattern().IsMatch(path) && path.Split('/').All(part => part is not ("" or "." or "..")) &&
             MediaExtensions.Contains(Path.GetExtension(path).ToLowerInvariant()));
@@ -311,9 +315,10 @@ public static partial class CatalogPackageReader
     private static void Fields(JsonElement value, string allowed, string required)
     {
         Require(value.ValueKind == JsonValueKind.Object, "JSON-Objekt erwartet.");
-        var names = value.EnumerateObject().Select(property => property.Name).ToHashSet(StringComparer.Ordinal);
+        var properties = value.EnumerateObject().Select(property => property.Name).ToArray();
+        var names = properties.ToHashSet(StringComparer.Ordinal);
         Require(
-            names.IsSubsetOf(allowed.Split(' ')) && required.Split(' ').All(names.Contains),
+            names.Count == properties.Length && names.IsSubsetOf(allowed.Split(' ')) && required.Split(' ').All(names.Contains),
             "Unbekannte oder fehlende JSON-Felder.");
     }
 

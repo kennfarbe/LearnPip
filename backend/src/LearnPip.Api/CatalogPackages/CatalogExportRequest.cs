@@ -7,7 +7,7 @@ using System.Text.Json;
 namespace LearnPip.Api.CatalogPackages;
 
 /// <summary>Explizite Auswahl und Rechteangaben für einen lokalen Download.</summary>
-/// <param name="QuestionIds">Die eigenen ausgewählten Fragen, maximal 500.</param>
+/// <param name="QuestionIds">Die eigenen ausgewählten Fragen, maximal 10000.</param>
 /// <param name="Title">Der frei gewählte Pakettitel.</param>
 /// <param name="Publisher">Der ausdrücklich angegebene Attributionsname, kein Kontoname.</param>
 /// <param name="QuestionLicense">Die ausdrücklich gewählte Lizenz eigener Originaltexte.</param>
@@ -23,4 +23,11 @@ public sealed record CatalogExportRequest(
     JsonElement ImageLicense,
     string LicenseNotice,
     bool RightsConfirmed,
-    string? PreviewSha256);
+    string? PreviewSha256)
+{
+    /// <summary>Holt den ausdrücklich gewählten Zweck; Standard ist privat.</summary>
+    public string Purpose { get; init; } = "private";
+
+    /// <summary>Holt einen Wert, der angibt, ob die offene Weitergabe mit ihren Folgen bestätigt ist.</summary>
+    public bool PublicationConfirmed { get; init; }
+}

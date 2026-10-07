@@ -30,9 +30,9 @@ public static class CatalogExportEndpoints
         var group = app.MapGroup("/api/v1/catalog-exports").RequireAuthorization(ApiPolicies.ActiveAccount);
         group.MapGet("/questions", Candidates);
         group.MapPost("/preview", Preview).RequireRateLimiting("content-write")
-            .WithMetadata(new RequestSizeLimitAttribute(256 * 1024));
+            .WithMetadata(new RequestSizeLimitAttribute(1024 * 1024));
         group.MapPost("/download", Download).RequireRateLimiting("content-write")
-            .WithMetadata(new RequestSizeLimitAttribute(256 * 1024));
+            .WithMetadata(new RequestSizeLimitAttribute(1024 * 1024));
         return app;
     }
 
@@ -45,10 +45,10 @@ public static class CatalogExportEndpoints
 
         Private(context);
         var questions = await db.Questions.AsNoTracking().Where(question => question.OwnerAccountId == owner && question.DeletedAtUtc == null)
-            .Include(question => question.Draft).Include(question => question.Versions).OrderBy(question => question.CreatedAtUtc).Take(1001).ToListAsync(ct);
-        if (questions.Count > 1000)
+            .Include(question => question.Draft).Include(question => question.Versions).OrderBy(question => question.CreatedAtUtc).Take(10001).ToListAsync(ct);
+        if (questions.Count > 10000)
         {
-            return Results.Problem("Die Auswahlübersicht ist auf 1000 Fragen begrenzt.", statusCode: 413);
+            return Results.Problem("Die Auswahlübersicht ist auf 10000 Fragen begrenzt.", statusCode: 413);
         }
 
         var items = questions.Select(question =>
@@ -69,31 +69,36 @@ public static class CatalogExportEndpoints
         return Results.Ok(new ApiResponse<object>(items));
     }
 
-    private static async Task<IResult> Preview(CatalogExportRequest input, LearnPipDbContext db, ClaimsPrincipal user, HttpContext context, CancellationToken ct)
+    private static async Task<IResult> Preview(CatalogExportRequest input, LearnPipDbContext db, ClaimsPrincipal user, HttpContext context, IConfiguration configuration, CancellationToken ct)
     {
         Private(context);
-        return await Process(input, db, user, false, ct);
+        return await Process(input, db, user, false, configuration, ct);
     }
 
-    private static async Task<IResult> Download(CatalogExportRequest input, LearnPipDbContext db, ClaimsPrincipal user, HttpContext context, CancellationToken ct)
+    private static async Task<IResult> Download(CatalogExportRequest input, LearnPipDbContext db, ClaimsPrincipal user, HttpContext context, IConfiguration configuration, CancellationToken ct)
     {
         Private(context);
-        return await Process(input, db, user, true, ct);
+        return await Process(input, db, user, true, configuration, ct);
     }
 
-    private static async Task<IResult> Process(CatalogExportRequest input, LearnPipDbContext db, ClaimsPrincipal user, bool download, CancellationToken ct)
+    private static async Task<IResult> Process(CatalogExportRequest input, LearnPipDbContext db, ClaimsPrincipal user, bool download, IConfiguration configuration, CancellationToken ct)
     {
         if (!AccountIdentity.TryGetAccountId(user, out var owner))
         {
             return Results.Unauthorized();
         }
 
-        if (input.QuestionIds is not { Count: >= 1 and <= 500 } || input.QuestionIds.Distinct().Count() != input.QuestionIds.Count ||
+        if (input.Purpose is not ("private" or "community"))
+        {
+            return Invalid("Unbekannter Exportzweck.");
+        }
+
+        if (input.QuestionIds is not { Count: >= 1 and <= 10000 } || input.QuestionIds.Distinct().Count() != input.QuestionIds.Count ||
             string.IsNullOrWhiteSpace(input.Title) || input.Title.Length > 256 || string.IsNullOrWhiteSpace(input.Publisher) || input.Publisher.Length > 256 ||
             input.LicenseNotice == null || input.LicenseNotice.Length > 32000 ||
             input.QuestionLicense.ValueKind != JsonValueKind.Object || input.ImageLicense.ValueKind != JsonValueKind.Object)
         {
-            return Invalid("Bitte 1 bis 500 unterschiedliche eigene Fragen, einen Titel und einen Attributionsnamen auswählen.");
+            return Invalid("Bitte 1 bis 10000 unterschiedliche eigene Fragen, einen Titel und einen Attributionsnamen auswählen.");
         }
 
         if (download && !input.RightsConfirmed)
@@ -113,13 +118,15 @@ public static class CatalogExportEndpoints
             }
 
             var mappings = await db.CatalogPackageImports.AsNoTracking().Where(item => item.OwnerAccountId == owner)
-                .Select(item => new { item.Id, item.QuestionIdsJson }).ToListAsync(ct);
-            var origins = new Dictionary<Guid, (Guid ImportId, string SourceId)>();
-            foreach (var mapping in mappings)
+                .OrderByDescending(item => item.ImportedAtUtc).Select(item => new { item.Id, item.QuestionIdsJson, item.QuestionVersionIdsJson }).ToListAsync(ct);
+            var history = await db.CatalogPackageImportRevisions.AsNoTracking().Where(item => item.OwnerAccountId == owner)
+                .OrderByDescending(item => item.ArchivedAtUtc).Select(item => new { item.Id, item.QuestionIdsJson, item.QuestionVersionIdsJson }).ToListAsync(ct);
+            var origins = new Dictionary<Guid, (Guid ImportId, string SourceId, string VersionsJson)>();
+            foreach (var mapping in mappings.Concat(history))
             {
                 foreach (var (sourceId, localId) in JsonSerializer.Deserialize<Dictionary<string, Guid>>(mapping.QuestionIdsJson)!)
                 {
-                    origins.TryAdd(localId, (mapping.Id, sourceId));
+                    origins.TryAdd(localId, (mapping.Id, sourceId, mapping.QuestionVersionIdsJson));
                 }
             }
 
@@ -136,14 +143,10 @@ public static class CatalogExportEndpoints
                 ct.ThrowIfCancellationRequested();
                 if (origins.TryGetValue(question.Id, out var origin))
                 {
-                    if (question.Draft != null || question.Versions.Count != 1 || question.Versions.Single().VersionNumber != 1)
-                    {
-                        throw new InvalidDataException("Bearbeitete importierte Fragen sind derzeit nicht exportierbar: vollständige Herkunft und getrennte Bearbeitungslizenzen müssen zuerst erfasst werden. Das Originalpaket bleibt separat herunterladbar.");
-                    }
-
                     if (!originals.TryGetValue(origin.ImportId, out var package))
                     {
-                        var bytes = await db.CatalogPackageImports.Where(item => item.Id == origin.ImportId && item.OwnerAccountId == owner).Select(item => item.Archive).SingleAsync(ct);
+                        var bytes = await db.CatalogPackageImports.Where(item => item.Id == origin.ImportId && item.OwnerAccountId == owner).Select(item => item.Archive).SingleOrDefaultAsync(ct)
+                            ?? await db.CatalogPackageImportRevisions.Where(item => item.Id == origin.ImportId && item.OwnerAccountId == owner).Select(item => item.Archive).SingleAsync(ct);
                         package = CatalogPackageReader.Read(bytes);
                         originals.Add(origin.ImportId, package);
                         foreach (var name in NoticeNames)
@@ -152,7 +155,42 @@ public static class CatalogExportEndpoints
                         }
                     }
 
-                    questions.Add(Original(package, origin.SourceId, media, mediaTypes));
+                    if (CatalogPackageUpdates.Unedited(question, origin.VersionsJson, origin.SourceId))
+                    {
+                        questions.Add(Original(package, origin.SourceId, media, mediaTypes));
+                    }
+                    else
+                    {
+                        if (!await db.QuestionRights.AnyAsync(item => item.QuestionId == question.Id, ct))
+                        {
+                            throw new InvalidDataException("Bearbeitete Importfragen benötigen vollständige Einzelnachweise. Bitte Quellen und Rechte je Frage und Bild erfassen.");
+                        }
+
+                        var adapted = await Native(question, input, db, owner, media, mediaTypes, ct);
+                        var original = package.Questions.Single(item => item.GetProperty("id").GetString() == origin.SourceId);
+                        if (!await db.QuestionRights.AnyAsync(item => item.QuestionId == question.Id, ct) ||
+                            adapted["provenance"]!["kind"]!.GetValue<string>() != "adapted" ||
+                            adapted["license"]!["id"]!.GetValue<string>() != original.GetProperty("license").GetProperty("id").GetString())
+                        {
+                            throw new InvalidDataException("Bearbeitete Importfragen benötigen ausdrückliche Bearbeitungsnachweise und die unveränderte Quelllizenz. Keine automatische Umlizenzierung.");
+                        }
+
+                        adapted["id"] = origin.SourceId;
+                        var manifest = JsonNode.Parse(package.Manifest.GetRawText())!.AsObject();
+                        manifest.Remove("files");
+                        adapted["origin"] = manifest;
+                        if (original.TryGetProperty("age_band", out var ageBand))
+                        {
+                            adapted["age_band"] = ageBand.GetString();
+                        }
+
+                        adapted["difficulty"] = original.GetProperty("difficulty").GetString();
+                        var topics = original.GetProperty("topics").EnumerateArray().Select(topic => topic.GetString()!)
+                            .Concat(new[] { adapted["subject"]!.GetValue<string>(), adapted["topic"]!.GetValue<string>() }).Distinct(StringComparer.Ordinal);
+                        adapted["topics"] = new JsonArray(topics.Select(topic => (JsonNode)JsonValue.Create(topic)).ToArray());
+                        notices["ATTRIBUTION"].Add("Originalnachweis der bearbeiteten Frage: " + original.GetRawText());
+                        questions.Add(adapted);
+                    }
                 }
                 else
                 {
@@ -179,9 +217,16 @@ public static class CatalogExportEndpoints
                 notices.ToDictionary(item => item.Key, item => string.Join("\n\n", item.Value.Distinct(StringComparer.Ordinal)), StringComparer.Ordinal),
                 selected.Max(question => question.Draft?.UpdatedAtUtc ?? question.UpdatedAtUtc),
                 mediaTypes);
+            var report = CatalogRightsReport.Inspect(exported.Questions);
+            var communityEnabled = configuration.GetValue<bool>("CatalogPackages:CommunityExportEnabled");
             var hash = Convert.ToHexStringLower(SHA256.HashData(exported.Archive));
             if (download)
             {
+                if (input.Purpose == "community" && (!communityEnabled || report.Count != 0 || !input.PublicationConfirmed))
+                {
+                    return Invalid("Community-Export gesperrt: Administratorfreigabe, vollständige offene Einzelnachweise und ausdrückliche Bestätigung der unwiderruflichen offenen Weitergabe sind erforderlich. Privat exportieren oder Nachweise berichtigen.");
+                }
+
                 if (input.PreviewSha256 != hash)
                 {
                     return Results.Conflict(new { Message = "Auswahl, Inhalt oder Rechteangaben haben sich seit der Vorschau geändert. Bitte erneut prüfen." });
@@ -192,6 +237,9 @@ public static class CatalogExportEndpoints
 
             return Results.Ok(new ApiResponse<object>(new
             {
+                RightsReport = report,
+                CommunityEnabled = communityEnabled,
+                CommunityEligible = communityEnabled && report.Count == 0,
                 QuestionCount = exported.Questions.Count,
                 MediaCount = media.Count,
                 ArchiveBytes = exported.Archive.Length,
@@ -211,27 +259,12 @@ public static class CatalogExportEndpoints
 
     private static async Task<JsonObject> Native(Question question, CatalogExportRequest input, LearnPipDbContext db, Guid owner, Dictionary<string, byte[]> media, Dictionary<string, string> mediaTypes, CancellationToken ct)
     {
-        QuestionPublishRequest content;
-        if (question.Draft != null)
+        var content = await CatalogRightsEndpoints.Content(question, db, ct);
+        var storedRights = await db.QuestionRights.AsNoTracking().SingleOrDefaultAsync(item => item.QuestionId == question.Id, ct);
+        JsonElement? rights = storedRights == null ? null : JsonSerializer.Deserialize<JsonElement>(storedRights.PayloadJson);
+        if (storedRights != null && storedRights.ContentSha256 != await CatalogRightsEndpoints.Fingerprint(content, db, ct))
         {
-            content = JsonSerializer.Deserialize<QuestionPublishRequest>(question.Draft.PayloadJson)!;
-        }
-        else
-        {
-            var latest = question.Versions.MaxBy(version => version.VersionNumber)
-                ?? throw new InvalidDataException("Die Auswahl enthält eine unvollständige Frage.");
-            var version = (await QuestionEndpoints.LoadVersion(db, latest.Id, ct))!;
-            static ContentBlockInput[] Convert(IReadOnlyList<ContentBlockOutput> blocks) => blocks.Select(block => new ContentBlockInput(block.Kind, block.Text, block.MediaId)).ToArray();
-            content = new QuestionPublishRequest(
-                version.SelectionMode,
-                version.Subject,
-                version.Topic,
-                version.Language,
-                version.Source,
-                version.License,
-                Convert(version.Prompt),
-                Convert(version.Explanation),
-                version.Answers.Select(answer => new AnswerInput(answer.IsCorrect, Convert(answer.Blocks))).ToArray());
+            throw new InvalidDataException("Die Frage oder ein Bild wurde geändert. Bitte die Einzelnachweise erneut prüfen und speichern.");
         }
 
         if (QuestionEndpoints.Validate(content with { Source = string.IsNullOrWhiteSpace(content.Source) ? "Eigenes Original" : content.Source, License = string.IsNullOrWhiteSpace(content.License) ? "LicenseRef-Private" : content.License }) is { } error)
@@ -239,8 +272,9 @@ public static class CatalogExportEndpoints
             throw new InvalidDataException("Unvollständige Frage: " + error);
         }
 
-        if (Uri.TryCreate(content.Source, UriKind.Absolute, out _) || (!string.IsNullOrWhiteSpace(content.License) &&
-            (!input.QuestionLicense.TryGetProperty("id", out var licenseId) || licenseId.ValueKind != JsonValueKind.String || licenseId.GetString() != content.License)))
+        var textLicense = rights?.GetProperty("license") ?? input.QuestionLicense;
+        if ((rights == null && Uri.TryCreate(content.Source, UriKind.Absolute, out _)) || (!string.IsNullOrWhiteSpace(content.License) &&
+            (!textLicense.TryGetProperty("id", out var licenseId) || licenseId.ValueKind != JsonValueKind.String || licenseId.GetString() != content.License)))
         {
             throw new InvalidDataException("Diese Frage enthält Drittquellen oder eine abweichende Lizenz. Keine automatische Umetikettierung: vollständige Einzelnachweise müssen zuerst erfasst werden.");
         }
@@ -278,8 +312,8 @@ public static class CatalogExportEndpoints
             {
                 ["path"] = path,
                 ["alt"] = image.AltText,
-                ["license"] = JsonNode.Parse(input.ImageLicense.GetRawText()),
-                ["provenance"] = new JsonObject { ["kind"] = "original" },
+                ["license"] = JsonNode.Parse((rights?.GetProperty("media").GetProperty(image.Id.ToString()).GetProperty("license") ?? input.ImageLicense).GetRawText()),
+                ["provenance"] = rights == null ? new JsonObject { ["kind"] = "original" } : JsonNode.Parse(rights.Value.GetProperty("media").GetProperty(image.Id.ToString()).GetProperty("provenance").GetRawText()),
             });
         }
 
@@ -315,8 +349,8 @@ public static class CatalogExportEndpoints
             ["difficulty"] = "unknown",
             ["selection_mode"] = content.SelectionMode,
             ["question_version"] = (question.Draft?.UpdatedAtUtc ?? question.UpdatedAtUtc).ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
-            ["license"] = JsonNode.Parse(input.QuestionLicense.GetRawText()),
-            ["provenance"] = new JsonObject { ["kind"] = "original" },
+            ["license"] = JsonNode.Parse(textLicense.GetRawText()),
+            ["provenance"] = rights == null ? new JsonObject { ["kind"] = "original" } : JsonNode.Parse(rights.Value.GetProperty("provenance").GetRawText()),
             ["media"] = assets,
         };
     }
