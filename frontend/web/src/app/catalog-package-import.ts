@@ -27,6 +27,8 @@ interface Preview {
   archiveSha256: string;
   state: 'new' | 'identical' | 'conflict';
   catalogId: string | null;
+  canUpdate?: boolean;
+  previousFingerprint?: string | null;
 }
 interface Imported {
   id: string;
@@ -101,7 +103,7 @@ interface Imported {
               <pre>{{ item.notices[notice] }}</pre>
             }
           </details>
-          @if (item.state === 'conflict') {
+          @if (item.state === 'conflict' && !item.canUpdate) {
             <p role="alert">
               {{
                 language.t(
@@ -118,6 +120,22 @@ interface Imported {
               }}
             </p>
           } @else {
+            @if (item.canUpdate) {
+              <p role="alert">
+                {{
+                  language.t(
+                    'Diese neue Paketfassung benötigt eine ausdrückliche Updatebestätigung. Historische Fassungen, Originalnachweise und Lernstände bleiben erhalten. Entfallene Fragen werden nicht gelöscht; persönliche Änderungen sperren das Update.'
+                  )
+                }}
+              </p>
+              <label
+                ><input type="checkbox" [(ngModel)]="updateConfirmed" [disabled]="busy()" />{{
+                  language.t(
+                    'Ich bestätige den Wechsel auf diese Paketfassung und habe Quellen, Lizenzen und die geänderten Inhalte geprüft.'
+                  )
+                }}</label
+              >
+            }
             <p>
               {{
                 language.t(
@@ -125,6 +143,19 @@ interface Imported {
                 )
               }}
             </p>
+            <label
+              >{{ language.t('Privater Zielkatalog') }}
+              <select
+                [(ngModel)]="targetCatalog"
+                [disabled]="busy() || !!item.canUpdate"
+                (ngModelChange)="confirmed = false"
+              >
+                <option value="">{{ language.t('Neuen privaten Katalog erstellen') }}</option>
+                @for (catalog of catalogs(); track catalog.id) {
+                  <option [value]="catalog.id">{{ catalog.name }}</option>
+                }
+              </select>
+            </label>
             <label
               ><input
                 type="checkbox"
@@ -140,7 +171,7 @@ interface Imported {
             <button
               type="button"
               class="primary-action"
-              [disabled]="busy() || !confirmed"
+              [disabled]="busy() || !confirmed || (item.canUpdate && !updateConfirmed)"
               (click)="importPackage()"
             >
               {{ language.t('Import bestätigen') }}
@@ -219,7 +250,10 @@ export class CatalogPackageImport implements OnInit {
   readonly imports = signal<Imported[]>([]);
   readonly noticeNames = ['LICENSES.md', 'NOTICE', 'ATTRIBUTION'];
   file: File | null = null;
+  targetCatalog = '';
+  readonly catalogs = signal<{ id: string; name: string }[]>([]);
   confirmed = false;
+  updateConfirmed = false;
   size(bytes: number): string {
     return (
       new Intl.NumberFormat(this.language.current(), { maximumFractionDigits: 2 }).format(
@@ -231,6 +265,15 @@ export class CatalogPackageImport implements OnInit {
   ngOnInit(): void {
     void this.reload();
   }
+  useFile(file: File): void {
+    if (this.busy()) return;
+    this.file = file;
+    this.preview.set(null);
+    this.catalogId.set(null);
+    this.confirmed = false;
+    this.updateConfirmed = false;
+    void this.inspect();
+  }
   select(event: Event): void {
     if (this.busy()) return;
     this.file = (event.target as HTMLInputElement).files?.[0] ?? null;
@@ -238,12 +281,14 @@ export class CatalogPackageImport implements OnInit {
     this.message.set('');
     this.catalogId.set(null);
     this.confirmed = false;
+    this.updateConfirmed = false;
   }
   async inspect(): Promise<void> {
     if (!this.file || this.busy()) return;
     this.preview.set(null);
     this.catalogId.set(null);
     this.confirmed = false;
+    this.updateConfirmed = false;
     if (this.file.size > 25 * 1024 * 1024 || !this.file.size) {
       this.message.set(this.language.t('Bitte eine ZIP-Datei von maximal 25 MiB auswählen.'));
       return;
@@ -260,7 +305,15 @@ export class CatalogPackageImport implements OnInit {
   }
   async importPackage(): Promise<void> {
     const item = this.preview();
-    if (!this.file || !item || !this.confirmed || item.state !== 'new' || this.busy()) return;
+    if (
+      !this.file ||
+      !item ||
+      !this.confirmed ||
+      (item.state !== 'new' && !item.canUpdate) ||
+      (item.canUpdate && !this.updateConfirmed) ||
+      this.busy()
+    )
+      return;
     await this.perform(async () => {
       const response = await this.request('import', item.archiveSha256);
       const result = ((await response.json()) as { data: { catalogId: string | null } }).data;
@@ -279,6 +332,11 @@ export class CatalogPackageImport implements OnInit {
     if (hash) {
       form.append('archiveSha256', hash);
       form.append('rightsConfirmed', 'true');
+      if (this.preview()?.canUpdate && this.updateConfirmed) {
+        form.append('updateConfirmed', 'true');
+        form.append('previousFingerprint', this.preview()?.previousFingerprint ?? '');
+      }
+      if (this.targetCatalog) form.append('targetCatalogId', this.targetCatalog);
     }
     const response = await fetch('/api/v1/catalog-packages/' + action, {
       method: 'POST',
@@ -304,6 +362,11 @@ export class CatalogPackageImport implements OnInit {
   }
   private async reload(): Promise<void> {
     try {
+      const catalogs = await fetch('/api/v1/catalogs/', { credentials: 'same-origin' });
+      if (catalogs.ok)
+        this.catalogs.set(
+          ((await catalogs.json()) as { data: { id: string; name: string }[] }).data,
+        );
       const response = await fetch('/api/v1/catalog-packages/', { credentials: 'same-origin' });
       if (response.ok) this.imports.set(((await response.json()) as { data: Imported[] }).data);
     } catch {
