@@ -35,9 +35,13 @@ public static class QuestionAccess
     /// <param name="db">Der Datenbankkontext.</param>
     /// <param name="accountId">Die Kennung des betroffenen Kontos.</param>
     /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
-    public static IQueryable<QuestionVersion> ReadableVersions(LearnPipDbContext db, Guid accountId) =>
-        db.QuestionVersions.Where(version => version.Question.DeletedAtUtc == null &&
-            (version.Question.OwnerAccountId == accountId ||
+    public static IQueryable<QuestionVersion> ReadableVersions(LearnPipDbContext db, Guid accountId)
+    {
+        var own = QuestionPermissions.Enabled(db, accountId, "readOwn");
+        var shared = QuestionPermissions.Enabled(db, accountId, "readShared");
+        return db.QuestionVersions.Where(version => version.Question.DeletedAtUtc == null &&
+            ((version.Question.OwnerAccountId == accountId && own.Contains(accountId)) ||
+             (version.Question.OwnerAccountId != accountId && shared.Contains(accountId) && (
              (version.Visibility == "public" && db.PublicSubmissions.Any(submission =>
                  submission.QuestionVersionId == version.Id && submission.Status == "approved")) ||
              db.GroupVersionShares.Any(share => share.QuestionVersionId == version.Id &&
@@ -50,7 +54,8 @@ public static class QuestionAccess
                  share.RevokedAtUtc == null && share.StudyGroup.DeletedAtUtc == null &&
                  version.PublishedAtUtc <= share.SharedAtUtc &&
                  (share.StudyGroup.OwnerAccountId == accountId ||
-                  share.StudyGroup.Memberships.Any(member => member.AccountId == accountId)))));
+                  share.StudyGroup.Memberships.Any(member => member.AccountId == accountId)))))));
+    }
 
     /// <summary>
     /// Liefert die öffentlich freigegebenen Fragenfassungen.

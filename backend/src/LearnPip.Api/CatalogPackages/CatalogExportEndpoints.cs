@@ -28,10 +28,10 @@ public static class CatalogExportEndpoints
     public static IEndpointRouteBuilder MapCatalogExportEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/v1/catalog-exports").RequireAuthorization(ApiPolicies.ActiveAccount);
-        group.MapGet("/questions", Candidates);
-        group.MapPost("/preview", Preview).RequireRateLimiting("content-write")
+        group.MapGet("/questions", Candidates).RequireQuestionPermissions("readOwn", "export");
+        group.MapPost("/preview", Preview).RequireQuestionPermissions("readOwn", "export").RequireRateLimiting("content-write")
             .WithMetadata(new RequestSizeLimitAttribute(256 * 1024));
-        group.MapPost("/download", Download).RequireRateLimiting("content-write")
+        group.MapPost("/download", Download).RequireQuestionPermissions("readOwn", "export").RequireRateLimiting("content-write")
             .WithMetadata(new RequestSizeLimitAttribute(256 * 1024));
         return app;
     }

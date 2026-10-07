@@ -30,7 +30,26 @@ public static class AdministrationEndpoints
                 string code,
                 AdministrationService service,
                 ClaimsPrincipal user,
-                CancellationToken cancellationToken) => SetSystemRole(accountId, code, true, service, user, cancellationToken));
+                CancellationToken cancellationToken) => SetSystemRole(accountId, code, true, service, user, cancellationToken))
+            .AddEndpointFilter(async (context, next) =>
+            {
+                if (context.GetArgument<string>(1) == "moderator")
+                {
+                    var db = context.HttpContext.RequestServices.GetRequiredService<LearnPipDbContext>();
+                    var rights = await QuestionPermissions.Snapshot(db, "moderator", context.HttpContext.RequestAborted);
+                    if (rights.GetValueOrDefault("readPrivate") &&
+                        context.HttpContext.Request.Query["privacyConfirmed"] != "true")
+                    {
+                        return Results.Conflict(new
+                        {
+                            error = "privacy_confirmation_required",
+                            notice = "Die Moderatorenrolle erlaubt Zugriff auf private Fragen der eigenen Instanz. Prüfe Zweck, Datenminimierung, Datenschutzhinweise und Rollenvergabe. Keine Konten, Codes oder Lernstände werden freigegeben. Der Hinweis muss vor Rollenvergabe ausdrücklich bestätigt werden (privacyConfirmed=true).",
+                        });
+                    }
+                }
+
+                return await next(context);
+            });
         admin.MapDelete(
             "/accounts/{accountId:guid}/roles/{code}",
             (

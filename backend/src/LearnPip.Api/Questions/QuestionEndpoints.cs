@@ -3,6 +3,7 @@
 // </copyright>
 
 using System.Security.Claims;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using LearnPip.Api.Security;
 using LearnPip.Data;
@@ -46,7 +47,7 @@ public static class QuestionEndpoints
             Publish(id, request, db, user, cancellationToken))
             .RequireRateLimiting("content-write");
         questions.MapGet("/{id:guid}/versions/{number:int}", ReadVersion);
-        questions.MapPut("/{id:guid}/versions/{number:int}/visibility", SetVisibility);
+        questions.MapPut("/{id:guid}/versions/{number:int}/visibility", SetVisibility).RequireQuestionPermissions("editOwn");
         questions.MapPost("/{id:guid}/attempts", Grade);
         return app;
     }
@@ -59,17 +60,26 @@ public static class QuestionEndpoints
     /// <param name="db">Der Datenbankkontext.</param>
     /// <param name="user">Die authentifizierte Benutzeridentität.</param>
     /// <param name="cancellationToken">Das Token zum Abbrechen der Operation.</param>
+    /// <param name="moderationReason">Expliziter Zweck für Fremdbearbeitung.</param>
+    /// <param name="expectedVersion">Fassung der geprüften Vorlage.</param>
     /// <returns>Das Ergebnis der beschriebenen Operation.</returns>
     internal static async Task<IResult> Publish(
         Guid? id,
         QuestionPublishRequest request,
         LearnPipDbContext db,
         ClaimsPrincipal user,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? moderationReason = null,
+        int? expectedVersion = null)
     {
         if (!AccountIdentity.TryGetAccountId(user, out var accountId))
         {
             return Results.Unauthorized();
+        }
+
+        if (moderationReason == null && !await QuestionPermissions.Allows(db, accountId, id.HasValue ? "editOwn" : "create", cancellationToken))
+        {
+            return Results.Forbid();
         }
 
         var error = Validate(request);
@@ -81,21 +91,6 @@ public static class QuestionEndpoints
             });
         }
 
-        var mediaIds = request.Prompt.Concat(request.Explanation)
-            .Concat(request.Answers.SelectMany(answer => answer.Blocks))
-            .Where(block => block.MediaId.HasValue).Select(block => block.MediaId!.Value)
-            .Distinct().ToArray();
-        var ownedMedia = await db.MediaAssets.AsNoTracking()
-            .Where(media => mediaIds.Contains(media.Id) && media.OwnerAccountId == accountId &&
-                media.DeletedAtUtc == null &&
-                (media.QuestionVersionId == null || media.QuestionVersion!.Question.DeletedAtUtc == null))
-            .Select(media => media.Id).ToArrayAsync(cancellationToken);
-        if (ownedMedia.Length != mediaIds.Length)
-        {
-            return Results.ValidationProblem(
-            new Dictionary<string, string[]> { ["mediaId"] = ["Image is unavailable or not owned by this account."] });
-        }
-
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         Question question;
         int nextVersion;
@@ -105,7 +100,7 @@ public static class QuestionEndpoints
             question = await db.Questions.FromSqlInterpolated(
                 $"SELECT * FROM \"Questions\" WHERE \"Id\" = {id.Value} FOR UPDATE")
                 .SingleOrDefaultAsync(cancellationToken) ?? new Question();
-            if (question.Id != id.Value || question.OwnerAccountId != accountId || question.DeletedAtUtc != null)
+            if (question.Id != id.Value || (question.OwnerAccountId != accountId && moderationReason == null) || question.DeletedAtUtc != null)
             {
                 return Results.NotFound();
             }
@@ -126,6 +121,65 @@ public static class QuestionEndpoints
             nextVersion = 1;
         }
 
+        var previous = await db.QuestionVersions.AsNoTracking().Where(item => item.QuestionId == question.Id)
+            .OrderByDescending(item => item.VersionNumber).FirstOrDefaultAsync(cancellationToken);
+        var draftJson = previous == null ? await db.QuestionDrafts.AsNoTracking().Where(draft => draft.QuestionId == question.Id)
+            .Select(draft => draft.PayloadJson).SingleOrDefaultAsync(cancellationToken) : null;
+        var originalDraft = draftJson == null ? null : JsonSerializer.Deserialize<QuestionPublishRequest>(draftJson);
+        if (moderationReason != null)
+        {
+            var own = question.OwnerAccountId == accountId;
+            var privateOriginal = previous == null || previous.Visibility != "public" ||
+                !await db.PublicSubmissions.AnyAsync(submission => submission.QuestionVersionId == previous.Id && submission.Status == "approved", cancellationToken);
+            if ((previous == null && originalDraft == null) || moderationReason.Trim().Length is < 10 or > 500 ||
+                !await QuestionPermissions.Allows(db, accountId, own ? "editOwn" : "editForeign", cancellationToken) ||
+                (!own && (!await QuestionPermissions.Allows(db, accountId, "readForeign", cancellationToken) ||
+                (privateOriginal && !await QuestionPermissions.Allows(db, accountId, "readPrivate", cancellationToken)))))
+            {
+                return Results.Forbid();
+            }
+
+            if (expectedVersion != (previous?.VersionNumber ?? 0))
+            {
+                return Results.Conflict(new { error = "Die Frage wurde inzwischen geändert. Bitte erneut prüfen." });
+            }
+
+            // A role grant is not a license grant: keep original source and attribution.
+            request = request with { Source = previous?.Source ?? originalDraft!.Source, License = previous?.License ?? originalDraft!.License };
+        }
+
+        if (previous != null)
+        {
+            var imports = await db.CatalogPackageImports.AsNoTracking().Where(item => item.OwnerAccountId == question.OwnerAccountId)
+                .Select(item => item.QuestionIdsJson).ToListAsync(cancellationToken);
+            if (imports.Any(mapping => JsonSerializer.Deserialize<Dictionary<string, Guid>>(mapping)!.ContainsValue(question.Id)))
+            {
+                var original = await db.QuestionVersions.AsNoTracking().Where(item => item.QuestionId == question.Id)
+                    .OrderBy(item => item.VersionNumber).FirstAsync(cancellationToken);
+                request = request with { Source = original.Source, License = original.License };
+            }
+        }
+
+        var previousId = previous?.Id ?? Guid.Empty;
+        var draftMedia = originalDraft == null ? Array.Empty<Guid>() : originalDraft.Prompt.Concat(originalDraft.Explanation)
+            .Concat(originalDraft.Answers.SelectMany(answer => answer.Blocks)).Where(block => block.MediaId.HasValue).Select(block => block.MediaId!.Value).ToArray();
+        var mediaIds = request.Prompt.Concat(request.Explanation)
+            .Concat(request.Answers.SelectMany(answer => answer.Blocks))
+            .Where(block => block.MediaId.HasValue).Select(block => block.MediaId!.Value)
+            .Distinct().ToArray();
+        var ownedMedia = await db.MediaAssets.AsNoTracking()
+            .Where(media => mediaIds.Contains(media.Id) && ((media.OwnerAccountId == accountId && (moderationReason == null || question.OwnerAccountId == accountId)) || (moderationReason != null && media.OwnerAccountId == question.OwnerAccountId &&
+                    (draftMedia.Contains(media.Id) || db.QuestionContentBlocks.Any(block => block.MediaAssetId == media.Id &&
+                        (block.QuestionVersionId == previousId || (block.AnswerOption != null && block.AnswerOption.QuestionVersionId == previousId)))))) &&
+                media.DeletedAtUtc == null &&
+                (media.QuestionVersionId == null || media.QuestionVersion!.Question.DeletedAtUtc == null))
+            .Select(media => media.Id).ToArrayAsync(cancellationToken);
+        if (ownedMedia.Length != mediaIds.Length)
+        {
+            return Results.ValidationProblem(
+            new Dictionary<string, string[]> { ["mediaId"] = ["Image is unavailable or not owned by this account."] });
+        }
+
         var now = DateTimeOffset.UtcNow;
         question.UpdatedAtUtc = now;
         var version = new QuestionVersion
@@ -139,6 +193,7 @@ public static class QuestionEndpoints
             Language = request.Language.Trim(),
             Source = request.Source.Trim(),
             License = request.License.Trim(),
+            AuthorAttribution = previous?.AuthorAttribution ?? string.Empty,
             PublishedAtUtc = now,
             Prompt = Summary(request.Prompt),
             Explanation = request.Explanation.Count == 0 ? null : Summary(request.Explanation),
@@ -157,6 +212,30 @@ public static class QuestionEndpoints
             };
             db.AnswerOptions.Add(option);
             AddBlocks(db, null, option.Id, "answer", answer.Blocks);
+        }
+
+        if (previous != null)
+        {
+            db.QuestionModerationEvents.Add(new QuestionModerationEvent
+            {
+                QuestionVersionId = previous.Id,
+                ModeratorAccountId = accountId,
+                Action = moderationReason == null ? "owner.revision" : "moderation.revision",
+                Note = moderationReason?.Trim() ?? "Neue eigene Fassung",
+                ReplacementVersionId = version.Id,
+            });
+        }
+
+        if (moderationReason != null && previous == null)
+        {
+            db.AdministrationAuditEvents.Add(new AdministrationAuditEvent
+            {
+                ActorAccountId = accountId,
+                Action = "moderation.draft.revision",
+                Target = question.Id.ToString(),
+                PreviousValue = "draft:" + question.Id,
+                NewValue = "version:" + version.Id + "; " + moderationReason.Trim(),
+            });
         }
 
         await db.SaveChangesAsync(cancellationToken);

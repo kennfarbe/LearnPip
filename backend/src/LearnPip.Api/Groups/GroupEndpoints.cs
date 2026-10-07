@@ -33,7 +33,7 @@ public static class GroupEndpoints
         groups.MapPost("/{id:guid}/invitations", Invite);
         groups.MapDelete("/{id:guid}/invitations/{invitationId:guid}", Revoke);
         groups.MapGet("/{id:guid}/catalogs", Catalogs);
-        groups.MapPut("/{id:guid}/catalogs/{catalogId:guid}", ShareCatalog);
+        groups.MapPut("/{id:guid}/catalogs/{catalogId:guid}", ShareCatalog).RequireQuestionPermissions("readOwn", "editOwn");
         groups.MapDelete("/{id:guid}/catalogs/{catalogId:guid}", UnshareCatalog);
         return app;
     }

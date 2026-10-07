@@ -25,12 +25,12 @@ public static class CatalogPackageEndpoints
     public static IEndpointRouteBuilder MapCatalogPackageEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/v1/catalog-packages").RequireAuthorization(ApiPolicies.ActiveAccount);
-        group.MapPost("/preview", Preview).DisableAntiforgery().RequireRateLimiting("content-write")
+        group.MapPost("/preview", Preview).RequireQuestionPermissions("create", "import").DisableAntiforgery().RequireRateLimiting("content-write")
             .WithMetadata(new RequestSizeLimitAttribute(CatalogPackageReader.MaxArchiveBytes + (1024 * 1024)));
-        group.MapPost("/import", Import).DisableAntiforgery().RequireRateLimiting("content-write")
+        group.MapPost("/import", Import).RequireQuestionPermissions("create", "import").DisableAntiforgery().RequireRateLimiting("content-write")
             .WithMetadata(new RequestSizeLimitAttribute(CatalogPackageReader.MaxArchiveBytes + (1024 * 1024)));
-        group.MapGet("/", List);
-        group.MapGet("/{id:guid}/original", Original);
+        group.MapGet("/", List).RequireQuestionPermissions("readOwn", "import");
+        group.MapGet("/{id:guid}/original", Original).RequireQuestionPermissions("readOwn", "export");
         return app;
     }
 
