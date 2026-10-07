@@ -79,7 +79,6 @@ Der technische JSON-Helfer ist keine Berechtigungsgrenze. Der Datenbankexport
 prüft Eigentum und aktive Konten API-seitig; Auswahl, Vorschau und bestätigter
 Browserdownload stehen im Fragen-Arbeitsbereich bereit (siehe unten).
 
-
 ## Privater ZIP-Import in der Anwendung
 
 Unter **Kataloge und Inhalte > Fragenpaket importieren** kann ein angemeldetes Konto eine lokale ZIP-Datei hochladen. Die Vorschau zeigt Originaltitel, Inhalts-/Formatversion, Quellenstand, Sprache, Themen, Fragen- und Medienanzahl sowie die Lizenz- und Attributionstexte. Erst die ausdrückliche Bestätigung der privaten Nutzungsrechte legt einen neuen privaten Katalog mit lernbaren Fragen an. Es erfolgt kein Download aus externen Quellen und keine Veröffentlichung.
