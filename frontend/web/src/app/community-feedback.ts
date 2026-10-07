@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
+import { QuestionRights } from './question-rights';
 import { LanguageService } from './language';
 import { FormsModule } from '@angular/forms';
 
@@ -128,13 +129,29 @@ interface Detail {
               <button type="button" (click)="act('close')">
                 {{ language.t('Meldungen schließen') }}
               </button>
-              <button type="button" (click)="act('correct')">
+              <button
+                type="button"
+                (click)="act('correct')"
+                [disabled]="!rights.allows('editForeign')"
+              >
                 {{ language.t('Neue private Version erstellen') }}
               </button>
-              <button type="button" (click)="act('withdraw')">
+              <button
+                type="button"
+                (click)="act('withdraw')"
+                [disabled]="!rights.allows('withdraw')"
+              >
                 {{ language.t('Version zurückziehen') }}
               </button>
-              <button type="button" (click)="act('delete')">
+              <label
+                ><input type="checkbox" [(ngModel)]="deleteConfirmed" />Löschung ausdrücklich
+                bestätigen</label
+              >
+              <button
+                type="button"
+                (click)="act('delete')"
+                [disabled]="!deleteConfirmed || !rights.allows('deleteForeign')"
+              >
                 {{ language.t('Frage löschen') }}
               </button>
             }
@@ -177,6 +194,8 @@ interface Detail {
 })
 export class CommunityFeedback implements OnInit {
   readonly language = inject(LanguageService);
+  readonly rights = inject(QuestionRights);
+  deleteConfirmed = false;
   readonly questions = signal<Question[]>([]);
   readonly feedback = signal<Feedback | null>(null);
   readonly moderator = signal(false);
@@ -254,13 +273,20 @@ export class CommunityFeedback implements OnInit {
     }
   }
   async loadInbox(): Promise<void> {
+    await this.rights.refresh();
     const response = await fetch('/api/v1/moderation/feedback/');
     if (response.ok) {
       this.moderator.set(true);
       this.inbox.set(((await response.json()) as Api<InboxItem[]>).data);
+    } else {
+      this.moderator.set(false);
+      this.inbox.set([]);
+      this.opened.set(null);
+      this.review.set(null);
     }
   }
   async open(item: InboxItem): Promise<void> {
+    this.deleteConfirmed = false;
     const response = await fetch(`/api/v1/moderation/feedback/${item.questionVersionId}`);
     if (response.ok) {
       this.opened.set(item.questionVersionId);
@@ -268,6 +294,7 @@ export class CommunityFeedback implements OnInit {
     }
   }
   async act(action: string, commentId?: string): Promise<void> {
+    if (action === 'delete' && !this.deleteConfirmed) return;
     if (!this.note.trim() || !this.opened()) {
       this.message.set('Bitte eine Begründung angeben.');
       return;
@@ -275,6 +302,7 @@ export class CommunityFeedback implements OnInit {
     if (
       await this.send(`/api/v1/moderation/feedback/${this.opened()}/actions`, 'POST', {
         action,
+        confirmed: this.deleteConfirmed,
         note: this.note,
         correctedPrompt: commentId || this.correctedPrompt,
       })

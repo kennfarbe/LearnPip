@@ -1,4 +1,5 @@
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { QuestionRights } from './question-rights';
 import { LanguageService } from './language';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -77,7 +78,7 @@ type SubmissionPreview = {
             <option value="draft">{{ uiLanguage.t('Nur Entwürfe') }}</option>
             <option value="published">{{ uiLanguage.t('Mit veröffentlichter Fassung') }}</option>
           </select>
-          <button type="button" (click)="newDraft()">
+          <button type="button" (click)="newDraft()" [disabled]="!rights.allows('create')">
             {{ uiLanguage.t('Neue Frage erstellen') }}
           </button>
           <a routerLink="/catalogs">{{ uiLanguage.t('Kataloge verwalten') }}</a>
@@ -281,13 +282,22 @@ type SubmissionPreview = {
               </div>
             </details>
             <div class="actions">
-              <button type="button" [disabled]="busy()" (click)="saveDraft()">
+              <button
+                type="button"
+                [disabled]="busy() || !rights.allows(questionId() ? 'editOwn' : 'create')"
+                (click)="saveDraft()"
+              >
                 {{ uiLanguage.t('Privat speichern') }}
               </button>
-              <button type="button" class="publish" [disabled]="busy()" (click)="publish()">
+              <button
+                type="button"
+                class="publish"
+                [disabled]="busy() || !rights.allows('editOwn')"
+                (click)="publish()"
+              >
                 {{ latestVersion() ? 'Neue Fassung veröffentlichen' : 'Fassung veröffentlichen' }}
               </button>
-              @if (questionId() && latestVersion()) {
+              @if (questionId() && latestVersion() && rights.allows('create')) {
                 <button
                   type="button"
                   class="secondary"
@@ -298,6 +308,28 @@ type SubmissionPreview = {
                 </button>
               }
             </div>
+            @if (questionId() && rights.allows('deleteOwn')) {
+              <details>
+                <summary>Eigene Frage löschen</summary>
+                <label
+                  >Löschgrund (10–500 Zeichen)<textarea
+                    [(ngModel)]="deleteReason"
+                    maxlength="500"
+                  ></textarea>
+                </label>
+                <label
+                  ><input type="checkbox" [(ngModel)]="deleteConfirmed" />Löschung ausdrücklich
+                  bestätigen</label
+                >
+                <button
+                  type="button"
+                  (click)="deleteQuestion()"
+                  [disabled]="busy() || !deleteConfirmed || deleteReason.trim().length < 10"
+                >
+                  Frage löschen
+                </button>
+              </details>
+            }
             @if (latestVersion()) {
               <p class="privacy">
                 Fassung {{ latestVersion() }} ist
@@ -423,6 +455,9 @@ export class QuestionEditor implements OnInit, OnDestroy {
   readonly status = signal('');
   readonly busy = signal(false);
   readonly editing = signal(false);
+  readonly rights = inject(QuestionRights);
+  deleteConfirmed = false;
+  deleteReason = '';
   private readonly route = inject(ActivatedRoute);
   search = '';
   filterStatus = 'all';
@@ -448,6 +483,7 @@ export class QuestionEditor implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.filterCatalog = this.route.snapshot.queryParamMap.get('catalog') ?? 'all';
+    void this.rights.refresh();
     void this.refresh();
     if (this.route.snapshot.queryParamMap.get('create') === 'true') this.newDraft();
     window.addEventListener('beforeunload', this.beforeUnload);
@@ -572,6 +608,8 @@ export class QuestionEditor implements OnInit, OnDestroy {
   editDraft(draft: Draft): void {
     if (!this.canLeave()) return;
     this.editing.set(true);
+    this.deleteConfirmed = false;
+    this.deleteReason = '';
     this.questionId.set(draft.questionId);
     this.latestVersion.set(draft.latestVersion);
     this.visibility.set('private');
@@ -756,6 +794,35 @@ export class QuestionEditor implements OnInit, OnDestroy {
     } catch {
       this.status.set('Entwurf konnte nicht gespeichert werden.');
       return false;
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  async deleteQuestion(): Promise<void> {
+    if (!this.deleteConfirmed || !this.questionId() || this.deleteReason.trim().length < 10) return;
+    this.busy.set(true);
+    try {
+      const response = await fetch('/api/v1/questions/delete', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          questionIds: [this.questionId()],
+          reason: this.deleteReason,
+          confirmed: true,
+        }),
+      });
+      if (!response.ok) throw new Error();
+      this.deleteConfirmed = false;
+      this.deleteReason = '';
+      this.savedState = this.draftState();
+      this.editing.set(false);
+      this.questionId.set('');
+      await this.refresh();
+      this.status.set('Frage gelöscht.');
+    } catch {
+      this.status.set('Frage konnte nicht gelöscht werden. Bitte aktuelle Rechte prüfen.');
     } finally {
       this.busy.set(false);
     }

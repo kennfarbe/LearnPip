@@ -55,7 +55,8 @@ async function api(page, options = {}) {
     const path = new URL(request.url()).pathname;
     const method = request.method();
     let data = [];
-    if (path.endsWith('/auth/capabilities')) data = options.capabilities;
+    if (path.endsWith('/questions/permissions')) data = Object.fromEntries(['create','readOwn','editOwn','deleteOwn','readShared','import','export','community'].map(action => [action, true]));
+    else if (path.endsWith('/auth/capabilities')) data = options.capabilities;
     else if (path.endsWith('/auth/me'))
       data = { lastActivityAtUtc: '2026-10-03T08:00:00Z', disabledAtUtc: null };
     else if (path.endsWith('/learning/progress'))
