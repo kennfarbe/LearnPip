@@ -57,6 +57,7 @@ public sealed partial class ApiV1Tests
             administrator.DefaultRequestHeaders.Add("X-Test-Session", session.ToString());
             var original = CatalogPackageReaderTests.Golden();
             var originalHash = Convert.ToHexStringLower(SHA256.HashData(original));
+            var originalFingerprint = CatalogPackageReader.Read(original).Fingerprint;
             var changed = CatalogPackageReaderTests.Rewrite(null, "Neue synthetische Paketfrage");
             var changedHash = Convert.ToHexStringLower(SHA256.HashData(changed));
             Assert.Empty((await learner.GetFromJsonAsync<JsonElement>("/api/v1/instance-catalogs/")).GetProperty("data").EnumerateArray());
@@ -80,9 +81,9 @@ public sealed partial class ApiV1Tests
             using var previewResponse = await PostPackage(learner, "preview", changed);
             var preview = (await previewResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data");
             Assert.True(preview.GetProperty("canUpdate").GetBoolean());
-            Assert.Equal(originalHash, preview.GetProperty("previousFingerprint").GetString());
+            Assert.Equal(originalFingerprint, preview.GetProperty("previousFingerprint").GetString());
             Assert.Equal(HttpStatusCode.Conflict, (await UpdatePackage(learner, changed, changedHash, new string('0', 64))).StatusCode);
-            Assert.Equal(HttpStatusCode.OK, (await UpdatePackage(learner, changed, changedHash, originalHash)).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await UpdatePackage(learner, changed, changedHash, originalFingerprint)).StatusCode);
             Guid questionId;
             await using (var db = new LearnPipDbContext(options))
             {
@@ -95,7 +96,7 @@ public sealed partial class ApiV1Tests
                 await db.SaveChangesAsync();
             }
 
-            Assert.Equal(HttpStatusCode.Conflict, (await UpdatePackage(learner, original, originalHash, changedHash)).StatusCode);
+            Assert.Equal(HttpStatusCode.Conflict, (await UpdatePackage(learner, original, originalHash, originalFingerprint)).StatusCode);
             using var remove = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/instance-catalogs/admin/{id}") { Content = JsonContent.Create(confirmation) };
             Assert.Equal(HttpStatusCode.NoContent, (await administrator.SendAsync(remove)).StatusCode);
             Assert.Equal(HttpStatusCode.Conflict, (await InstancePackage(administrator, original, originalHash, true)).StatusCode);
