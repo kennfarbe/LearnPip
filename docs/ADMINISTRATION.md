@@ -58,3 +58,11 @@ Administrierende sehen installierte Version, neuestes geprüftes stabiles Releas
 - `POST /api/v1/admin/updates/install` mit `{"version":"vX.Y.Z"}`: verifizierten Auftrag einreihen.
 
 **Wichtig:** Der API-Container selbst führt weder Host-Kommandos noch Docker-Aktionen aus. Der gesonderte, unprivilegierte Update-Operator muss auf dem Host konfiguriert und gestartet sein; ohne ihn ist kein Web-Update betriebsbereit. Vor dem Update sind ein funktionierendes Backup, ausreichend Speicher und Rootless Docker erforderlich. Ein erfolgreicher Download allein bedeutet noch kein erfolgreiches Update. Architektur, Inbetriebnahme und Fehlerbehandlung stehen unter [Admin-Web-Updates](admin-web-updates.md); die allgemeinen Betriebsabläufe unter [Betrieb](OPERATIONS.md).
+
+## Optionale Lernpakete
+
+Paketverwaltung erfordert ein Administratorkonto mit frischer Anmeldung. Lokale
+ZIPs und konfigurierte neutrale HTTPS-Quellen sind optional. Jede Bereitstellung,
+Deaktivierung und Entfernung verlangt gesonderte Bestätigung und wird auditiert.
+Private Kopien und Lernstände bleiben erhalten.
+[Anleitung mit Lizenzprüfung und Community-Sperre](CATALOG-INTERCHANGE.md#optionale-instanzpakete-und-bestätigte-updates).

@@ -118,3 +118,11 @@ unverändert übernehmen; insbesondere keine neuen Datenbank- oder Verschlüssel
 Danach auf die Image-basierte Compose-Datei wechseln, `LEARNPIP_VERSION` setzen, `docker compose pull`
 ausführen, migrieren und erst anschließend API/Worker/Web neu starten. Die benannten PostgreSQL- und
 Caddy-Volumes bleiben durch den festen Compose-Projektnamen `learnpip` erhalten.
+
+## Optionale Lernpakete
+
+Beim erstmaligen Setup kann `--catalog-package /absoluter/pfad/paket.zip` mehrfach
+angegeben werden. Standardmäßig wird kein Paket ausgewählt. Vorschau und
+Lizenzbestätigung erfolgen vor Bereitstellung; `--yes` bestätigt ausdrücklich
+angegebene Dateien mit. Nachinstallation, Updates, Deaktivierung und Entfernung
+erfolgen in Administration. [Paketverwaltung und Quellenprüfung](CATALOG-INTERCHANGE.md#optionale-instanzpakete-und-bestätigte-updates).

@@ -15,11 +15,11 @@ Darunter wird der persönliche Lernfortschritt zusammengefasst.
 
 Fragen lassen sich suchen und nach Katalog oder Fassungsstatus filtern.
 Der Editor zeigt die ausgewählte Frage und ihre Antwortmöglichkeiten.
-Darunter liegen die aufklappbaren Bereiche für lokale Exportauswahl und Import.
+Darunter liegen die aufklappbaren Bereiche für Quellen-/Rechteangaben, lokale Exportauswahl und Import.
 Der Export bietet kombinierte Filter, eine Lizenzvorschau und einen bestätigten
 ZIP-Download ohne öffentliche Veröffentlichung.
 
-![Frageneditor mit der Mathematikfrage „Was ergibt 2 + 2?“, den Antworten Vier und Fünf sowie Such- und Filterfeldern für eigene Fragen und aufklappbaren Bereichen für Export und Import.](screenshots/question-editor.png)
+![Frageneditor mit der Mathematikfrage „Was ergibt 2 + 2?“, den Antworten Vier und Fünf sowie Such- und Filterfeldern für eigene Fragen und aufklappbaren Bereichen für Quellen- und Rechteangaben, Export und Import.](screenshots/question-editor.png)
 
 ## Kataloge und Inhalte
 
@@ -27,7 +27,7 @@ Private Kataloge bündeln eigene Fragen. Von hier aus gelangt man direkt zur
 gefilterten Fragenliste. Lokale ZIP-Fragenpakete lassen sich nach einer Vorschau
 und ausdrücklicher Bestätigung in einen neuen privaten Katalog importieren.
 
-![Katalogbereich im hellen Design mit Dateiauswahl und Vorschau-Schaltfläche für den privaten ZIP-Import sowie dem Katalog Mathematik, seiner Fragenanzahl und dem Link zur Fragenliste.](screenshots/catalogs.png)
+![Katalogbereich im hellen Design mit optionaler Instanzpaketliste ohne automatische Auswahl, Dateiauswahl und Vorschau-Schaltfläche für den privaten ZIP-Import sowie dem Katalog Mathematik, seiner Fragenanzahl und dem Link zur Fragenliste.](screenshots/catalogs.png)
 
 ## Lernen auf dem Smartphone
 
