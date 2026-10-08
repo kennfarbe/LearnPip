@@ -506,7 +506,7 @@ export class QuestionEditor implements OnInit, OnDestroy {
   filterStatus = 'all';
   filterCatalog = 'all';
   catalogId = '';
-  publicLicense = '';
+  publicLicense = 'CC BY-SA 4.0';
   authorAttribution = '';
   ageDeclaration = '';
   rightsConfirmed = false;
