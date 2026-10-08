@@ -74,7 +74,7 @@ Die ursprünglichen Meilensteine beschreiben Entwicklungsschwerpunkte, nicht den
 | M5 – Optionale KI | Konfigurierbare Cloud-/Lokal-/Aus-Betriebsarten und vorhandene KI-Funktionen; standardmäßig deaktiviert. | Betriebs- und vom Anwendungsfall abhängige Transparenz-/Rechtsprüfung (#102), keine pauschale Einsatzfreigabe. |
 | M6 – Ausbau | Responsive/PWA-Oberfläche, Betriebsfunktionen und Admin-Web-Updates in wesentlichen Teilen vorhanden. | Weitere Zugänge, Verteilung von Katalogen und Betriebs-/Sicherheitsnachweise (#95–#107, #96/#97). |
 
-**Updateprüfung:** Manuelle Releaseabfragen zeigen ihren Fortschritt und melden
+**Updates prüfen:** Manuelle Abfragen neuer Versionen zeigen ihren Fortschritt und melden
 abgelaufene Administrator-Anmeldungen, Verbindungsfehler und Zeitüberschreitungen.
 Die Versionsquelle und die erneute Anmeldung sind unter
 [Admin-Web-Updates](docs/admin-web-updates.md#manuell-nach-neuen-versionen-suchen) beschrieben.
