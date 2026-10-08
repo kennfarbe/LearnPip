@@ -1,3 +1,25 @@
+# [1.15.0](https://github.com/kennfarbe/LearnPip/compare/v1.14.0...v1.15.0) (2026-10-08)
+
+
+### Bug Fixes
+
+* **catalogs:** preserve licenses of normalized imported images ([2f02fde](https://github.com/kennfarbe/LearnPip/commit/2f02fde5b500817903e7cd084e2a5a8abe6aeb08))
+* **catalogs:** reject contradictory actual source declarations ([a0d740d](https://github.com/kennfarbe/LearnPip/commit/a0d740d97cc64544f605db129d67cf5d8edfb9af))
+* **catalogs:** respect independently licensed source images ([5bd41c1](https://github.com/kennfarbe/LearnPip/commit/5bd41c1e6bfc4bf256b40d9e59a6cccf217beb4e))
+* **docker:** provide fontconfig for image processing ([ea3f98d](https://github.com/kennfarbe/LearnPip/commit/ea3f98df3617450086b453de9c1b44f9560885e4))
+* **web:** default community proposals to CC BY-SA 4.0 ([ac74ada](https://github.com/kennfarbe/LearnPip/commit/ac74adae56c7b6aef00c465a28fc65e7e0b5cfeb))
+
+
+### Features
+
+* add question permission administration and moderation UI ([5735ad4](https://github.com/kennfarbe/LearnPip/commit/5735ad42029a1a26f9c791edf2ab28c070c1dd73))
+* **catalogs:** manage optional packages and individual publication evidence ([b91780e](https://github.com/kennfarbe/LearnPip/commit/b91780e72ae7cf118cb6ebcfff889460d70335e0))
+* **catalogs:** preserve rights history and classification metadata ([49b8ea3](https://github.com/kennfarbe/LearnPip/commit/49b8ea3a09f77ed22f7b8fbec79a58798e27e459))
+* enforce configurable question permissions and audited revisions ([d737ba6](https://github.com/kennfarbe/LearnPip/commit/d737ba67adce96dadcf2f8fd7ed5d069bd1df6ed))
+* **setup:** offer optional packages without preselection ([f46a52e](https://github.com/kennfarbe/LearnPip/commit/f46a52e70d6015df78f8aba6ec28891a3a6eaea5))
+* **web:** add package administration and rights workflows ([0c09f76](https://github.com/kennfarbe/LearnPip/commit/0c09f76fac6fd88a52486d0d2698a5ca8745e455))
+* **web:** expose content classification and frozen rights evidence ([107fac1](https://github.com/kennfarbe/LearnPip/commit/107fac1bdc9f278dce93385e244978767c555da9))
+
 # [1.14.0](https://github.com/kennfarbe/LearnPip/compare/v1.13.1...v1.14.0) (2026-10-06)
 
 
