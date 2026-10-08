@@ -6,6 +6,7 @@ using System.Text.Json;
 using LearnPip.Api.Media;
 using LearnPip.Data;
 using LearnPip.Data.Domain;
+using Microsoft.EntityFrameworkCore;
 
 namespace LearnPip.Api.CatalogPackages;
 
@@ -82,18 +83,23 @@ public static class CatalogPackageImporter
         Guid>? identical = null,
         IReadOnlyDictionary<string, Question>? updates = null)
     {
+        var reusedIds = (identical?.Values ?? []).Concat(updates?.Values.Select(item => item.Id) ?? []).Distinct().ToArray();
+        var reused = db.Questions.Include(item => item.CatalogMemberships)
+            .Where(item => item.OwnerAccountId == owner && reusedIds.Contains(item.Id)).ToDictionary(item => item.Id);
         var mappings = new Dictionary<string, Guid>(StringComparer.Ordinal);
         foreach (var original in package.Questions)
         {
             var sourceId = original.GetProperty("id").GetString()!;
             if (identical != null && identical.TryGetValue(sourceId, out var known))
             {
+                AddMembership(reused[known], catalog.Id);
                 mappings.Add(sourceId, known);
                 continue;
             }
 
             var updating = updates != null && updates.TryGetValue(sourceId, out _);
             var question = updating ? updates![sourceId] : new Question { OwnerAccountId = owner, PrivateCatalogId = catalog.Id };
+            AddMembership(question, catalog.Id);
             var topic = original.GetProperty("topics")[0].GetString()!;
             var blocksFormat = original.TryGetProperty("prompt_blocks", out _);
             if (!updating)
@@ -215,6 +221,21 @@ public static class CatalogPackageImporter
     };
 
     private static string Short(string value) => string.Concat(value.EnumerateRunes().Take(120));
+
+    private static void AddMembership(Question question, Guid catalogId)
+    {
+        if (question.CatalogMemberships.Any(item => item.CatalogId == catalogId))
+        {
+            return;
+        }
+
+        if (question.CatalogMemberships.Count >= 100)
+        {
+            throw new InvalidDataException("Eine Frage kann höchstens 100 Katalogen zugeordnet werden.");
+        }
+
+        question.CatalogMemberships.Add(new QuestionCatalogMembership { CatalogId = catalogId, Question = question });
+    }
 
     private static string MediaType(string path) => Path.GetExtension(path).ToLowerInvariant() switch
     {

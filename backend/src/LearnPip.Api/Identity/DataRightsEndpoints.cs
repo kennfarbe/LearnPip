@@ -53,14 +53,14 @@ public static class DataRightsEndpoints
             .Select(item => new { item.Provider, item.Subject }).ToListAsync(ct);
         var catalogs = await db.PrivateCatalogs.AsNoTracking()
             .Where(item => item.OwnerAccountId == id)
-            .Select(item => new { item.Id, item.Name, item.CreatedAtUtc }).ToListAsync(ct);
+            .Select(item => new { item.Id, item.Name, item.Description, item.CreatedAtUtc }).ToListAsync(ct);
         var catalogPackages = await db.CatalogPackageImports.AsNoTracking()
             .Where(item => item.OwnerAccountId == id)
             .Select(item => new { item.Id, item.PackageId, item.CatalogVersion, item.PrivateCatalogId, item.ImportedAtUtc })
             .ToListAsync(ct);
         var questions = await db.Questions.AsNoTracking()
             .Where(item => item.OwnerAccountId == id)
-            .Select(item => new { item.Id, item.PrivateCatalogId, item.CreatedAtUtc, item.DeletedAtUtc }).ToListAsync(ct);
+            .Select(item => new { item.Id, item.PrivateCatalogId, CatalogIds = item.CatalogMemberships.Select(membership => membership.CatalogId).ToArray(), item.CreatedAtUtc, item.DeletedAtUtc }).ToListAsync(ct);
         var drafts = await db.QuestionDrafts.AsNoTracking()
             .Where(item => item.Question.OwnerAccountId == id)
             .Select(item => new { item.QuestionId, item.PayloadJson, item.UpdatedAtUtc })

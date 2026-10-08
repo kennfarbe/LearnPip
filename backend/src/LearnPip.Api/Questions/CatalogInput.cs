@@ -16,4 +16,5 @@ namespace LearnPip.Api.Questions;
 /// Anfrage zum Anlegen oder Umbenennen eines privaten Fragenkatalogs.
 /// </summary>
 /// <param name="Name">Der Anzeigename.</param>
-public sealed record CatalogInput(string Name);
+/// <param name="Description">Die optionale Katalogbeschreibung.</param>
+public sealed record CatalogInput(string Name, string? Description = null);

@@ -28,6 +28,8 @@ public static class CatalogExportEndpoints
     public static IEndpointRouteBuilder MapCatalogExportEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/v1/catalog-exports").RequireAuthorization(ApiPolicies.ActiveAccount);
+        app.MapGet("/api/v1/catalogs/questions", Candidates).RequireAuthorization(ApiPolicies.ActiveAccount)
+            .RequireQuestionPermissions("readOwn");
         group.MapGet("/questions", Candidates).RequireQuestionPermissions("readOwn", "export");
         group.MapPost("/preview", Preview).RequireQuestionPermissions("readOwn", "export").RequireRateLimiting("content-write")
             .WithMetadata(new RequestSizeLimitAttribute(1024 * 1024));
@@ -45,7 +47,7 @@ public static class CatalogExportEndpoints
 
         Private(context);
         var questions = await db.Questions.AsNoTracking().Where(question => question.OwnerAccountId == owner && question.DeletedAtUtc == null)
-            .Include(question => question.Draft).Include(question => question.Versions).OrderBy(question => question.CreatedAtUtc).Take(10001).ToListAsync(ct);
+            .Include(question => question.CatalogMemberships).Include(question => question.Draft).Include(question => question.Versions).OrderBy(question => question.CreatedAtUtc).Take(10001).ToListAsync(ct);
         if (questions.Count > 10000)
         {
             return Results.Problem("Die Auswahlübersicht ist auf 10000 Fragen begrenzt.", statusCode: 413);
@@ -93,6 +95,8 @@ public static class CatalogExportEndpoints
                 Tags = metadata?.GetProperty("topics").EnumerateArray().Select(topic => topic.GetString()).ToArray() ?? [],
                 question.Id,
                 CatalogId = question.PrivateCatalogId,
+                CatalogIds = question.CatalogMemberships.Select(item => item.CatalogId)
+                    .Concat(question.PrivateCatalogId.HasValue ? [question.PrivateCatalogId.Value] : []).Distinct().Order().ToArray(),
                 Prompt = draft == null ? version?.Prompt ?? "Unvollständige Frage" : Summary(draft.Prompt, true),
                 Subject = draft?.Subject ?? version?.Subject ?? string.Empty,
                 Topic = draft?.Topic ?? version?.Topic ?? string.Empty,

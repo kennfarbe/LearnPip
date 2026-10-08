@@ -18,4 +18,5 @@ namespace LearnPip.Api.Questions;
 /// <param name="Id">Die eindeutige Kennung.</param>
 /// <param name="Name">Der Anzeigename.</param>
 /// <param name="QuestionCount">Die Anzahl der Fragen.</param>
-public sealed record CatalogView(Guid Id, string Name, int QuestionCount);
+/// <param name="Description">Die optionale Katalogbeschreibung.</param>
+public sealed record CatalogView(Guid Id, string Name, int QuestionCount, string? Description = null);

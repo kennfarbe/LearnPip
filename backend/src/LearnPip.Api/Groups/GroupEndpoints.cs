@@ -273,7 +273,7 @@ public static class GroupEndpoints
         }
 
         var latest = await db.Questions.AsNoTracking()
-            .Where(question => question.PrivateCatalogId == catalogId &&
+            .Where(question => (question.PrivateCatalogId == catalogId || question.CatalogMemberships.Any(membership => membership.CatalogId == catalogId)) &&
                 question.OwnerAccountId == accountId && question.DeletedAtUtc == null)
             .Select(question => question.Versions.OrderByDescending(version => version.VersionNumber)
                 .Select(version => (Guid?)version.Id).FirstOrDefault())
