@@ -26,14 +26,17 @@ Caddy bezieht automatisch ein HTTPS-Zertifikat für die Domain. Nur der Proxy ve
 
 Bei einem leeren `Mail__Password` und fehlendem Mail-Host ist der E-Mail-Weg deaktiviert; für E-Mail-Codes ist ein festes, zufällig generiertes `Authentication__EmailCodeKey` erforderlich. Den Schlüssel und die Datenbank-Zugangsdaten über Sicherungen behalten. Die Anwendung lädt Laufzeitgeheimnisse als Dateien aus `/run/secrets`; sie stehen nicht im Compose-Environment oder Git. Nach Änderung einer Secret-Datei den betroffenen Dienst neu erstellen (`docker compose ... up -d --force-recreate api`), damit der Bind-Mount den aktuellen Inhalt erhält. Kein `down --volumes` auf einer produktiven Installation ausführen.
 
-Für den ersten Administrator ein vorhandenes Konto anmelden und anschließend den lokalen Einmalbefehl aus [Administration](ADMINISTRATION.md) mit dem API-Image und dessen Datenbank-Secret ausführen:
+Für den ersten lokalen Administrator nach der Migration das mitgelieferte
+Skript im bestehenden Release aufrufen:
 
 ```sh
-account_id="UUID_DES_VORHANDENEN_KONTOS"
-docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml \
-  run --rm -e "Authentication__BootstrapAdminAccountId=$account_id" api --bootstrap-admin
+./scripts/setup-admin.sh
 ```
 
+Benutzername und Passwort werden geprüft; das Passwort wird verdeckt wiederholt.
+Bestehende Administratoren bleiben unverändert. Voraussetzungen, alternative
+Kontoeinrichtung und Passwort-Reset stehen in
+[Administration](ADMINISTRATION.md#lokale-wiederherstellung-und-bestehende-installationen).
 Der Produktionsprozess bietet keinen öffentlichen Bootstrap-Endpunkt.
 
 ## Neustart, Upgrade und Sicherung
