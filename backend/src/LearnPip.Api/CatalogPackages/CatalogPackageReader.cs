@@ -5,6 +5,7 @@
 using System.Globalization;
 using System.IO.Compression;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -342,8 +343,9 @@ public static partial class CatalogPackageReader
     {
         Require(value.ValueKind == JsonValueKind.String, "Text erwartet.");
         var text = value.GetString()!;
+        var length = text.EnumerateRunes().Count();
         Require(
-            text.Length >= min && text.Length <= max && (min == 0 || !string.IsNullOrWhiteSpace(text)),
+            length >= min && length <= max && (min == 0 || !string.IsNullOrWhiteSpace(text)),
             "Textlänge außerhalb des erlaubten Bereichs.");
         return text;
     }

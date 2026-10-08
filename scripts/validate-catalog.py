@@ -142,7 +142,7 @@ def validate(filename: str) -> tuple[str, int]:
                                     "description", "language", "publisher", "created_at",
                                     "exporter_app_version", "license", "files"}, "manifest")
             require(manifest.get("format_id") == FORMAT_ID, "Unsupported format_id")
-            require(manifest.get("schema_version") in VERSIONS,
+            require(isinstance(manifest.get("schema_version"), str) and manifest["schema_version"] in VERSIONS,
                     "Unsupported schema_version: " + str(manifest.get("schema_version")) +
                     "; supported: " + ", ".join(sorted(VERSIONS)) +
                     ". Bitte einen passenden Reader verwenden; kein Teilimport.")

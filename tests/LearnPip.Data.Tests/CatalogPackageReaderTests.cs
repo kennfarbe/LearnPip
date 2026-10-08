@@ -44,6 +44,7 @@ public sealed class CatalogPackageReaderTests
         switch (mutation)
         {
             case "version": manifest["schema_version"] = "99.0.0"; break;
+            case "unicode": manifest["title"] = string.Concat(Enumerable.Repeat("😀", 256)); break;
             case "unknown": manifest["account_secret"] = "synthetic"; break;
             case "answer": questions["questions"]![0]!["correct_answer_ids"] = new JsonArray("missing"); break;
             case "license": questions["questions"]![0]!["media"]![0]!["license"]!.AsObject().Remove("holder"); break;
@@ -104,6 +105,14 @@ public sealed class CatalogPackageReaderTests
         var question = Assert.Single(package.Questions);
         Assert.Equal("CC-BY-SA-4.0", question.GetProperty("license").GetProperty("id").GetString());
         Assert.Equal("CC-BY-4.0", question.GetProperty("media")[0].GetProperty("license").GetProperty("id").GetString());
+    }
+
+    /// <summary>Wertet JSON-Schema-Längen als Unicode-Zeichen statt UTF-16-Codeeinheiten aus.</summary>
+    [Fact]
+    public void SchemaTextBoundariesCountUnicodeScalars()
+    {
+        var package = CatalogPackageReader.Read(Rewrite("unicode", null));
+        Assert.Equal(string.Concat(Enumerable.Repeat("😀", 256)), package.Manifest.GetProperty("title").GetString());
     }
 
     /// <summary>Verhindert Teilimporte bei Modellgrenzen und nicht speicherbaren Nullzeichen.</summary>

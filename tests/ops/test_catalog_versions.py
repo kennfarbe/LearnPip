@@ -140,6 +140,13 @@ class CatalogVersionTests(unittest.TestCase):
                 MIGRATOR["migrate_catalog"](source, target, "0.2.0")
             self.assertFalse(target.exists())
 
+    def test_unicode_schema_boundary_is_portable(self):
+        for version in VERSIONS:
+            snapshot = READER["read_catalog"](ROOT / "tests/fixtures/catalog" / version / "golden.zip")
+            snapshot.manifest["title"] = "😀" * 256
+            oracle(snapshot.manifest, version, "manifest")
+            PORTABLE["validate_document"](snapshot.manifest, version, "manifest")
+
 
 if __name__ == "__main__":
     unittest.main()
