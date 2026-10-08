@@ -115,6 +115,31 @@ class CatalogVersionTests(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         PORTABLE["validate_document"](document, version, name)
 
+    def test_unrepresentable_migration_keeps_original_and_existing_destination(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source, target = Path(temp) / "legacy.zip", Path(temp) / "existing.zip"
+            snapshot = READER["read_catalog"](ROOT / "tests/fixtures/catalog/0.1.0/golden.zip")
+            snapshot.questions["questions"][0]["prompt"] = "x" * 4001
+            WRITER["write_catalog"](snapshot, source)
+            original = source.read_bytes()
+            target.write_bytes(b"existing destination")
+            with self.assertRaises(ValueError):
+                MIGRATOR["migrate_catalog"](source, target)
+            self.assertEqual(source.read_bytes(), original)
+            self.assertEqual(target.read_bytes(), b"existing destination")
+            self.assertEqual(set(Path(temp).iterdir()), {source, target})
+
+    def test_stable_origin_prevents_unsupported_old_target(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source, target = Path(temp) / "stable.zip", Path(temp) / "old.zip"
+            snapshot = READER["read_catalog"](ROOT / "tests/fixtures/catalog/1.0.0/golden.zip")
+            snapshot.questions["questions"][0]["origin"] = {
+                key: value for key, value in snapshot.manifest.items() if key != "files"}
+            WRITER["write_catalog"](snapshot, source)
+            with self.assertRaisesRegex(ValueError, "Herkunftsvertrag"):
+                MIGRATOR["migrate_catalog"](source, target, "0.2.0")
+            self.assertFalse(target.exists())
+
 
 if __name__ == "__main__":
     unittest.main()
