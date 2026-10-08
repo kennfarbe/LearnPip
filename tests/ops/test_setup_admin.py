@@ -32,7 +32,7 @@ elif 'ps' in args:
     if os.environ.get('MOCK_NO_DATABASE') != '1': print('existing-database')
 elif args[-1] == 'initialize-admin':
     payload = sys.stdin.buffer.read()
-    record['stdin_sha256'] = hashlib.sha256(payload).hexdigest()
+    record['stdin_digest'] = hashlib.pbkdf2_hmac('sha512', payload, b'synthetic-transport-test', 600000).hex()
     password = payload.decode().split('\\n')[1]
     record['password_in_env'] = any(password in value for value in os.environ.values())
     # Selbst fremde Container-Ausgaben dürfen keinen Klartext weiterreichen.
@@ -85,7 +85,7 @@ class SetupAdminTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         call, = self.bootstrap()
         expected = (username + '\n' + self.password + '\n').encode()
-        self.assertEqual(call['stdin_sha256'], hashlib.sha256(expected).hexdigest())
+        self.assertEqual(call['stdin_digest'], hashlib.pbkdf2_hmac('sha512', expected, b'synthetic-transport-test', 600000).hex())
         self.assertFalse(call['password_in_env'])
         self.assertEqual(call['cwd'], str(self.root))
         self.assertIn('--no-deps', call['args'])
@@ -154,9 +154,9 @@ class SetupAdminTests(unittest.TestCase):
 
     def test_backend_password_boundaries_unicode_and_control_characters(self):
         for value in ('a' * 12, 'a' * 128, '😀' * 6, '😀' * 64, '\x1c' * 12):
-            self.assertIsNone(MODULE.password_error(value))
+            self.assertEqual(MODULE.password_problem(value), 0)
         for value in ('a' * 11, 'a' * 129, '😀' * 65, ' ' * 12, '\u2003' * 12, 'valid-password\r', 'valid-password\0'):
-            self.assertIsNotNone(MODULE.password_error(value))
+            self.assertNotEqual(MODULE.password_problem(value), 0)
 
     def test_terminal_password_is_hidden_and_abort_restores_terminal(self):
         master, slave = pty.openpty()

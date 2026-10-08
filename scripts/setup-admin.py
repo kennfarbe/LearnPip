@@ -26,17 +26,17 @@ def read_value(prompt, secret=False):
     return line.removesuffix('\n')
 
 
-def password_error(value):
+def password_problem(value):
     """.NET zählt UTF-16-Codeeinheiten; keine zusätzlichen Zeichenklassen."""
     length = len(value.encode('utf-16-le')) // 2
     if not 12 <= length <= 128:
-        return 'Passwort muss 12–128 Zeichen (UTF-16-Codeeinheiten) lang sein.'
+        return 1
     if '\r' in value or '\n' in value or '\0' in value:
-        return 'Passwort darf keine Zeilenumbrüche oder Nullzeichen enthalten.'
+        return 2
     # Entspricht Char.IsWhiteSpace; Python zählt zusätzlich U+001C–U+001F.
     if not value or all(c.isspace() and c not in '\x1c\x1d\x1e\x1f' for c in value):
-        return 'Passwort darf nicht ausschließlich aus Leerraum bestehen.'
-    return None
+        return 3
+    return 0
 
 
 def deployment(root):
@@ -90,9 +90,14 @@ def main():
         print('Passwort: 12–128 Zeichen, nicht nur Leerraum; keine verpflichtenden Zeichenklassen.', file=sys.stderr)
         while True:
             password = read_value('Passwort: ', secret=True)
-            error = password_error(password)
-            if error:
-                print(error + ' Bitte erneut eingeben.', file=sys.stderr)
+            problem = password_problem(password)
+            if problem:
+                if problem == 1:
+                    print('Passwort muss 12–128 Zeichen (UTF-16-Codeeinheiten) lang sein. Bitte erneut eingeben.', file=sys.stderr)
+                elif problem == 2:
+                    print('Passwort darf keine Zeilenumbrüche oder Nullzeichen enthalten. Bitte erneut eingeben.', file=sys.stderr)
+                else:
+                    print('Passwort darf nicht ausschließlich aus Leerraum bestehen. Bitte erneut eingeben.', file=sys.stderr)
                 password = None
                 continue
             confirmation = read_value('Passwort wiederholen: ', secret=True)
