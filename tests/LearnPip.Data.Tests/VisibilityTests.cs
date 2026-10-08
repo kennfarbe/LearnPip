@@ -435,6 +435,8 @@ public sealed class VisibilityTests
             var publicVersion = (await publicResponse.Content
                 .ReadFromJsonAsync<ApiResponse<PublishedQuestionVersion>>())!.Data;
             Assert.Equal("CC BY 4.0", publicVersion.License);
+            Assert.True(publicVersion.Rights.HasValue);
+            Assert.Equal("Eigener Name", publicVersion.Rights.Value.GetProperty("license").GetProperty("holder").GetString());
             Assert.Equal("Eigener Name", publicVersion.AuthorAttribution);
             Assert.Equal("Eigener Text", publicVersion.Source);
             var expectedResult53 = HttpStatusCode.NotFound;

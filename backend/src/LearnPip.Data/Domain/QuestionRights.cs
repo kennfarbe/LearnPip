@@ -13,6 +13,9 @@ public sealed class QuestionRights
     /// <summary>Holt oder setzt den Inhaltsfingerabdruck der bestätigten Fassung.</summary>
     public string ContentSha256 { get; set; } = string.Empty;
 
+    /// <summary>Holt oder setzt die unverändert archivierten früheren Einzelnachweise.</summary>
+    public string HistoryJson { get; set; } = "[]";
+
     /// <summary>Holt oder setzt vollständige Frage- und Mediennachweise.</summary>
     public string PayloadJson { get; set; } = string.Empty;
 

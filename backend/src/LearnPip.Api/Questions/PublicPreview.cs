@@ -3,6 +3,7 @@
 // </copyright>
 
 using System.Security.Cryptography;
+using System.Text.Json;
 using LearnPip.Api.Identity;
 using LearnPip.Data;
 using LearnPip.Data.Domain;
@@ -22,6 +23,9 @@ public sealed record PublicPreview(
         string PreviewToken,
         bool HasImages)
 {
+    /// <summary>Holt die tatsächlich bestätigten Frage- und Mediennachweise.</summary>
+    public JsonElement? Rights { get; init; }
+
     /// <summary>Holt die offenen technischen Nachweislücken.</summary>
     public IReadOnlyList<string> RightsReport { get; init; } = [];
 

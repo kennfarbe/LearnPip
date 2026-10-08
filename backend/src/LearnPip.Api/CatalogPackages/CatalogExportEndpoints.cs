@@ -51,12 +51,46 @@ public static class CatalogExportEndpoints
             return Results.Problem("Die Auswahlübersicht ist auf 10000 Fragen begrenzt.", statusCode: 413);
         }
 
+        var questionIds = questions.Select(question => question.Id).ToArray();
+        var sourceMetadata = new Dictionary<Guid, JsonElement>();
+        var packages = await db.CatalogPackageImports.AsNoTracking().Where(item => item.OwnerAccountId == owner)
+            .OrderByDescending(item => item.ImportedAtUtc).Select(item => new { item.Archive, item.QuestionIdsJson }).ToListAsync(ct);
+        var histories = await db.CatalogPackageImportRevisions.AsNoTracking().Where(item => item.OwnerAccountId == owner)
+            .OrderByDescending(item => item.ArchivedAtUtc).Select(item => new { item.Archive, item.QuestionIdsJson }).ToListAsync(ct);
+        foreach (var package in packages.Concat(histories))
+        {
+            var mapping = JsonSerializer.Deserialize<Dictionary<string, Guid>>(package.QuestionIdsJson)!;
+            foreach (var sourceQuestion in CatalogPackageReader.Read(package.Archive).Questions)
+            {
+                if (mapping.TryGetValue(sourceQuestion.GetProperty("id").GetString()!, out var local) && questionIds.Contains(local))
+                {
+                    sourceMetadata.TryAdd(local, JsonSerializer.SerializeToElement(new
+                    {
+                        age_band = sourceQuestion.TryGetProperty("age_band", out var audience) ? audience.GetString() : string.Empty,
+                        difficulty = sourceQuestion.GetProperty("difficulty").GetString(),
+                        topics = sourceQuestion.GetProperty("topics"),
+                    }));
+                }
+            }
+        }
+
+        var rights = await db.QuestionRights.AsNoTracking().Where(item => questionIds.Contains(item.QuestionId))
+            .ToDictionaryAsync(item => item.QuestionId, item => item.PayloadJson, ct);
         var items = questions.Select(question =>
         {
             var version = question.Versions.OrderByDescending(item => item.VersionNumber).FirstOrDefault();
             var draft = question.Draft == null ? null : JsonSerializer.Deserialize<QuestionPublishRequest>(question.Draft.PayloadJson);
+            JsonElement? metadata = sourceMetadata.TryGetValue(question.Id, out var originalMetadata) ? originalMetadata : null;
+            if (rights.TryGetValue(question.Id, out var evidence) && JsonSerializer.Deserialize<JsonElement>(evidence).TryGetProperty("metadata", out var saved))
+            {
+                metadata = saved;
+            }
+
             return new
             {
+                Audience = metadata?.GetProperty("age_band").GetString() ?? string.Empty,
+                Difficulty = metadata?.GetProperty("difficulty").GetString() ?? "unknown",
+                Tags = metadata?.GetProperty("topics").EnumerateArray().Select(topic => topic.GetString()).ToArray() ?? [],
                 question.Id,
                 CatalogId = question.PrivateCatalogId,
                 Prompt = draft == null ? version?.Prompt ?? "Unvollständige Frage" : Summary(draft.Prompt, true),
@@ -157,7 +191,28 @@ public static class CatalogExportEndpoints
 
                     if (CatalogPackageUpdates.Unedited(question, origin.VersionsJson, origin.SourceId))
                     {
-                        questions.Add(Original(package, origin.SourceId, media, mediaTypes));
+                        var unchanged = Original(package, origin.SourceId, media, mediaTypes);
+                        var saved = await db.QuestionRights.AsNoTracking().SingleOrDefaultAsync(item => item.QuestionId == question.Id, ct);
+                        if (saved != null && JsonSerializer.Deserialize<JsonElement>(saved.PayloadJson).TryGetProperty("metadata", out var metadata))
+                        {
+                            if (saved.ContentSha256 != await CatalogRightsEndpoints.Fingerprint(await CatalogRightsEndpoints.Content(question, db, ct), db, ct))
+                            {
+                                throw new InvalidDataException("Die Inhaltsmetadaten sind veraltet. Bitte die Einzelnachweise erneut prüfen und speichern.");
+                            }
+
+                            unchanged.Remove("age_band");
+                            if (metadata.GetProperty("age_band").GetString() is { Length: > 0 } audience)
+                            {
+                                unchanged["age_band"] = audience;
+                            }
+
+                            unchanged["difficulty"] = metadata.GetProperty("difficulty").GetString();
+                            var topics = metadata.GetProperty("topics").EnumerateArray().Select(topic => topic.GetString()!)
+                                .Concat(new[] { unchanged["subject"]!.GetValue<string>(), unchanged["topic"]!.GetValue<string>() }).Distinct(StringComparer.Ordinal);
+                            unchanged["topics"] = new JsonArray(topics.Select(topic => (JsonNode)JsonValue.Create(topic)).ToArray());
+                        }
+
+                        questions.Add(unchanged);
                     }
                     else
                     {
@@ -179,14 +234,21 @@ public static class CatalogExportEndpoints
                         var manifest = JsonNode.Parse(package.Manifest.GetRawText())!.AsObject();
                         manifest.Remove("files");
                         adapted["origin"] = manifest;
-                        if (original.TryGetProperty("age_band", out var ageBand))
+                        PreserveMediaLicenses(original, adapted, package, media);
+                        var savedRights = await db.QuestionRights.AsNoTracking().SingleAsync(item => item.QuestionId == question.Id, ct);
+                        var hasMetadata = JsonSerializer.Deserialize<JsonElement>(savedRights.PayloadJson).TryGetProperty("metadata", out _);
+                        if (!hasMetadata && original.TryGetProperty("age_band", out var ageBand))
                         {
                             adapted["age_band"] = ageBand.GetString();
                         }
 
-                        adapted["difficulty"] = original.GetProperty("difficulty").GetString();
+                        if (!hasMetadata)
+                        {
+                            adapted["difficulty"] = original.GetProperty("difficulty").GetString();
+                        }
+
                         var topics = original.GetProperty("topics").EnumerateArray().Select(topic => topic.GetString()!)
-                            .Concat(new[] { adapted["subject"]!.GetValue<string>(), adapted["topic"]!.GetValue<string>() }).Distinct(StringComparer.Ordinal);
+                            .Concat(adapted["topics"]!.AsArray().Select(topic => topic!.GetValue<string>())).Distinct(StringComparer.Ordinal);
                         adapted["topics"] = new JsonArray(topics.Select(topic => (JsonNode)JsonValue.Create(topic)).ToArray());
                         notices["ATTRIBUTION"].Add("Originalnachweis der bearbeiteten Frage: " + original.GetRawText());
                         questions.Add(adapted);
@@ -272,6 +334,13 @@ public static class CatalogExportEndpoints
             throw new InvalidDataException("Unvollständige Frage: " + error);
         }
 
+        if (Uri.TryCreate(content.Source, UriKind.Absolute, out var source) && source.Scheme is "https" or "http" &&
+            (rights == null || rights.Value.GetProperty("provenance").GetProperty("kind").GetString() == "original" ||
+                !rights.Value.GetProperty("provenance").TryGetProperty("source_url", out var declaredSource) || declaredSource.GetString() != source.AbsoluteUri))
+        {
+            throw new InvalidDataException("Die angegebene Drittquelle benötigt einen passenden Herkunftsnachweis; sie darf nicht als eigenes Original ausgegeben werden.");
+        }
+
         var textLicense = rights?.GetProperty("license") ?? input.QuestionLicense;
         if ((rights == null && Uri.TryCreate(content.Source, UriKind.Absolute, out _)) || (!string.IsNullOrWhiteSpace(content.License) &&
             (!textLicense.TryGetProperty("id", out var licenseId) || licenseId.ValueKind != JsonValueKind.String || licenseId.GetString() != content.License)))
@@ -332,7 +401,8 @@ public static class CatalogExportEndpoints
             }
         }
 
-        return new JsonObject
+        var metadata = rights.HasValue && rights.Value.TryGetProperty("metadata", out var savedMetadata) ? (JsonElement?)savedMetadata : null;
+        var result = new JsonObject
         {
             ["id"] = "learnpip-question:" + question.Id.ToString("N"),
             ["language"] = content.Language,
@@ -345,14 +415,34 @@ public static class CatalogExportEndpoints
             ["correct_answer_ids"] = correct,
             ["subject"] = content.Subject,
             ["topic"] = content.Topic,
-            ["topics"] = new JsonArray(new[] { content.Subject, content.Topic }.Distinct(StringComparer.Ordinal).Select(value => (JsonNode)JsonValue.Create(value)).ToArray()),
-            ["difficulty"] = "unknown",
+            ["topics"] = new JsonArray(new[] { content.Subject, content.Topic }.Concat(metadata?.GetProperty("topics").EnumerateArray().Select(topic => topic.GetString()!) ?? []).Distinct(StringComparer.Ordinal).Select(value => (JsonNode)JsonValue.Create(value)).ToArray()),
+            ["difficulty"] = metadata?.GetProperty("difficulty").GetString() ?? "unknown",
             ["selection_mode"] = content.SelectionMode,
             ["question_version"] = (question.Draft?.UpdatedAtUtc ?? question.UpdatedAtUtc).ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
             ["license"] = JsonNode.Parse(textLicense.GetRawText()),
             ["provenance"] = rights == null ? new JsonObject { ["kind"] = "original" } : JsonNode.Parse(rights.Value.GetProperty("provenance").GetRawText()),
             ["media"] = assets,
         };
+        if (metadata?.GetProperty("age_band").GetString() is { Length: > 0 } audience)
+        {
+            result["age_band"] = audience;
+        }
+
+        return result;
+    }
+
+    private static void PreserveMediaLicenses(JsonElement original, JsonObject adapted, CatalogPackage package, Dictionary<string, byte[]> media)
+    {
+        foreach (var asset in adapted["media"]!.AsArray())
+        {
+            var bytes = media[asset!["path"]!.GetValue<string>()];
+            if (original.GetProperty("media").EnumerateArray().Any(source =>
+                bytes.AsSpan().SequenceEqual(package.Files[source.GetProperty("path").GetString()!]) &&
+                asset["license"]!["id"]!.GetValue<string>() != source.GetProperty("license").GetProperty("id").GetString()))
+            {
+                throw new InvalidDataException("Unveränderte importierte Bilder müssen ihre ursprüngliche Lizenz behalten. Keine automatische Umlizenzierung.");
+            }
+        }
     }
 
     private static JsonObject Original(CatalogPackage package, string id, Dictionary<string, byte[]> media, Dictionary<string, string> mediaTypes)

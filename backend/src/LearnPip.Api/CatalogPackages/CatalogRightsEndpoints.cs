@@ -6,6 +6,7 @@ using System.Data;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using LearnPip.Api.Questions;
 using LearnPip.Api.Security;
 using LearnPip.Data;
@@ -89,6 +90,23 @@ public static class CatalogRightsEndpoints
     internal static Guid[] ImageIds(QuestionPublishRequest content) => content.Prompt.Concat(content.Explanation).Concat(content.Answers.SelectMany(answer => answer.Blocks))
         .Where(block => block.MediaId.HasValue).Select(block => block.MediaId!.Value).Distinct().Order().ToArray();
 
+    /// <summary>Erhält ältere bestätigte Einzelnachweise ohne stilles Abschneiden der Historie.</summary>
+    /// <param name="rights">Der eigene Rechte-Datensatz.</param>
+    /// <param name="hash">Die zugehörige Inhaltsfassung.</param>
+    /// <param name="payload">Die unveränderten Einzelnachweise.</param>
+    /// <param name="at">Der ursprüngliche Prüfzeitpunkt.</param>
+    internal static void Remember(QuestionRights rights, string hash, string payload, DateTimeOffset at)
+    {
+        var history = JsonNode.Parse(rights.HistoryJson)!.AsArray();
+        if (history.Count >= 100 || rights.HistoryJson.Length + payload.Length > 8 * 1024 * 1024)
+        {
+            throw new InvalidDataException("Nachweishistorie erreicht das Kontingent (100 Stände / 8 MiB). Keine früheren Nachweise werden automatisch gelöscht.");
+        }
+
+        history.Insert(0, new JsonObject { ["contentSha256"] = hash, ["rights"] = JsonNode.Parse(payload), ["atUtc"] = JsonValue.Create(at) });
+        rights.HistoryJson = history.ToJsonString();
+    }
+
     private static async Task<IResult> Read(Guid id, LearnPipDbContext db, ClaimsPrincipal user, HttpContext context, CancellationToken ct)
     {
         context.Response.Headers.CacheControl = "private, no-store";
@@ -118,6 +136,7 @@ public static class CatalogRightsEndpoints
             ContentSha256 = hash,
             Stale = rights != null && rights.ContentSha256 != hash,
             Rights = rights == null ? (JsonElement?)null : JsonSerializer.Deserialize<JsonElement>(rights.PayloadJson),
+            History = rights == null ? JsonSerializer.SerializeToElement(Array.Empty<object>()) : JsonSerializer.Deserialize<JsonElement>(rights.HistoryJson),
             Media = media,
             content.Source,
             content.License,
@@ -157,6 +176,12 @@ public static class CatalogRightsEndpoints
                 db.QuestionRights.Add(rights);
             }
 
+            if (rights.ContentSha256.Length != 0 && (rights.ContentSha256 != hash || !JsonNode.DeepEquals(JsonNode.Parse(rights.PayloadJson), JsonNode.Parse(input.Rights.GetRawText()))))
+            {
+                Remember(rights, rights.ContentSha256, rights.PayloadJson, rights.UpdatedAtUtc);
+            }
+
+            await db.PublicSubmissionPreviews.Where(item => db.QuestionVersions.Any(version => version.Id == item.QuestionVersionId && version.QuestionId == id)).ExecuteDeleteAsync(ct);
             rights.ContentSha256 = hash;
             rights.PayloadJson = input.Rights.GetRawText();
             rights.UpdatedAtUtc = DateTimeOffset.UtcNow;
@@ -179,7 +204,7 @@ public static class CatalogRightsEndpoints
     private static void Validate(JsonElement rights, Guid[] images)
     {
         var names = rights.EnumerateObject().Select(property => property.Name).ToArray();
-        if (names.Distinct(StringComparer.Ordinal).Count() != names.Length || names.Any(name => name is not ("license" or "provenance" or "media")))
+        if (names.Distinct(StringComparer.Ordinal).Count() != names.Length || names.Any(name => name is not ("license" or "provenance" or "media" or "metadata")))
         {
             throw new InvalidDataException("Unbekannte oder doppelte Rechtefelder.");
         }
@@ -188,6 +213,17 @@ public static class CatalogRightsEndpoints
             !rights.TryGetProperty("media", out var media) || media.ValueKind != JsonValueKind.Object)
         {
             throw new InvalidDataException("Lizenz, Herkunft und einzelne Mediennachweise sind erforderlich.");
+        }
+
+        if (rights.TryGetProperty("metadata", out var metadata) &&
+            (metadata.ValueKind != JsonValueKind.Object || metadata.EnumerateObject().Select(field => field.Name).Distinct(StringComparer.Ordinal).Count() != metadata.EnumerateObject().Count() ||
+                metadata.EnumerateObject().Any(field => field.Name is not ("age_band" or "difficulty" or "topics")) ||
+                !metadata.TryGetProperty("age_band", out var audience) || audience.ValueKind != JsonValueKind.String || audience.GetString()!.Length > 80 ||
+                !metadata.TryGetProperty("difficulty", out var difficulty) || difficulty.ValueKind != JsonValueKind.String || difficulty.GetString() is not ("unknown" or "easy" or "medium" or "hard") ||
+                !metadata.TryGetProperty("topics", out var topics) || topics.ValueKind != JsonValueKind.Array || topics.GetArrayLength() > 100 ||
+                topics.EnumerateArray().Any(topic => topic.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(topic.GetString()) || topic.GetString()!.Length > 128)))
+        {
+            throw new InvalidDataException("Metadaten: Zielgruppe maximal 80 Zeichen, gültiger Schwierigkeitsgrad und maximal 100 eindeutige Themen/Schlagworte mit je 128 Zeichen.");
         }
 
         CatalogPackageReader.License(license);

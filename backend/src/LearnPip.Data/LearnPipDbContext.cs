@@ -390,6 +390,7 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
             entity.HasKey(x => x.QuestionId);
             entity.Property(x => x.ContentSha256).HasMaxLength(64).IsRequired();
             entity.Property(x => x.PayloadJson).HasColumnType("jsonb").IsRequired();
+            entity.Property(x => x.HistoryJson).HasColumnType("jsonb").IsRequired().HasDefaultValue("[]");
             entity.HasOne<Question>().WithMany().HasForeignKey(x => x.QuestionId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
@@ -687,6 +688,7 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
             entity.HasKey(x => x.QuestionVersionId);
             entity.Property(x => x.Status).HasMaxLength(24).IsRequired();
             entity.Property(x => x.LicenseChoice).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.RightsJson).HasColumnType("jsonb").IsRequired().HasDefaultValue("{}");
             entity.Property(x => x.AuthorAttribution).HasMaxLength(120).IsRequired();
             entity.Property(x => x.AgeDeclaration).HasMaxLength(16).IsRequired();
             entity.Property(x => x.ReviewNote).HasMaxLength(1000);

@@ -35,6 +35,8 @@ namespace LearnPip.Data.Tests;
 /// </summary>
 public sealed partial class ApiV1Tests
 {
+    private static readonly string[] ClassificationTopics = ["Klasse 9", "Biologie / Zellen"];
+
     /// <summary>
     /// Prüft den Zugriff auf private Ressourcen durch Besitzer oder ausdrückliche Gruppenfreigaben.
     /// </summary>
@@ -756,11 +758,20 @@ public sealed partial class ApiV1Tests
             var rightsPreview = (await client.GetFromJsonAsync<JsonElement>(rightsPath)).GetProperty("data");
             var contentHash = rightsPreview.GetProperty("contentSha256").GetString()!;
             var evidence = new { license, provenance = new { kind = "original" } };
-            var rights = JsonSerializer.SerializeToElement(new { license, evidence.provenance, media = new Dictionary<string, object> { [imageId.ToString()] = evidence } });
+            var rights = JsonSerializer.SerializeToElement(new { license, evidence.provenance, metadata = new { age_band = "Klasse 9", difficulty = "unknown", topics = ClassificationTopics }, media = new Dictionary<string, object> { [imageId.ToString()] = evidence } });
             Assert.Equal(HttpStatusCode.Conflict, (await client.PutAsJsonAsync(rightsPath, new CatalogRightsEndpoints.RightsInput(new string('0', 64), rights))).StatusCode);
             var missingImage = JsonSerializer.SerializeToElement(new { license, evidence.provenance, media = new Dictionary<string, object>() });
             Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync(rightsPath, new CatalogRightsEndpoints.RightsInput(contentHash, missingImage))).StatusCode);
             Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync(rightsPath, new CatalogRightsEndpoints.RightsInput(contentHash, rights))).StatusCode);
+            var updatedRights = System.Text.Json.Nodes.JsonNode.Parse(rights.GetRawText())!;
+            updatedRights["metadata"]!["difficulty"] = "easy";
+            Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync(rightsPath, new CatalogRightsEndpoints.RightsInput(contentHash, JsonSerializer.SerializeToElement(updatedRights)))).StatusCode);
+            var rightsHistory = (await client.GetFromJsonAsync<JsonElement>(rightsPath)).GetProperty("data").GetProperty("history");
+            Assert.Single(rightsHistory.EnumerateArray());
+            Assert.Equal("unknown", rightsHistory[0].GetProperty("rights").GetProperty("metadata").GetProperty("difficulty").GetString());
+            var classified = (await client.GetFromJsonAsync<JsonElement>("/api/v1/catalog-exports/questions")).GetProperty("data").EnumerateArray().Single(item => item.GetProperty("id").GetGuid() == questions[0]);
+            Assert.Equal("Klasse 9", classified.GetProperty("audience").GetString());
+            Assert.Equal("easy", classified.GetProperty("difficulty").GetString());
 
             var request = new CatalogExportRequest(
                 questions.Take(3).ToArray(),
@@ -791,6 +802,11 @@ public sealed partial class ApiV1Tests
             Assert.True(download.Headers.CacheControl.NoStore);
             var bytes = await download.Content.ReadAsByteArrayAsync();
             var package = CatalogPackageReader.Read(bytes);
+            var classifiedQuestion = package.Questions.Single(item => item.GetProperty("id").GetString() == "learnpip-question:" + questions[0].ToString("N"));
+            Assert.Equal("Klasse 9", classifiedQuestion.GetProperty("age_band").GetString());
+            Assert.Equal("easy", classifiedQuestion.GetProperty("difficulty").GetString());
+            Assert.Contains("Biologie / Zellen", classifiedQuestion.GetProperty("topics").EnumerateArray().Select(topic => topic.GetString()));
+
             var text = System.Text.Encoding.UTF8.GetString(bytes);
             Assert.DoesNotContain(owner.ToString(), text);
             Assert.DoesNotContain(owner.ToString("N"), text);
@@ -801,6 +817,8 @@ public sealed partial class ApiV1Tests
             Assert.Equal(bytes, await repeated.Content.ReadAsByteArrayAsync());
             Assert.Equal(HttpStatusCode.Created, (await PostPackage(second, "import", bytes, Convert.ToHexStringLower(SHA256.HashData(bytes)))).StatusCode);
             Assert.Equal(HttpStatusCode.OK, (await PostPackage(second, "import", bytes, Convert.ToHexStringLower(SHA256.HashData(bytes)))).StatusCode);
+            var transferredMetadata = (await second.GetFromJsonAsync<JsonElement>("/api/v1/catalog-exports/questions")).GetProperty("data").EnumerateArray().Single(item => item.GetProperty("prompt").GetString() == "Synthetische Frage 0");
+            Assert.Equal("Klasse 9", transferredMetadata.GetProperty("audience").GetString());
             await using (var db = new LearnPipDbContext(secondOptions))
             {
                 Assert.Equal(3, await db.Questions.CountAsync());

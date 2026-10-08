@@ -40,14 +40,14 @@ public static class CatalogRightsReport
     /// <returns>Die vollständigen technischen Sperrgründe.</returns>
     public static async Task<IReadOnlyList<string>> ForVersion(Guid questionId, PublishedQuestionVersion version, LearnPipDbContext db, CancellationToken ct)
     {
-        var saved = await db.QuestionRights.AsNoTracking().SingleOrDefaultAsync(item => item.QuestionId == questionId, ct);
         var content = CatalogRightsEndpoints.VersionContent(version);
-        if (saved == null || saved.ContentSha256 != await CatalogRightsEndpoints.Fingerprint(content, db, ct))
+        var evidence = await Evidence(questionId, version, db, ct);
+        if (evidence == null)
         {
             return ["Vollständige aktuelle Einzelnachweise fehlen. Unter Quellen und Rechte je Frage und Bild prüfen und speichern; anschließend neue Vorschau laden."];
         }
 
-        var rights = JsonNode.Parse(saved.PayloadJson)!.AsObject();
+        var rights = JsonNode.Parse(evidence)!.AsObject();
         var assets = rights["media"]!.AsObject();
         var ids = CatalogRightsEndpoints.ImageIds(content);
         if (assets.Count != ids.Length || ids.Any(id => !assets.ContainsKey(id.ToString())))
@@ -86,6 +86,31 @@ public static class CatalogRightsReport
         "CC0 1.0" => "CC0-1.0",
         _ => license,
     };
+
+    /// <summary>Liest genau die zur Fassung bestätigten aktuellen oder historischen Nachweise.</summary>
+    /// <param name="questionId">Die eigene Quellfrage.</param>
+    /// <param name="version">Die unveränderliche Inhaltsfassung.</param>
+    /// <param name="db">Der Datenbankkontext.</param>
+    /// <param name="ct">Das Abbruchtoken.</param>
+    /// <returns>Die ursprünglichen Nachweise oder kein passender bestätigter Stand.</returns>
+    internal static async Task<string?> Evidence(Guid questionId, PublishedQuestionVersion version, LearnPipDbContext db, CancellationToken ct)
+    {
+        var saved = await db.QuestionRights.AsNoTracking().SingleOrDefaultAsync(item => item.QuestionId == questionId, ct);
+        if (saved == null)
+        {
+            return null;
+        }
+
+        var hash = await CatalogRightsEndpoints.Fingerprint(CatalogRightsEndpoints.VersionContent(version), db, ct);
+        if (saved.ContentSha256 == hash)
+        {
+            return saved.PayloadJson;
+        }
+
+        var previous = JsonSerializer.Deserialize<JsonElement>(saved.HistoryJson).EnumerateArray()
+            .FirstOrDefault(entry => entry.GetProperty("contentSha256").GetString() == hash);
+        return previous.ValueKind == JsonValueKind.Undefined ? null : previous.GetProperty("rights").GetRawText();
+    }
 
     private static void Check(JsonElement content, string label, List<string> issues)
     {

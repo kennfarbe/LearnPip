@@ -275,6 +275,8 @@ public static class QuestionEndpoints
                 block.Text,
                 block.MediaAssetId,
                 block.MediaAsset?.AltText)).ToArray();
+        var rights = await db.PublicSubmissions.AsNoTracking().Where(item => item.QuestionVersionId == versionId)
+            .Select(item => item.RightsJson).SingleOrDefaultAsync(cancellationToken);
         return new PublishedQuestionVersion(
             version.Id,
             version.VersionNumber,
@@ -291,7 +293,8 @@ public static class QuestionEndpoints
             Convert(version.Blocks.Where(block => block.Section == "explanation")),
             version.AnswerOptions.OrderBy(option => option.SortOrder)
                 .Select(option => new AnswerOutput(option.Id, option.IsCorrect, Convert(option.Blocks)))
-                .ToArray());
+                .ToArray())
+        { Rights = string.IsNullOrWhiteSpace(rights) || rights == "{}" ? null : JsonSerializer.Deserialize<JsonElement>(rights) };
     }
 
     /// <summary>Prüft Vollständigkeit und Darstellungsgrenzen einer Frage.</summary>

@@ -3,6 +3,7 @@
 // </copyright>
 
 using System.Security.Claims;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using LearnPip.Api.Security;
 using LearnPip.Data;
@@ -42,4 +43,8 @@ public sealed record PublishedQuestionVersion(
         string Visibility,
         IReadOnlyList<ContentBlockOutput> Prompt,
         IReadOnlyList<ContentBlockOutput> Explanation,
-        IReadOnlyList<AnswerOutput> Answers);
+        IReadOnlyList<AnswerOutput> Answers)
+{
+    /// <summary>Holt die bei einer Einreichung eingefrorenen Text- und Mediennachweise.</summary>
+    public JsonElement? Rights { get; init; }
+}

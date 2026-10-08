@@ -75,7 +75,8 @@ public sealed class PublicSubmissionService(LearnPipDbContext db, IConfiguration
             .Any(block => block.Kind == "image");
         var report = await CatalogRightsReport.ForVersion(questionId, version, db, cancellationToken);
         var enabled = configuration.GetValue<bool>("CatalogPackages:CommunityExportEnabled");
-        return new PublicPreview(version, token, hasImages) { RightsReport = report, CommunityEnabled = enabled, CommunityEligible = enabled && report.Count == 0 };
+        var evidence = await CatalogRightsReport.Evidence(questionId, version, db, cancellationToken);
+        return new PublicPreview(version, token, hasImages) { Rights = evidence == null ? null : JsonSerializer.Deserialize<JsonElement>(evidence), RightsReport = report, CommunityEnabled = enabled, CommunityEligible = enabled && report.Count == 0 };
     }
 
     /// <summary>
@@ -109,6 +110,7 @@ public sealed class PublicSubmissionService(LearnPipDbContext db, IConfiguration
         }
 
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtext({questionId.ToString()}))", cancellationToken);
         var version = await db.QuestionVersions.FromSqlInterpolated(
                 $"SELECT * FROM \"QuestionVersions\" WHERE \"QuestionId\" = {questionId} AND \"VersionNumber\" = {number} FOR UPDATE")
             .SingleOrDefaultAsync(cancellationToken);
@@ -133,7 +135,8 @@ public sealed class PublicSubmissionService(LearnPipDbContext db, IConfiguration
         }
 
         var rights = await db.QuestionRights.SingleAsync(item => item.QuestionId == questionId, cancellationToken);
-        var declaredLicense = JsonSerializer.Deserialize<JsonElement>(rights.PayloadJson).GetProperty("license").GetProperty("id").GetString()!;
+        var evidence = (await CatalogRightsReport.Evidence(questionId, content, db, cancellationToken))!;
+        var declaredLicense = JsonSerializer.Deserialize<JsonElement>(evidence).GetProperty("license").GetProperty("id").GetString()!;
         if (CatalogRightsReport.Normalize(declaredLicense) != CatalogRightsReport.Normalize(input.LicenseChoice))
         {
             return "rights_blocked";
@@ -188,7 +191,21 @@ public sealed class PublicSubmissionService(LearnPipDbContext db, IConfiguration
         }
 
         version.License = declaredLicense;
-        rights.ContentSha256 = await CatalogRightsEndpoints.Fingerprint(CatalogRightsEndpoints.VersionContent(content) with { License = declaredLicense }, db, cancellationToken);
+        var previousHash = await CatalogRightsEndpoints.Fingerprint(CatalogRightsEndpoints.VersionContent(content), db, cancellationToken);
+        var publishedHash = await CatalogRightsEndpoints.Fingerprint(CatalogRightsEndpoints.VersionContent(content) with { License = declaredLicense }, db, cancellationToken);
+        if (previousHash != publishedHash)
+        {
+            try
+            {
+                CatalogRightsEndpoints.Remember(rights, publishedHash, evidence, DateTimeOffset.UtcNow);
+            }
+            catch (InvalidDataException)
+            {
+                return "rights_blocked";
+            }
+        }
+
+        submission.RightsJson = evidence;
         version.AuthorAttribution = input.AuthorAttribution.Trim();
         submission.LicenseChoice = declaredLicense;
         submission.AuthorAttribution = version.AuthorAttribution;
