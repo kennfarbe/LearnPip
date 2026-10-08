@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { LanguageService } from './language';
 
 interface ReleaseInfo {
@@ -30,7 +31,16 @@ interface UpdateStatus {
 
 @Component({
   selector: 'app-admin-updates',
+  imports: [RouterLink],
   template: `
+    @if (requestError()) {
+      <p class="error" role="alert">{{ requestError() }}</p>
+      @if (authenticationRequired()) {
+        <a routerLink="/settings">{{
+          de ? 'Zur Administrator-Anmeldung' : 'Go to administrator sign-in'
+        }}</a>
+      }
+    }
     @if (status(); as s) {
       <section class="updates" aria-labelledby="updates-title">
         <div class="heading">
@@ -51,8 +61,9 @@ interface UpdateStatus {
           </div>
         </div>
         <p class="meta">
-          {{ de ? 'Letzte Prüfung:' : 'Last check:' }} {{ date(s.lastCheckedAtUtc) }} ·
-          {{ de ? 'Nächste Prüfung:' : 'Next check:' }} {{ date(s.nextCheckAtUtc) }}
+          {{ de ? 'Letzte erfolgreiche Prüfung:' : 'Last successful check:' }}
+          {{ date(s.lastCheckedAtUtc) }} · {{ de ? 'Nächste Prüfung:' : 'Next check:' }}
+          {{ date(s.nextCheckAtUtc) }}
         </p>
         <div class="controls">
           <label
@@ -65,9 +76,26 @@ interface UpdateStatus {
             </select>
           </label>
           <button type="button" (click)="check()" [disabled]="busy()">
-            {{ de ? 'Jetzt nach Updates suchen' : 'Check for updates now' }}
+            {{
+              checking()
+                ? de
+                  ? 'Updates werden geprüft …'
+                  : 'Checking for updates …'
+                : de
+                  ? 'Jetzt nach Updates suchen'
+                  : 'Check for updates now'
+            }}
           </button>
         </div>
+        @if (checking()) {
+          <p role="status">
+            {{
+              de
+                ? 'Neue Releaseinformationen werden geladen.'
+                : 'Loading current release information.'
+            }}
+          </p>
+        }
         @if (s.error) {
           <p class="error" role="alert">{{ s.error }}</p>
         }
@@ -248,6 +276,9 @@ interface UpdateStatus {
 export class AdminUpdates implements OnInit {
   readonly language = inject(LanguageService);
   readonly status = signal<UpdateStatus | null>(null);
+  readonly checking = signal(false);
+  readonly requestError = signal('');
+  readonly authenticationRequired = signal(false);
   readonly busy = signal(false);
 
   get de() {
@@ -269,16 +300,50 @@ export class AdminUpdates implements OnInit {
   }
 
   async check() {
+    if (this.busy()) return;
     this.busy.set(true);
+    this.checking.set(true);
+    this.requestError.set('');
+    this.authenticationRequired.set(false);
     try {
       const response = await fetch('/api/v1/admin/updates/check', {
         method: 'POST',
         credentials: 'same-origin',
       });
-      if (response.ok) this.status.set(await response.json());
+      if (response.ok) {
+        this.status.set(await response.json());
+      } else {
+        this.authenticationRequired.set(response.status === 401 || response.status === 403);
+        const message = this.authenticationRequired()
+          ? this.de
+            ? 'Administrator-Anmeldung abgelaufen oder nicht ausreichend. Bitte unter Einstellungen erneut als Administrator anmelden.'
+            : 'Administrator sign-in expired or insufficient. Please sign in again as administrator in Settings.'
+          : response.status === 429
+            ? this.de
+              ? 'Zu viele Update-Prüfungen. Bitte kurz warten und erneut versuchen.'
+              : 'Too many update checks. Please wait briefly and retry.'
+            : this.de
+              ? 'Update-Prüfung fehlgeschlagen. Angezeigt wird der letzte erfolgreiche Stand. Bitte erneut versuchen.'
+              : 'Update check failed. The last successful result is displayed. Please retry.';
+        this.checkFailed(message);
+      }
+    } catch {
+      this.checkFailed(
+        this.de
+          ? 'Verbindung für die Update-Prüfung fehlgeschlagen. Angezeigt wird der letzte erfolgreiche Stand. Bitte erneut versuchen.'
+          : 'Connection for the update check failed. The last successful result is displayed. Please retry.',
+      );
     } finally {
+      this.checking.set(false);
       this.busy.set(false);
     }
+  }
+
+  private checkFailed(message: string) {
+    this.requestError.set(message);
+    this.status.update((current) =>
+      current ? { ...current, state: 'check_failed', error: null } : current,
+    );
   }
 
   async setInterval(interval: string) {
