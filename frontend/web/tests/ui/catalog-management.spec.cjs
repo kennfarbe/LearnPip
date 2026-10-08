@@ -18,6 +18,7 @@ test('administrator explicitly confirms package installation and separately conf
   });
   await page.goto('/administration');
   const section = page.locator('app-instance-catalog-library');
+  await expect(section.locator('input[type=file]')).toBeEnabled();
   await section.locator('input[type=file]').setInputFiles({ name: 'synthetic.zip', mimeType: 'application/zip', buffer: Buffer.from('fixture') });
   await section.getByRole('button', { name: 'Paketfassung und Änderungen prüfen' }).click();
   const install = section.getByRole('button', { name: 'Paketfassung bereitstellen' });

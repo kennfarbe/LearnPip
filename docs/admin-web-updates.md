@@ -1,6 +1,28 @@
 # Architektur der webbasierten Admin-Updates
 
-**Status:** Implementierung im offenen PR #91; vor produktiver Nutzung müssen der PR gemergt, ein stabiles Release veröffentlicht und der Host-Operator eingerichtet sein. Die Issues #75, #76 und #77 werden gemeinsam behandelt. Diese Dokumentation beschreibt die Implementierung im Feature-Branch, nicht eine bereits allgemein ausgerollte Funktion.
+**Status:** In LearnPip implementiert. Für die Installation aus der Weboberfläche muss der separate Host-Operator eingerichtet sein.
+
+## Manuell nach neuen Versionen suchen
+
+Unter **Verwaltung → LearnPip-Updates → Jetzt nach Updates suchen** wird das
+Prüfintervall ausdrücklich ignoriert. Die Releasequelle ist GitHub
+(`kennfarbe/LearnPip`), nicht die Docker-Hub-Tagliste. Es werden ausschließlich
+stabile veröffentlichte Releases angeboten; Docker-Tags allein reichen für ein
+installierbares Release nicht aus.
+
+Administratoraktionen verlangen eine innerhalb der letzten 15 Minuten bestätigte
+Anmeldung. Erscheint ein Hinweis auf eine abgelaufene oder nicht ausreichende
+Anmeldung, unter **Einstellungen → Administrator-Anmeldung** erneut anmelden und
+danach die Suche wiederholen. Die Oberfläche bietet dafür einen direkten Link.
+Die Sicherheitsanforderung wird durch die Updateprüfung nicht aufgehoben.
+
+Während der Anfrage erscheint ein Wartehinweis. Abgewiesene Anfragen, eine
+begrenzte Abfragehäufigkeit und Verbindungsfehler werden sichtbar gemeldet; eine
+alte Versionsanzeige gilt dann nicht als erfolgreiche neue Prüfung. Die Uhrzeit
+bezieht sich ausdrücklich auf die **letzte erfolgreiche Prüfung**. Fehler beim
+Abruf der Releaseinformationen, einschließlich Zeitüberschreitungen, bleiben auch
+nach erneutem Laden sichtbar. Ein erfolgreicher Abruf entfernt diesen Fehler und
+aktualisiert Version, Release Notes und Prüfzeitpunkt.
 
 ## Sicherheitsgrenzen
 

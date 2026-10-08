@@ -25,6 +25,8 @@ public sealed class UpdateService(
     private const string Repo = "kennfarbe/LearnPip";
     private const string IntervalKey = "update_check_interval";
     private const string LastCheckKey = "update_last_check_utc";
+    private const string ErrorKey = "update_last_check_error";
+    private const string CheckError = "Release-Prüfung fehlgeschlagen. Angezeigt wird der letzte erfolgreiche Stand. Bitte später erneut versuchen.";
     private const string LatestKey = "update_latest_version";
     private const string ReleaseKey = "update_latest_release";
     private const string JobKey = "update_job";
@@ -104,7 +106,7 @@ public sealed class UpdateService(
     {
         await this.ImportOperatorStatusAsync(ct);
         var settings = await db.SystemSettings.AsNoTracking()
-            .Where(x => new[] { IntervalKey, LastCheckKey, LatestKey, ReleaseKey, JobKey }.Contains(x.Key))
+            .Where(x => new[] { IntervalKey, LastCheckKey, LatestKey, ReleaseKey, JobKey, ErrorKey }.Contains(x.Key))
             .ToDictionaryAsync(x => x.Key, x => x.Value, ct);
         var interval = settings.GetValueOrDefault(IntervalKey, "daily");
         var last = ParseDate(settings.GetValueOrDefault(LastCheckKey));
@@ -117,12 +119,18 @@ public sealed class UpdateService(
             state = Compare(latest, this.InstalledVersion) > 0 ? "update_available" : "current";
         }
 
+        var error = settings.GetValueOrDefault(ErrorKey);
+        if (!string.IsNullOrWhiteSpace(error))
+        {
+            state = "check_failed";
+        }
+
         if (job is { State: "queued" or "running" })
         {
             state = "updating";
         }
 
-        return new(this.InstalledVersion, latest, state, interval, last, Next(last, interval), null, release, job);
+        return new(this.InstalledVersion, latest, state, interval, last, Next(last, interval), string.IsNullOrWhiteSpace(error) ? null : error, release, job);
     }
 
     /// <summary>Prüft das Repository auf die neueste stabile Version.</summary>
@@ -169,13 +177,15 @@ public sealed class UpdateService(
             await this.PutAsync(LastCheckKey, now.ToString("O"), ct);
             await this.PutAsync(LatestKey, release.Version, ct);
             await this.PutAsync(ReleaseKey, JsonSerializer.Serialize(release, JsonOptions), ct);
+            await this.PutAsync(ErrorKey, string.Empty, ct);
             return await this.StatusAsync(ct);
         }
-        catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidOperationException)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidOperationException ||
+            (ex is OperationCanceledException && !ct.IsCancellationRequested))
         {
             CheckFailedLog(logger, ex);
-            var failed = await this.StatusAsync(ct);
-            return failed with { State = "check_failed", Error = "Release-Prüfung fehlgeschlagen. Bitte später erneut versuchen." };
+            await this.PutAsync(ErrorKey, CheckError, ct);
+            return await this.StatusAsync(ct);
         }
     }
 
