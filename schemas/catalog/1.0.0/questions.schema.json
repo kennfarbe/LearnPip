@@ -1,0 +1,392 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kennfarbe/LearnPip/blob/main/schemas/catalog/1.0.0/questions.schema.json",
+  "title": "LearnPip-Katalogfragen (stabil 1.0.0)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "questions"
+  ],
+  "$defs": {
+    "license": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "holder",
+        "attribution"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "license_url": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048
+        },
+        "holder": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "original",
+            "adapted",
+            "verbatim"
+          ]
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048
+        },
+        "source_revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "modification_note": {
+          "type": "string",
+          "maxLength": 2048
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "adapted",
+                  "verbatim"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "source_url",
+              "source_revision"
+            ]
+          }
+        }
+      ]
+    },
+    "blocks": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "text"
+            ],
+            "properties": {
+              "kind": {
+                "const": "text"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "path"
+            ],
+            "properties": {
+              "kind": {
+                "const": "image"
+              },
+              "path": {
+                "type": "string",
+                "pattern": "^media/[A-Za-z0-9._/-]+$",
+                "maxLength": 256
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "properties": {
+    "questions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "language",
+          "prompt",
+          "answers",
+          "correct_answer_ids",
+          "explanation",
+          "topics",
+          "difficulty",
+          "license",
+          "provenance",
+          "media",
+          "subject",
+          "topic",
+          "question_version",
+          "selection_mode",
+          "prompt_blocks",
+          "explanation_blocks"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._:-]{2,127}$"
+          },
+          "language": {
+            "type": "string",
+            "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 12000
+          },
+          "answers": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 20,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "text",
+                "blocks"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 10000
+                },
+                "blocks": {
+                  "$ref": "#/$defs/blocks"
+                }
+              }
+            }
+          },
+          "correct_answer_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          "explanation": {
+            "type": "string",
+            "maxLength": 12000
+          },
+          "topics": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "difficulty": {
+            "enum": [
+              "unknown",
+              "easy",
+              "medium",
+              "hard"
+            ]
+          },
+          "age_band": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "license": {
+            "$ref": "#/$defs/license"
+          },
+          "provenance": {
+            "$ref": "#/$defs/provenance"
+          },
+          "media": {
+            "type": "array",
+            "maxItems": 180,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "alt",
+                "license",
+                "provenance"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "pattern": "^media/[A-Za-z0-9._/-]+$",
+                  "maxLength": 256
+                },
+                "alt": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "license": {
+                  "$ref": "#/$defs/license"
+                },
+                "provenance": {
+                  "$ref": "#/$defs/provenance"
+                }
+              }
+            }
+          },
+          "subject": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "topic": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "question_version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "selection_mode": {
+            "enum": [
+              "single",
+              "multiple"
+            ]
+          },
+          "prompt_blocks": {
+            "$ref": "#/$defs/blocks"
+          },
+          "explanation_blocks": {
+            "$ref": "#/$defs/blocks"
+          },
+          "source_note": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "origin": {
+            "title": "LearnPip-Katalogmanifest (stabil 1.0.0)",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "format_id",
+              "schema_version",
+              "package_id",
+              "catalog_version",
+              "source_revision",
+              "title",
+              "description",
+              "language",
+              "publisher",
+              "created_at",
+              "license"
+            ],
+            "properties": {
+              "format_id": {
+                "const": "org.learnpip.catalog.zip"
+              },
+              "schema_version": {
+                "enum": [
+                  "0.1.0",
+                  "0.2.0",
+                  "1.0.0"
+                ]
+              },
+              "package_id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"
+              },
+              "catalog_version": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "source_revision": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "exporter_app_version": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "description": {
+                "type": "string",
+                "maxLength": 2048
+              },
+              "language": {
+                "type": "string",
+                "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+              },
+              "publisher": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "license": {
+                "$ref": "#/$defs/license"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

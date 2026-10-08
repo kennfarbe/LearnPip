@@ -33,6 +33,7 @@ public sealed class CatalogPackageWriterTests
         var first = CatalogPackageWriter.Write("Synthetischer Export", "Testautor", [question], media, notices, date, mediaTypes);
         var second = CatalogPackageWriter.Write("Synthetischer Export", "Testautor", [question], media, notices, date, mediaTypes);
         Assert.Equal(first.Archive, second.Archive);
+        Assert.Equal("1.0.0", first.Manifest.GetProperty("schema_version").GetString());
         Assert.Equal("image/png", first.Manifest.GetProperty("files").EnumerateArray().Single(file => file.GetProperty("path").GetString() == "media/diagram.png").GetProperty("media_type").GetString());
         Assert.Equal(question.ToJsonString(), JsonNode.Parse(Assert.Single(first.Questions).GetRawText())!.ToJsonString());
         Assert.Equal(source.Files["media/diagram.png"], first.Files["media/diagram.png"]);

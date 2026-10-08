@@ -17,7 +17,7 @@ public static class CatalogPackageWriter
     /// <summary>Erzeugt ausschließlich Inhaltsdaten, ohne Konten, Lernstände oder Veröffentlichung.</summary>
     /// <param name="title">Der ausdrücklich gewählte Titel.</param>
     /// <param name="publisher">Der ausdrücklich gewählte Herausgeber.</param>
-    /// <param name="questions">Vollständig ausgezeichnete Fragen im Entwurfsformat 0.2.0.</param>
+    /// <param name="questions">Vollständig ausgezeichnete Fragen im stabilen Format 1.0.0.</param>
     /// <param name="media">Nur tatsächlich referenzierte Originalmedien.</param>
     /// <param name="notices">Die vollständigen Lizenz-, Quellen- und Attributionsnachweise.</param>
     /// <param name="createdAt">Der feste Inhaltsstand für reproduzierbare Downloads.</param>
@@ -50,7 +50,7 @@ public static class CatalogPackageWriter
         var manifest = new JsonObject
         {
             ["format_id"] = "org.learnpip.catalog.zip",
-            ["schema_version"] = "0.2.0",
+            ["schema_version"] = "1.0.0",
             ["package_id"] = "selection." + Hash(Encoding.UTF8.GetBytes(ids)),
             ["catalog_version"] = contentHash,
             ["source_revision"] = contentHash,

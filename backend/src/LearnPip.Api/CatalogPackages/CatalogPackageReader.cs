@@ -5,12 +5,13 @@
 using System.Globalization;
 using System.IO.Compression;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace LearnPip.Api.CatalogPackages;
 
-/// <summary>Prüft ZIP-Sicherheit, Integrität und den archivierten Formatvertrag 0.1.0 offline.</summary>
+/// <summary>Prüft ZIP-Sicherheit, Integrität und die archivierten Formatverträge offline.</summary>
 public static partial class CatalogPackageReader
 {
     /// <summary>Maximale Größe eines komprimierten Pakets.</summary>
@@ -42,7 +43,7 @@ public static partial class CatalogPackageReader
             var media = new HashSet<string>(StringComparer.Ordinal);
             foreach (var question in questions)
             {
-                ValidateQuestion(question, files, ids, media, manifest.GetProperty("schema_version").GetString() == "0.2.0");
+                ValidateQuestion(question, files, ids, media, manifest.GetProperty("schema_version").GetString()!);
             }
 
             Require(
@@ -154,7 +155,7 @@ public static partial class CatalogPackageReader
             "format_id schema_version package_id catalog_version source_revision title description language publisher created_at license" + (origin ? string.Empty : " files"));
         Require(Text(manifest, "format_id", 1, 128) == "org.learnpip.catalog.zip", "Unbekanntes Paketformat.");
         var version = Text(manifest, "schema_version", 1, 128);
-        Require(version is "0.1.0" or "0.2.0", $"Schema-Version {version} ist nicht unterstützt. Unterstützt: 0.1.0, 0.2.0. Kein Teilimport.");
+        Require(version is "0.1.0" or "0.2.0" or "1.0.0", $"Schema-Version {version} ist nicht unterstützt. Unterstützt: 0.1.0, 0.2.0, 1.0.0. Bitte einen passenden Reader verwenden; kein Teilimport.");
         Require(PackageIdPattern().IsMatch(Text(manifest, "package_id", 3, 128)), "Ungültige Paketkennung.");
         Text(manifest, "catalog_version", 1, 128);
         Text(manifest, "source_revision", 1, 256);
@@ -180,8 +181,9 @@ public static partial class CatalogPackageReader
         byte[]> files,
         HashSet<string> ids,
         HashSet<string> media,
-        bool blocksFormat)
+        string schemaVersion)
     {
+        var blocksFormat = schemaVersion != "0.1.0";
         Fields(
             question,
             "id language prompt answers correct_answer_ids explanation topics difficulty age_band license provenance media" + (blocksFormat ? " subject topic question_version selection_mode prompt_blocks explanation_blocks source_note origin" : string.Empty),
@@ -228,6 +230,10 @@ public static partial class CatalogPackageReader
         if (blocksFormat)
         {
             ValidateBlocksQuestion(question, correct.Length);
+            Require(
+                schemaVersion != "0.2.0" || !question.TryGetProperty("origin", out var origin) ||
+                origin.GetProperty("schema_version").GetString() != "1.0.0",
+                "Format 0.2.0 kann keinen Herkunftsvertrag 1.0.0 enthalten.");
         }
     }
 
@@ -337,8 +343,9 @@ public static partial class CatalogPackageReader
     {
         Require(value.ValueKind == JsonValueKind.String, "Text erwartet.");
         var text = value.GetString()!;
+        var length = text.EnumerateRunes().Count();
         Require(
-            text.Length >= min && text.Length <= max && (min == 0 || !string.IsNullOrWhiteSpace(text)),
+            length >= min && length <= max && (min == 0 || !string.IsNullOrWhiteSpace(text)),
             "Textlänge außerhalb des erlaubten Bereichs.");
         return text;
     }
