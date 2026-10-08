@@ -13,6 +13,17 @@ unset password
 chmod 600 deploy/.env
 
 compose=(docker compose --project-name learnpip-ci --env-file deploy/.env --file deploy/compose.yaml)
+second_override=$(mktemp)
+cat > "$second_override" <<'SECOND'
+services:
+  db:
+    ports: !override ["127.0.0.1:55432:5432"]
+  api:
+    ports: !override ["127.0.0.1:8081:8080"]
+  web:
+    ports: !override ["127.0.0.1:4201:80"]
+SECOND
+second=(docker compose --project-name learnpip-exchange-ci --env-file deploy/.env --file deploy/compose.yaml --file "$second_override")
 cleanup() {
   result=$?
   trap - EXIT
@@ -21,6 +32,8 @@ cleanup() {
     "${compose[@]}" ps || true
     "${compose[@]}" logs --tail 150 db migrate api web || true
   fi
+  "${second[@]}" down --volumes --remove-orphans || true
+  rm -f "$second_override"
   "${compose[@]}" down --volumes --remove-orphans || true
   rm -f deploy/.env
   exit "$result"
@@ -51,3 +64,18 @@ if [ "$status" != 404 ]; then
   exit 1
 fi
 echo 'Integrated PostgreSQL migration, API, Angular host and API proxy passed.'
+
+# Independent networks and volumes; the only transferred object is the local ZIP.
+"${second[@]}" up --build --detach --wait db api web
+for attempt in $(seq 1 30); do
+  if curl --fail --silent --show-error http://127.0.0.1:8081/health/ready >/dev/null &&
+     curl --fail --silent --show-error http://127.0.0.1:4201/ >/dev/null; then
+    break
+  fi
+  if [ "$attempt" -eq 30 ]; then
+    echo 'Second independent stack did not become healthy.' >&2
+    exit 1
+  fi
+  sleep 2
+done
+python3 tests/ops/catalog-two-instances.py http://127.0.0.1:4200 http://127.0.0.1:4201

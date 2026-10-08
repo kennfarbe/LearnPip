@@ -35,6 +35,10 @@ echo "docker $*" >> "$MOCK_LOG"
 if [[ "$*" == 'info --format '* ]]; then
   if [[ "${MOCK_ROOTFUL:-}" == 1 ]]; then echo '[]'; else echo '["name=rootless"]'; fi
 fi
+if [[ "$*" == *'--preview-instance-package'* || "$*" == *'--install-instance-package'* ]]; then
+  cat >/dev/null
+  exit 0
+fi
 if [[ "$*" == *'initialize-admin'* ]]; then
   read -r username
   read -r password
@@ -146,6 +150,15 @@ if [[ "$*" == *'run --rm migrate'* && "${MOCK_FAIL_MIGRATE:-}" == 1 ]]; then exi
     assert (target / 'current').resolve() == target / 'releases/v1.0.1'
     run('prepare', directory=work / 'prerelease', extra={'MOCK_PRERELEASE': '1'}, success=False)
     run('prepare', '--version', '../evil', directory=work / 'invalid', success=False)
+    package = work / 'synthetic.zip'
+    package.write_bytes(b'synthetic package fixture')
+    optional = work / 'optional-packages'
+    run('install', '--domain', 'learn.test.invalid', '--internal', '--yes', '--catalog-package', str(package), directory=optional)
+    assert (optional / 'current').exists()
+    commands = log.read_text()
+    assert commands.index('--preview-instance-package') < commands.index('--install-instance-package')
+    run('update', '--catalog-package', str(package), '--yes', directory=optional, success=False)
+    run('install', '--catalog-package', str(work / 'missing.zip'), '--yes', directory=work / 'missing-package', success=False)
     malicious = work / 'malicious.tar.gz'
     with tarfile.open(malicious, 'w:gz') as archive:
         entry = tarfile.TarInfo('../escaped')
