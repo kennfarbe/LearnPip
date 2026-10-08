@@ -33,7 +33,8 @@ def multipart(fields, file, name, media_type):
     return bytes(body), 'multipart/form-data; boundary=' + boundary
 
 
-a, b = sys.argv[1:]
+a, b = sys.argv[1:3]
+expected_schema = sys.argv[3] if len(sys.argv) > 3 else "1.0.0"
 first = request(a, 'auth/pseudonymous', 'POST', {})
 second = request(b, 'auth/pseudonymous', 'POST', {})
 at, bt = first['session']['token'], second['session']['token']
@@ -66,10 +67,12 @@ export = {'questionIds': ids[:3], 'title': 'Unabhängige Teilauswahl', 'publishe
           'rightsConfirmed': False, 'previewSha256': None}
 preview = request(a, 'catalog-exports/preview', 'POST', export, at)
 assert preview['questionCount'] == 3 and preview['mediaCount'] == 1
+assert preview['schemaVersion'] == expected_schema
 assert not preview['communityEligible']
 export.update(rightsConfirmed=True, previewSha256=preview['previewSha256'])
 package = request(a, 'catalog-exports/download', 'POST', export, at)
 with zipfile.ZipFile(io.BytesIO(package)) as archive:
+    assert json.loads(archive.read('manifest.json'))['schema_version'] == expected_schema
     assert {'manifest.json', 'questions.json', 'LICENSES.md', 'NOTICE', 'ATTRIBUTION'} <= set(archive.namelist())
     content = '\n'.join(archive.read(name).decode() for name in archive.namelist() if not name.startswith('media/'))
     for secret in [first['accountId'], second['accountId'], first['recoverySecret'], at, bt]:

@@ -24,6 +24,9 @@ services:
     ports: !override ["127.0.0.1:4201:80"]
 SECOND
 second=(docker compose --project-name learnpip-exchange-ci --env-file deploy/.env --file deploy/compose.yaml --file "$second_override")
+legacy_source=$(mktemp -d)
+legacy_override=$(mktemp)
+legacy=(docker compose --project-name learnpip-ci --env-file deploy/.env --file deploy/compose.yaml --file "$legacy_override")
 cleanup() {
   result=$?
   trap - EXIT
@@ -34,6 +37,9 @@ cleanup() {
   fi
   "${second[@]}" down --volumes --remove-orphans || true
   rm -f "$second_override"
+  rm -rf "$legacy_source"
+  rm -f "$legacy_override"
+  docker image rm learnpip-catalog-legacy-ci >/dev/null 2>&1 || true
   "${compose[@]}" down --volumes --remove-orphans || true
   rm -f deploy/.env
   exit "$result"
@@ -79,3 +85,28 @@ for attempt in $(seq 1 30); do
   sleep 2
 done
 python3 tests/ops/catalog-two-instances.py http://127.0.0.1:4200 http://127.0.0.1:4201
+
+# Pin the actual released old application, not a rewritten current fixture.
+# Only its API replaces the first stack; the second remains the current app.
+legacy_commit=719d82a6cd9072242ed3726ff5829bd303256683
+git cat-file -e "$legacy_commit^{commit}"
+git archive "$legacy_commit" | tar -x -C "$legacy_source"
+docker build --file "$legacy_source/backend/Dockerfile" --tag learnpip-catalog-legacy-ci "$legacy_source"
+cat > "$legacy_override" <<'LEGACY'
+services:
+  api:
+    image: learnpip-catalog-legacy-ci
+LEGACY
+"${legacy[@]}" up --no-build --detach --wait api
+for attempt in $(seq 1 30); do
+  if curl --fail --silent http://127.0.0.1:8080/health/ready >/dev/null; then
+    break
+  fi
+  if [ "$attempt" -eq 30 ]; then
+    echo 'Legacy exporter API did not become healthy.' >&2
+    exit 1
+  fi
+  sleep 2
+done
+python3 tests/ops/catalog-two-instances.py http://127.0.0.1:8080 http://127.0.0.1:8081 0.2.0
+echo 'Released old-app ZIP imported idempotently by current app with media, IDs and rights intact.'
