@@ -22,10 +22,10 @@ public static class CatalogRightsReport
         foreach (var question in questions)
         {
             var id = question.GetProperty("id").GetString()!;
-            Check(question, id + " / Text", issues);
+            Check(question, id + " / Text", issues, true);
             foreach (var image in question.GetProperty("media").EnumerateArray())
             {
-                Check(image, id + " / " + image.GetProperty("path").GetString(), issues);
+                Check(image, id + " / " + image.GetProperty("path").GetString(), issues, false);
             }
         }
 
@@ -113,7 +113,7 @@ public static class CatalogRightsReport
         return previous.ValueKind == JsonValueKind.Undefined ? null : previous.GetProperty("rights").GetRawText();
     }
 
-    private static void Check(JsonElement content, string label, List<string> issues)
+    private static void Check(JsonElement content, string label, List<string> issues, bool isQuestionText)
     {
         var license = content.GetProperty("license");
         var provenance = content.GetProperty("provenance");
@@ -142,12 +142,12 @@ public static class CatalogRightsReport
 
         if (provenance.TryGetProperty("source_url", out var source) && Uri.TryCreate(source.GetString(), UriKind.Absolute, out var uri))
         {
-            if ((uri.Host == "wikipedia.org" || uri.Host.EndsWith(".wikipedia.org", StringComparison.OrdinalIgnoreCase)) && id != "CC-BY-SA-4.0")
+            if (isQuestionText && (uri.Host == "wikipedia.org" || uri.Host.EndsWith(".wikipedia.org", StringComparison.OrdinalIgnoreCase)) && id != "CC-BY-SA-4.0")
             {
                 issues.Add(label + ": Wikipedia-Nachweis benötigt CC BY-SA 4.0 und getrennte Einzellizenzen für Bilder; keine automatische Umlizenzierung.");
             }
 
-            if ((uri.Host == "bundesnetzagentur.de" || uri.Host.EndsWith(".bundesnetzagentur.de", StringComparison.OrdinalIgnoreCase)) && id is not ("DL-DE/BY-2.0" or "dl-de/by-2-0"))
+            if (isQuestionText && (uri.Host == "bundesnetzagentur.de" || uri.Host.EndsWith(".bundesnetzagentur.de", StringComparison.OrdinalIgnoreCase)) && id is not ("DL-DE/BY-2.0" or "dl-de/by-2-0"))
             {
                 issues.Add(label + ": Amtliche Originaldaten benötigen den tatsächlichen DL-DE/BY-2.0-Nachweis; Bearbeitungen und fremde Assets getrennt prüfen.");
             }

@@ -51,6 +51,31 @@ public sealed class CatalogRightsReportTests
         Assert.Single(CatalogRightsReport.Inspect([question]));
     }
 
+    /// <summary>Einzeln belegte Bildlizenzen werden nicht aus der Lizenz des Quelltexts abgeleitet.</summary>
+    /// <param name="source">Die tatsächliche Bildquelle.</param>
+    [Theory]
+    [InlineData("https://de.wikipedia.org/wiki/Synthetic")]
+    [InlineData("https://www.bundesnetzagentur.de/synthetic")]
+    public void ImageLicenseRemainsIndependentOfSourceTextLicense(string source)
+    {
+        var question = JsonSerializer.SerializeToElement(new
+        {
+            id = "synthetic",
+            license = new { id = "CC-BY-SA-4.0", holder = "Textautor", attribution = "Originalfrage" },
+            provenance = new { kind = "original" },
+            media = new[]
+            {
+                new
+                {
+                    path = "media/test.png",
+                    license = new { id = "CC-BY-4.0", holder = "Bildautor", attribution = "Getrennter synthetischer Bildnachweis" },
+                    provenance = new { kind = "verbatim", source_url = source, source_revision = "synthetic-image-revision-1" },
+                },
+            },
+        });
+        Assert.Empty(CatalogRightsReport.Inspect([question]));
+    }
+
     /// <summary>Eine offene Textlizenz darf ein privat lizenziertes Bild nicht verdecken.</summary>
     [Fact]
     public void MixedMediaAreCheckedIndependently()
