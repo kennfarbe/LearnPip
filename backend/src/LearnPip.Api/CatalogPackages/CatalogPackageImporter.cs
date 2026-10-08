@@ -84,7 +84,7 @@ public static class CatalogPackageImporter
         IReadOnlyDictionary<string, Question>? updates = null)
     {
         var reusedIds = (identical?.Values ?? []).Concat(updates?.Values.Select(item => item.Id) ?? []).Distinct().ToArray();
-        var reused = db.Questions.Include(item => item.CatalogMemberships)
+        var reused = reusedIds.Length == 0 ? new Dictionary<Guid, Question>() : db.Questions.Include(item => item.CatalogMemberships)
             .Where(item => item.OwnerAccountId == owner && reusedIds.Contains(item.Id)).ToDictionary(item => item.Id);
         var mappings = new Dictionary<string, Guid>(StringComparer.Ordinal);
         foreach (var original in package.Questions)

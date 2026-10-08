@@ -64,6 +64,7 @@ public sealed class CatalogPackageWriterTests
         Assert.Equal(["image", "text"], db.QuestionContentBlocks.Local.Where(block => block.AnswerOptionId == answer.Id).OrderBy(block => block.SortOrder).Select(block => block.Kind).ToArray());
         Assert.Equal("private", version.Visibility);
         Assert.Empty(db.StudyAttempts.Local);
+        Assert.Equal(catalog.Id, Assert.Single(db.QuestionCatalogMemberships.Local).CatalogId);
     }
 
     /// <summary>Verweigert falsch zugeordnete Blöcke und inkonsistente Zusammenfassungen.</summary>

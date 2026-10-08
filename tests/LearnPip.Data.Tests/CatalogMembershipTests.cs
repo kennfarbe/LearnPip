@@ -78,11 +78,11 @@ public sealed partial class ApiV1Tests
             using var created = await client.PostAsJsonAsync("/api/v1/questions/drafts", new DraftSaveRequest(content, null, [first, second]));
             Assert.Equal(HttpStatusCode.Created, created.StatusCode);
             var question = (await created.Content.ReadFromJsonAsync<ApiResponse<DraftView>>())!.Data.QuestionId;
-            Assert.Equal(HttpStatusCode.OK, (await client.PostAsync($"/api/v1/questions/{question}/publish", null)).StatusCode);
+            Assert.Equal(HttpStatusCode.Created, (await client.PostAsync($"/api/v1/questions/{question}/publish", null)).StatusCode);
             using var outside = await client.PostAsJsonAsync("/api/v1/questions/drafts", new DraftSaveRequest(content, first));
             Assert.Equal(HttpStatusCode.Created, outside.StatusCode);
             var outsideId = (await outside.Content.ReadFromJsonAsync<ApiResponse<DraftView>>())!.Data.QuestionId;
-            Assert.Equal(HttpStatusCode.OK, (await client.PostAsync($"/api/v1/questions/{outsideId}/publish", null)).StatusCode);
+            Assert.Equal(HttpStatusCode.Created, (await client.PostAsync($"/api/v1/questions/{outsideId}/publish", null)).StatusCode);
             var draftPath = $"/api/v1/questions/{question}/draft";
             Assert.Equal(2, (await client.GetFromJsonAsync<ApiResponse<DraftView>>(draftPath))!.Data.CatalogIds!.Count);
             Assert.Equal(HttpStatusCode.NotFound, (await other.PutAsync($"/api/v1/catalogs/{first}/questions/{question}", null)).StatusCode);
