@@ -226,3 +226,7 @@ aside a {
 .editor-disclosure {
   margin: 0;
 }
+
+.catalog-selection {
+  align-items: start;
+}

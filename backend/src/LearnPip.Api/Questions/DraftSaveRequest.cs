@@ -17,4 +17,5 @@ namespace LearnPip.Api.Questions;
 /// </summary>
 /// <param name="Content">Der Inhalt der Fragenfassung.</param>
 /// <param name="CatalogId">Die Kennung des Katalogs, sofern zugeordnet.</param>
-public sealed record DraftSaveRequest(QuestionPublishRequest Content, Guid? CatalogId);
+/// <param name="CatalogIds">Alle Katalogzuordnungen; null verwendet den bisherigen Einzelkatalog.</param>
+public sealed record DraftSaveRequest(QuestionPublishRequest Content, Guid? CatalogId, Guid[]? CatalogIds = null);

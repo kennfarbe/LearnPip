@@ -272,6 +272,7 @@ app.MapExamPlanEndpoints();
 app.MapExamEndpoints();
 app.MapAiEndpoints();
 app.MapCatalogEditorEndpoints();
+app.MapCatalogMembershipEndpoints();
 app.MapCatalogPackageEndpoints();
 app.MapCatalogExportEndpoints();
 app.MapCatalogRightsEndpoints();

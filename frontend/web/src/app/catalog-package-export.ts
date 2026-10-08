@@ -5,6 +5,7 @@ import { LanguageService } from './language';
 interface Candidate {
   id: string;
   catalogId: string | null;
+  catalogIds?: string[];
   prompt: string;
   subject: string;
   topic: string;
@@ -398,7 +399,11 @@ export class CatalogPackageExport implements OnInit {
     return this.questions().filter(
       (item) =>
         (this.catalog === 'all' ||
-          (this.catalog === 'none' ? !item.catalogId : item.catalogId === this.catalog)) &&
+          (this.catalog === 'none'
+            ? (item.catalogIds ?? (item.catalogId ? [item.catalogId] : [])).length === 0
+            : (item.catalogIds ?? (item.catalogId ? [item.catalogId] : [])).includes(
+                this.catalog,
+              ))) &&
         matches(item.audience ?? '', this.audience) &&
         matches((item.tags ?? []).join(' '), this.tags) &&
         (!this.difficulty || item.difficulty === this.difficulty) &&

@@ -24,6 +24,12 @@ public sealed class PrivateCatalog
     /// </summary>
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>Holt oder setzt die optionale Beschreibung.</summary>
+    public string? Description { get; set; }
+
+    /// <summary>Holt oder setzt die zusätzlichen Fragenzuordnungen.</summary>
+    public ICollection<QuestionCatalogMembership> Memberships { get; set; } = [];
+
     /// <summary>
     /// Holt oder setzt Erstellungszeitpunkt in UTC.
     /// </summary>

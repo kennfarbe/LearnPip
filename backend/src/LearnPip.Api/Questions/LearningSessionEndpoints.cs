@@ -87,8 +87,12 @@ public static class LearningSessionEndpoints
             db,
             accountId,
             cancellationToken);
-        var candidates = available.Where(item => !request.CatalogId.HasValue ||
-            item.CatalogId == request.CatalogId).GroupBy(item => item.ContentId)
+        var catalogQuestions = request.CatalogId.HasValue ? await db.Questions.AsNoTracking()
+            .Where(question => question.OwnerAccountId == accountId && question.DeletedAtUtc == null &&
+                (question.PrivateCatalogId == request.CatalogId || question.CatalogMemberships.Any(membership => membership.CatalogId == request.CatalogId)))
+            .Select(question => question.Id).ToListAsync(cancellationToken) : null;
+        var candidates = available.Where(item => catalogQuestions == null ||
+            catalogQuestions.Contains(item.QuestionId)).GroupBy(item => item.ContentId)
             .Select(group => group.ToList()).ToList();
         Shuffle(candidates);
         var now = DateTimeOffset.UtcNow;

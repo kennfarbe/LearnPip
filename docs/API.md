@@ -120,10 +120,15 @@ gewählten Optionen werden einzeln in `StudyAttemptSelections` gespeichert.
 `GET /api/v1/catalogs/{id}/questions` verwalten ausschließlich die Kataloge
 des angemeldeten Kontos. Das Löschen eines Katalogs löst seine Zuordnungen;
 Fragen und ihre Fassungen bleiben erhalten. Ein Katalogname ist pro Konto
-eindeutig.
+eindeutig und auf 120 Zeichen begrenzt. `description` ist optional und darf
+höchstens 2048 Zeichen enthalten.
 
 `POST /api/v1/questions/drafts` und `PUT /api/v1/questions/{id}/draft`
-speichern `{ "content": <QuestionPublishRequest>, "catalogId": null | "uuid" }`.
+speichern `{ "content": <QuestionPublishRequest>, "catalogIds": ["uuid", "uuid"] }`.
+Die vollständige Auswahl ersetzt alle bisherigen Zuordnungen; ein leeres Array
+entfernt sie. Fehlt `catalogIds`, wird `catalogId` weiterhin als Einzelzuordnung
+verwendet. Entwurfsantworten enthalten beide Felder. Mehrfachzuordnungen duplizieren
+weder die Frage noch ihren Lernfortschritt.
 Unvollständige Entwürfe sind erlaubt (bis 64 KiB JSON) und erzeugen keine
 veröffentlichte Fassung. `GET /api/v1/questions/drafts` listet nur eigene
 Entwürfe; `GET /api/v1/questions/{id}/draft` liest einen einzelnen. Mit
@@ -136,11 +141,19 @@ Fassung bleibt standardmäßig privat und wird damit nicht automatisch für
 andere Konten freigegeben. Änderungen am Entwurf verändern die bisherige
 Fassung nicht.
 
+`GET /api/v1/catalogs/questions` liefert alle eigenen Fragen einschließlich
+`catalogIds` ohne zusätzliches Exportrecht. Einzelzuordnungen lassen sich mit
+`PUT/DELETE /api/v1/catalogs/{id}/questions/{questionId}` idempotent ändern;
+alle anderen Zuordnungen bleiben bestehen. Dafür ist `editOwn` erforderlich.
+Details zu Migration, Grenzen und älteren Clients:
+[Eigene Kataloge verwalten](PRIVATE-CATALOGS.md).
+
 ## Kurze Lernsitzungen (LP-15)
 
 `POST /api/v1/learning/sessions/` mit `{ "catalogId": null | "uuid", "count": 5 }`
 startet eine Sitzung mit bis zu zehn eigenen veröffentlichten Fragen (neueste
-Fassung je Frage). Ohne Katalog werden alle eigenen Fragen verwendet. Die
+Fassung je Frage). Ein gewählter Katalog berücksichtigt sämtliche
+Mitgliedschaften; ohne Katalog werden alle eigenen Fragen verwendet. Die
 Fragenfolge und die Antwortoptionen werden für jede Sitzung einmal zufällig
 gemischt und bleiben beim erneuten Laden in derselben Reihenfolge. Entwürfe
 werden nicht berücksichtigt. Die Antwort enthält die Sitzungs-ID, Zähler und

@@ -19,9 +19,11 @@ namespace LearnPip.Api.Questions;
 /// <param name="LatestVersion">Die neueste Fragenfassung, sofern vorhanden.</param>
 /// <param name="UpdatedAtUtc">Den letzten Änderungszeitpunkt in UTC.</param>
 /// <param name="Content">Der Inhalt der Fragenfassung.</param>
+/// <param name="CatalogIds">Alle aktuellen Katalogzuordnungen.</param>
 public sealed record DraftView(
         Guid QuestionId,
         Guid? CatalogId,
         int LatestVersion,
         DateTimeOffset UpdatedAtUtc,
-        QuestionPublishRequest Content);
+        QuestionPublishRequest Content,
+        IReadOnlyList<Guid>? CatalogIds = null);

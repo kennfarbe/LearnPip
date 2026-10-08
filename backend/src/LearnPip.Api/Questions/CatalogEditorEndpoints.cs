@@ -81,12 +81,13 @@ public static class CatalogEditorEndpoints
             return Results.BadRequest();
         }
 
-        if (!await OwnsCatalog(db, input.CatalogId, accountId, cancellationToken))
+        if (!await CatalogMembershipEndpoints.Validate(db, accountId, SelectedCatalogs(input), cancellationToken))
         {
             return Results.NotFound();
         }
 
-        var question = new Question { OwnerAccountId = accountId, PrivateCatalogId = input.CatalogId };
+        var question = new Question { OwnerAccountId = accountId };
+        CatalogMembershipEndpoints.Assign(question, SelectedCatalogs(input));
         var content = new LearningContent
         {
             Id = question.Id,
@@ -105,7 +106,8 @@ public static class CatalogEditorEndpoints
                     question.PrivateCatalogId,
                     0,
                     draft.UpdatedAtUtc,
-                    input.Content)));
+                    input.Content,
+                    SelectedCatalogs(input))));
     }
 
     private static async Task<IResult> ListCatalogs(
@@ -124,7 +126,9 @@ public static class CatalogEditorEndpoints
             .Select(item => new CatalogView(
                 item.Id,
                 item.Name,
-                item.Questions.Count(question => question.DeletedAtUtc == null)))
+                db.Questions.Count(question => question.DeletedAtUtc == null && question.OwnerAccountId == accountId &&
+                    (question.PrivateCatalogId == item.Id || question.CatalogMemberships.Any(membership => membership.CatalogId == item.Id))),
+                item.Description))
             .ToListAsync(cancellationToken);
         return Results.Ok(new ApiResponse<IReadOnlyList<CatalogView>>(items));
     }
@@ -141,7 +145,7 @@ public static class CatalogEditorEndpoints
         }
 
         var name = input.Name?.Trim();
-        if (string.IsNullOrWhiteSpace(name) || name.Length > 120)
+        if (string.IsNullOrWhiteSpace(name) || name.Length > 120 || input.Description?.Length > 2048)
         {
             return Results.BadRequest();
         }
@@ -154,12 +158,12 @@ public static class CatalogEditorEndpoints
             return Results.Conflict();
         }
 
-        var catalog = new PrivateCatalog { OwnerAccountId = accountId, Name = name };
+        var catalog = new PrivateCatalog { OwnerAccountId = accountId, Name = name, Description = Description(input.Description) };
         db.PrivateCatalogs.Add(catalog);
         await db.SaveChangesAsync(cancellationToken);
         return Results.Created(
             $"/api/v1/catalogs/{catalog.Id}",
-            new ApiResponse<CatalogView>(new CatalogView(catalog.Id, catalog.Name, 0)));
+            new ApiResponse<CatalogView>(new CatalogView(catalog.Id, catalog.Name, 0, catalog.Description)));
     }
 
     private static async Task<IResult> RenameCatalog(
@@ -184,7 +188,7 @@ public static class CatalogEditorEndpoints
         }
 
         var name = input.Name?.Trim();
-        if (string.IsNullOrWhiteSpace(name) || name.Length > 120)
+        if (string.IsNullOrWhiteSpace(name) || name.Length > 120 || input.Description?.Length > 2048)
         {
             return Results.BadRequest();
         }
@@ -198,6 +202,7 @@ public static class CatalogEditorEndpoints
         }
 
         catalog.Name = name;
+        catalog.Description = Description(input.Description);
         await db.SaveChangesAsync(cancellationToken);
         return Results.NoContent();
     }
@@ -248,7 +253,7 @@ public static class CatalogEditorEndpoints
 
         var items = await db.Questions.AsNoTracking()
             .Where(question => question.OwnerAccountId == accountId &&
-                question.PrivateCatalogId == id && question.DeletedAtUtc == null)
+                (question.PrivateCatalogId == id || question.CatalogMemberships.Any(membership => membership.CatalogId == id)) && question.DeletedAtUtc == null)
             .OrderByDescending(question => question.UpdatedAtUtc)
             .Select(question => new
             {
@@ -279,6 +284,7 @@ public static class CatalogEditorEndpoints
             {
                 item.QuestionId,
                 item.Question.PrivateCatalogId,
+                CatalogIds = item.Question.CatalogMemberships.Select(membership => membership.CatalogId).ToArray(),
                 item.UpdatedAtUtc,
                 item.PayloadJson,
                 LatestVersion = item.Question.Versions.Max(version => (int?)version.VersionNumber) ?? 0,
@@ -289,7 +295,8 @@ public static class CatalogEditorEndpoints
                 row.PrivateCatalogId,
                 row.LatestVersion,
                 row.UpdatedAtUtc,
-                JsonSerializer.Deserialize<QuestionPublishRequest>(row.PayloadJson)!))
+                JsonSerializer.Deserialize<QuestionPublishRequest>(row.PayloadJson)!,
+                AllCatalogs(row.PrivateCatalogId, row.CatalogIds)))
             .ToArray();
         return Results.Ok(new ApiResponse<IReadOnlyList<DraftView>>(views));
     }
@@ -321,11 +328,7 @@ public static class CatalogEditorEndpoints
         }
 
         var json = DraftJson(input.Content);
-        if (json == null || !await OwnsCatalog(
-            db,
-            input.CatalogId,
-            accountId,
-            cancellationToken))
+        if (json == null || !await CatalogMembershipEndpoints.Validate(db, accountId, SelectedCatalogs(input), cancellationToken))
         {
             return Results.BadRequest();
         }
@@ -334,8 +337,8 @@ public static class CatalogEditorEndpoints
         {
             OwnerAccountId = accountId,
             LearningContentId = original.ContentId,
-            PrivateCatalogId = input.CatalogId,
         };
+        CatalogMembershipEndpoints.Assign(question, SelectedCatalogs(input));
         db.Questions.Add(question);
         db.QuestionDrafts.Add(new QuestionDraft { QuestionId = question.Id, PayloadJson = json });
         await db.SaveChangesAsync(cancellationToken);
@@ -346,7 +349,8 @@ public static class CatalogEditorEndpoints
                     question.PrivateCatalogId,
                     0,
                     question.UpdatedAtUtc,
-                    input.Content)));
+                    input.Content,
+                    SelectedCatalogs(input))));
     }
 
     private static async Task<IResult> ReadDraft(
@@ -367,6 +371,7 @@ public static class CatalogEditorEndpoints
             {
                 item.QuestionId,
                 item.Question.PrivateCatalogId,
+                CatalogIds = item.Question.CatalogMemberships.Select(membership => membership.CatalogId).ToArray(),
                 item.PayloadJson,
                 item.UpdatedAtUtc,
                 LatestVersion = item.Question.Versions.Max(version => (int?)version.VersionNumber) ?? 0,
@@ -382,7 +387,8 @@ public static class CatalogEditorEndpoints
                     row.PrivateCatalogId,
                     row.LatestVersion,
                     row.UpdatedAtUtc,
-                    JsonSerializer.Deserialize<QuestionPublishRequest>(row.PayloadJson)!)));
+                    JsonSerializer.Deserialize<QuestionPublishRequest>(row.PayloadJson)!,
+                    AllCatalogs(row.PrivateCatalogId, row.CatalogIds))));
     }
 
     private static async Task<IResult> SaveDraft(
@@ -403,16 +409,19 @@ public static class CatalogEditorEndpoints
             return Results.BadRequest();
         }
 
-        var question = await db.Questions.Include(item => item.Draft).SingleOrDefaultAsync(
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM \"Questions\" WHERE \"Id\" = {id} AND \"OwnerAccountId\" = {accountId} FOR UPDATE", cancellationToken);
+        var question = await db.Questions.Include(item => item.Draft).Include(item => item.CatalogMemberships).SingleOrDefaultAsync(
             item =>
             item.Id == id && item.OwnerAccountId == accountId && item.DeletedAtUtc == null,
             cancellationToken);
-        if (question == null || !await OwnsCatalog(db, input.CatalogId, accountId, cancellationToken))
+        if (question == null || !await CatalogMembershipEndpoints.Validate(db, accountId, SelectedCatalogs(input), cancellationToken))
         {
             return Results.NotFound();
         }
 
-        question.PrivateCatalogId = input.CatalogId;
+        CatalogMembershipEndpoints.Assign(question, SelectedCatalogs(input));
         question.UpdatedAtUtc = DateTimeOffset.UtcNow;
         if (question.Draft == null)
         {
@@ -430,6 +439,7 @@ public static class CatalogEditorEndpoints
         }
 
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return Results.NoContent();
     }
 
@@ -469,7 +479,10 @@ public static class CatalogEditorEndpoints
             return Results.Unauthorized();
         }
 
-        var question = await db.Questions.SingleOrDefaultAsync(
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM \"Questions\" WHERE \"Id\" = {id} AND \"OwnerAccountId\" = {accountId} FOR UPDATE", cancellationToken);
+        var question = await db.Questions.Include(item => item.CatalogMemberships).SingleOrDefaultAsync(
             item => item.Id == id &&
             item.OwnerAccountId == accountId && item.DeletedAtUtc == null,
             cancellationToken);
@@ -478,9 +491,10 @@ public static class CatalogEditorEndpoints
             return Results.NotFound();
         }
 
-        question.PrivateCatalogId = input.CatalogId;
+        CatalogMembershipEndpoints.Assign(question, input.CatalogId.HasValue ? [input.CatalogId.Value] : []);
         question.UpdatedAtUtc = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return Results.NoContent();
     }
 
@@ -492,6 +506,14 @@ public static class CatalogEditorEndpoints
         db.PrivateCatalogs.AnyAsync(
         item => item.Id == id && item.OwnerAccountId == accountId,
         cancellationToken);
+
+    private static Guid[] SelectedCatalogs(DraftSaveRequest input) =>
+        input.CatalogIds ?? (input.CatalogId.HasValue ? [input.CatalogId.Value] : []);
+
+    private static Guid[] AllCatalogs(Guid? primary, Guid[] memberships) =>
+        memberships.Concat(primary.HasValue ? [primary.Value] : []).Distinct().Order().ToArray();
+
+    private static string? Description(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static string? DraftJson(QuestionPublishRequest? content)
     {

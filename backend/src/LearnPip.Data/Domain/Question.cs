@@ -39,6 +39,9 @@ public sealed class Question
     /// </summary>
     public PrivateCatalog? PrivateCatalog { get; set; }
 
+    /// <summary>Holt oder setzt sämtliche Katalogzuordnungen ohne Inhaltskopien.</summary>
+    public ICollection<QuestionCatalogMembership> CatalogMemberships { get; set; } = [];
+
     /// <summary>
     /// Holt oder setzt draft.
     /// </summary>

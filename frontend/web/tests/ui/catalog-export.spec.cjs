@@ -87,3 +87,17 @@ test('stale previews require a fresh confirmation and stay accessible on a dark 
   await expect(section.getByText('Inhalt geändert. Bitte erneut prüfen.', { exact: true })).toBeVisible();
   await expect(section.getByRole('button', { name: 'LearnPip-Paket (.zip) herunterladen' })).toHaveCount(0);
 });
+
+test('export filters also match secondary catalog memberships', async ({ page }) => {
+  await api(page);
+  await page.route('**/api/v1/catalog-exports/questions', route => route.fulfill({ json: { data: [
+    { ...candidates[0], catalogId: 'other-catalog', catalogIds: ['other-catalog', 'catalog-1'] },
+    candidates[1],
+  ] } }));
+  await page.goto('/questions');
+  await page.getByText('Fragen auswählen und exportieren', { exact: true }).click();
+  const section = page.locator('app-catalog-package-export');
+  await section.getByRole('combobox', { name: 'Katalog', exact: true }).selectOption('catalog-1');
+  await expect(section.getByRole('checkbox', { name: /Pflanzenzelle mit Bild/ })).toBeVisible();
+  await expect(section.getByRole('checkbox', { name: /Tierische Zelle/ })).toHaveCount(0);
+});
