@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const AxeBuilder = require('@axe-core/playwright').default;
 const { api } = require('./fixtures.cjs');
 const candidates = [
-  { id: 'question-1', catalogId: 'catalog-1', prompt: 'Pflanzenzelle mit Bild', subject: 'Biologie', topic: 'Zellen', language: 'de', hasDraft: true },
+  { id: 'question-1', catalogId: 'catalog-1', prompt: 'Pflanzenzelle mit Bild', subject: 'Biologie', topic: 'Zellen', language: 'de', hasDraft: true, audience: 'Klasse 9', difficulty: 'easy', tags: ['Biologie / Zellen'] },
   { id: 'question-2', catalogId: null, prompt: 'Tierische Zelle', subject: 'Biologie', topic: 'Zellen', language: 'en', hasDraft: false },
   { id: 'question-3', catalogId: 'catalog-1', prompt: 'Addition', subject: 'Mathematik', topic: 'Grundlagen', language: 'de', hasDraft: true },
 ];
@@ -32,6 +32,9 @@ async function select(page) {
   const section = page.locator('app-catalog-package-export');
   await section.getByLabel('Fach', { exact: true }).fill('Biologie');
   await section.getByLabel('Sprache', { exact: true }).fill('de');
+  await section.getByLabel('Klasse / Zielgruppe', { exact: true }).fill('Klasse 9');
+  await section.getByLabel('Schlagwort / Themenhierarchie', { exact: true }).fill('Biologie / Zellen');
+  await section.getByRole('combobox', { name: 'Schwierigkeitsgrad', exact: true }).selectOption('easy');
   await section.getByRole('button', { name: 'Gefilterte Fragen auswählen' }).click();
   await section.getByLabel('Pakettitel', { exact: true }).fill('Meine Auswahl');
   await section.getByLabel('Herausgeber / Attributionsname', { exact: true }).fill('Testautor');

@@ -80,6 +80,7 @@ public static class PublicSubmissionEndpoints
             "pending" or "minor_hold" => Results.Accepted(value: new ApiResponse<object>(new { status = result })),
             "missing" => Results.NotFound(),
             "conflict" => Results.Conflict(),
+            "rights_blocked" => Results.BadRequest(new { Message = "Offene Weitergabe gesperrt. Administratorfreigabe und vollständige aktuelle Quellen-/Lizenznachweise erforderlich; private Nutzung bleibt möglich." }),
             _ => Results.BadRequest(),
         };
     }

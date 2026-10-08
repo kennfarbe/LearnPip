@@ -10,6 +10,9 @@ interface Candidate {
   topic: string;
   language: string;
   hasDraft: boolean;
+  audience?: string;
+  difficulty?: string;
+  tags?: string[];
 }
 interface License {
   id: string;
@@ -17,6 +20,9 @@ interface License {
   attribution: string;
 }
 interface Preview {
+  rightsReport?: string[];
+  communityEnabled?: boolean;
+  communityEligible?: boolean;
   questionCount: number;
   mediaCount: number;
   archiveBytes: number;
@@ -70,6 +76,24 @@ interface Preview {
             >{{ language.t('Thema') }}<input [(ngModel)]="topic" (ngModelChange)="invalidate()"
           /></label>
           <label
+            >{{ language.t('Klasse / Zielgruppe')
+            }}<input [(ngModel)]="audience" (ngModelChange)="invalidate()"
+          /></label>
+          <label
+            >{{ language.t('Schlagwort / Themenhierarchie')
+            }}<input [(ngModel)]="tags" (ngModelChange)="invalidate()"
+          /></label>
+          <label
+            >{{ language.t('Schwierigkeitsgrad')
+            }}<select [(ngModel)]="difficulty" (ngModelChange)="invalidate()">
+              <option value="">{{ language.t('Alle') }}</option>
+              <option value="unknown">{{ language.t('Unbekannt') }}</option>
+              <option value="easy">{{ language.t('Leicht') }}</option>
+              <option value="medium">{{ language.t('Mittel') }}</option>
+              <option value="hard">{{ language.t('Schwer') }}</option>
+            </select></label
+          >
+          <label
             >{{ language.t('Sprache')
             }}<input [(ngModel)]="questionLanguage" (ngModelChange)="invalidate()"
           /></label>
@@ -89,7 +113,9 @@ interface Preview {
             {{ language.t('Auswahl leeren') }}
           </button>
         </div>
-        <p role="status">{{ selected.size }} {{ language.t('Fragen ausgewählt (maximal 500)') }}</p>
+        <p role="status">
+          {{ selected.size }} {{ language.t('Fragen ausgewählt (maximal 10000)') }}
+        </p>
         <ul class="choices">
           @for (question of filtered(); track question.id) {
             <li>
@@ -128,7 +154,7 @@ interface Preview {
           <p>
             {{
               language.t(
-                'Die folgenden Angaben gelten ausschließlich für eigene Originalinhalte. Importierte Originalfragen behalten ihre tatsächlichen Einzellizenzen und Quellen. Bearbeitete Importfragen oder unvollständige Drittquellennachweise sperren den Export.'
+                'Die folgenden Angaben gelten ausschließlich für eigene Originalinhalte. Importierte Originalfragen behalten ihre tatsächlichen Einzellizenzen und Quellen. Bearbeitete Importfragen und Drittquellen benötigen gespeicherte Einzelnachweise unter Quellen und Rechte je Frage und Bild.'
               )
             }}
           </p>
@@ -184,7 +210,7 @@ interface Preview {
         <button
           type="button"
           class="secondary-action"
-          [disabled]="!selected.size || selected.size > 500"
+          [disabled]="!selected.size || selected.size > 10000"
           (click)="inspect()"
         >
           {{ language.t('Exportvorschau prüfen') }}
@@ -192,6 +218,60 @@ interface Preview {
       </fieldset>
       @if (preview(); as item) {
         <h3>{{ language.t('Exportvorschau') }}</h3>
+        <h4>{{ language.t('Rechtebericht für offene Weitergabe') }}</h4>
+        @if (item.rightsReport?.length) {
+          <ul>
+            @for (issue of item.rightsReport; track $index) {
+              <li>{{ issue }}</li>
+            }
+          </ul>
+        } @else {
+          <p>
+            {{
+              language.t(
+                'Keine technischen Nachweislücken erkannt. Die rechtliche Zulässigkeit muss trotzdem geprüft werden.'
+              )
+            }}
+          </p>
+        }
+        @if (!item.communityEnabled) {
+          <p>
+            {{
+              language.t(
+                'Community-Export ist auf dieser Instanz administrativ gesperrt. Private Weitergabe bleibt verfügbar.'
+              )
+            }}
+          </p>
+        }
+        <label
+          >{{ language.t('Exportzweck') }}
+          <select
+            [(ngModel)]="purpose"
+            [disabled]="busy()"
+            (ngModelChange)="confirmed = false; publicationConfirmed = false"
+          >
+            <option value="private">{{ language.t('Privater Austausch') }}</option>
+            <option value="community" [disabled]="!item.communityEligible">
+              {{ language.t('Paket für einen Community-Vorschlag') }}
+            </option>
+          </select>
+        </label>
+        @if (purpose === 'community') {
+          <p>
+            {{
+              language.t(
+                'Eigene Originaltexte können ausdrücklich unter CC BY-SA 4.0 stehen. Andere dürfen offene Inhalte unter den Lizenzbedingungen kopieren und bearbeiten; eine bereits erteilte offene Lizenz ist nicht widerrufbar. Fremde Einzellizenzen bleiben erhalten. Dieser Download veröffentlicht oder versendet nichts.'
+              )
+            }}
+          </p>
+          <label
+            ><input type="checkbox" [(ngModel)]="publicationConfirmed" [disabled]="busy()" />{{
+              language.t(
+                'Ich bestätige die Nutzungsrechte, die offene Weitergabe und ihre Folgen für diese geprüfte Auswahl.'
+              )
+            }}</label
+          >
+        }
         <p>
           {{ item.questionCount }} {{ language.t('Fragen') }} · {{ item.mediaCount }}
           {{ language.t('Medien') }} · {{ size(item.archiveBytes) }} ·
@@ -220,7 +300,11 @@ interface Preview {
         <button
           type="button"
           class="primary-action"
-          [disabled]="busy() || !confirmed"
+          [disabled]="
+            busy() ||
+            !confirmed ||
+            (purpose === 'community' && (!publicationConfirmed || !item.communityEligible))
+          "
           (click)="download()"
         >
           {{ language.t('LearnPip-Paket (.zip) herunterladen') }}
@@ -278,6 +362,9 @@ export class CatalogPackageExport implements OnInit {
   selected = new Set<string>();
   catalog = 'all';
   subject = '';
+  audience = '';
+  tags = '';
+  difficulty = '';
   topic = '';
   questionLanguage = '';
   search = '';
@@ -292,6 +379,8 @@ export class CatalogPackageExport implements OnInit {
   licenseNotice =
     'LicenseRef-Private: ausschließlich private Nutzung durch berechtigte Empfänger. Keine öffentliche Weiterverbreitung oder offene Lizenz.';
   confirmed = false;
+  publicationConfirmed = false;
+  purpose = 'private';
 
   ngOnInit(): void {
     void this.reload();
@@ -299,6 +388,8 @@ export class CatalogPackageExport implements OnInit {
   invalidate(): void {
     this.preview.set(null);
     this.confirmed = false;
+    this.publicationConfirmed = false;
+    this.purpose = 'private';
     this.message.set('');
   }
   filtered(): Candidate[] {
@@ -308,6 +399,9 @@ export class CatalogPackageExport implements OnInit {
       (item) =>
         (this.catalog === 'all' ||
           (this.catalog === 'none' ? !item.catalogId : item.catalogId === this.catalog)) &&
+        matches(item.audience ?? '', this.audience) &&
+        matches((item.tags ?? []).join(' '), this.tags) &&
+        (!this.difficulty || item.difficulty === this.difficulty) &&
         matches(item.subject, this.subject) &&
         matches(item.topic, this.topic) &&
         matches(item.language, this.questionLanguage) &&
@@ -350,7 +444,7 @@ export class CatalogPackageExport implements OnInit {
     });
   }
   async inspect(): Promise<void> {
-    if (this.busy() || !this.selected.size || this.selected.size > 500) return;
+    if (this.busy() || !this.selected.size || this.selected.size > 10000) return;
     this.invalidate();
     await this.perform(async () => {
       this.preview.set(((await (await this.request('preview')).json()) as { data: Preview }).data);
@@ -362,7 +456,14 @@ export class CatalogPackageExport implements OnInit {
     });
   }
   async download(): Promise<void> {
-    if (this.busy() || !this.confirmed || !this.preview()) return;
+    if (
+      this.busy() ||
+      !this.confirmed ||
+      !this.preview() ||
+      (this.purpose === 'community' &&
+        (!this.publicationConfirmed || !this.preview()?.communityEligible))
+    )
+      return;
     await this.perform(async () => {
       const response = await this.request('download');
       const url = URL.createObjectURL(await response.blob());
@@ -384,6 +485,8 @@ export class CatalogPackageExport implements OnInit {
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        purpose: this.purpose,
+        publicationConfirmed: action === 'download' && this.publicationConfirmed,
         questionIds: [...this.selected].sort(),
         title: this.title,
         publisher: this.publisher,

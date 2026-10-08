@@ -5,7 +5,9 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using LearnPip.Api;
+using LearnPip.Api.CatalogPackages;
 using LearnPip.Api.Groups;
 using LearnPip.Api.Identity;
 using LearnPip.Api.Questions;
@@ -56,7 +58,7 @@ public sealed class VisibilityTests
             }
 
             using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-                builder.ConfigureTestServices(services =>
+                builder.UseSetting("CatalogPackages:CommunityExportEnabled", "true").ConfigureTestServices(services =>
                 {
                     services.RemoveAll<DbContextOptions<LearnPipDbContext>>();
                     services.RemoveAll<IDbContextOptionsConfiguration<LearnPipDbContext>>();
@@ -354,6 +356,22 @@ public sealed class VisibilityTests
             Assert.Equal(
                 expectedResult35,
                 actualResult36);
+
+            // Existing publication candidates also need current individual text/image evidence.
+            await using (var db = new LearnPipDbContext(options))
+            {
+                var original = preview.Version;
+                var license = new { id = "CC BY 4.0", holder = "Eigener Name", attribution = "Eigener Text und eigenes Bild" };
+                var evidence = new { license, provenance = new { kind = "original" } };
+                db.QuestionRights.Add(new QuestionRights
+                {
+                    QuestionId = questionId,
+                    ContentSha256 = await CatalogRightsEndpoints.Fingerprint(CatalogRightsEndpoints.VersionContent(original), db, CancellationToken.None),
+                    PayloadJson = JsonSerializer.Serialize(new { license, evidence.provenance, media = new Dictionary<string, object> { [imageId.ToString()] = evidence } }),
+                });
+                await db.SaveChangesAsync();
+            }
+
             var expectedResult37 = HttpStatusCode.Accepted;
             var actualResult38 = (await ownerClient.PostAsJsonAsync(
                 $"/api/v1/questions/{questionId}/versions/1/submission",
@@ -417,6 +435,8 @@ public sealed class VisibilityTests
             var publicVersion = (await publicResponse.Content
                 .ReadFromJsonAsync<ApiResponse<PublishedQuestionVersion>>())!.Data;
             Assert.Equal("CC BY 4.0", publicVersion.License);
+            Assert.True(publicVersion.Rights.HasValue);
+            Assert.Equal("Eigener Name", publicVersion.Rights.Value.GetProperty("license").GetProperty("holder").GetString());
             Assert.Equal("Eigener Name", publicVersion.AuthorAttribution);
             Assert.Equal("Eigener Text", publicVersion.Source);
             var expectedResult53 = HttpStatusCode.NotFound;

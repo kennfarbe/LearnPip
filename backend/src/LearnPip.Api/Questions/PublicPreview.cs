@@ -3,6 +3,7 @@
 // </copyright>
 
 using System.Security.Cryptography;
+using System.Text.Json;
 using LearnPip.Api.Identity;
 using LearnPip.Data;
 using LearnPip.Data.Domain;
@@ -20,4 +21,17 @@ namespace LearnPip.Api.Questions;
 public sealed record PublicPreview(
         PublishedQuestionVersion Version,
         string PreviewToken,
-        bool HasImages);
+        bool HasImages)
+{
+    /// <summary>Holt die tatsächlich bestätigten Frage- und Mediennachweise.</summary>
+    public JsonElement? Rights { get; init; }
+
+    /// <summary>Holt die offenen technischen Nachweislücken.</summary>
+    public IReadOnlyList<string> RightsReport { get; init; } = [];
+
+    /// <summary>Holt einen Wert, der angibt, ob der Betreiber offene Weitergabe erlaubt.</summary>
+    public bool CommunityEnabled { get; init; }
+
+    /// <summary>Holt einen Wert, der angibt, ob aktuelle Einzelnachweise vorhanden sind.</summary>
+    public bool CommunityEligible { get; init; }
+}

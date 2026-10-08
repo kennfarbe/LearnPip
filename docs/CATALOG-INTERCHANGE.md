@@ -75,7 +75,9 @@ Auch das Wurzelobjekt von `questions.json` darf im Entwurf 0.1.0 ausschließlich
 
 `scripts/select-catalog.py` stellt `select_from_file(datei, frage_ids)` bereit. Die Quelldatei wird vor jeder Auswahl vollständig validiert. Der Helfer übernimmt ausschließlich ausdrücklich gewählte Fragen in ihrer bisherigen Reihenfolge, behält deren Antwort- und Herkunftsangaben sowie die vollständigen Nachweisdateien und entfernt nicht mehr referenzierte Mediendateien. `scripts/write-catalog.py` erzeugt daraus ein neues geprüftes Paket mit aktualisierten Hashes. Leere oder unbekannte Frage-IDs werden zurückgewiesen, die Ursprungsdatei bleibt unverändert.
 
-Dies ist **noch kein Export aus Benutzerkonten oder der Datenbank**: Rollen- und Eigentumsprüfung, Auswahl nach Themen/Katalogen, Privatsphäre, ausdrückliche Lizenz- und Community-Freigabe sowie Metadaten zur neuen Katalogrevision sind vor einem produktiven Export gesondert umzusetzen (#115–#117). Insbesondere dürfen fremde oder private Inhalte niemals allein aufgrund ihrer ID auswählbar werden. Der technische Helfer ist keine Berechtigungsgrenze.
+Der technische JSON-Helfer ist keine Berechtigungsgrenze. Der Datenbankexport
+prüft Eigentum und aktive Konten API-seitig; Auswahl, Vorschau und bestätigter
+Browserdownload stehen im Fragen-Arbeitsbereich bereit (siehe unten).
 
 ## Privater ZIP-Import in der Anwendung
 
@@ -164,12 +166,11 @@ gesamte Paket. Bereits bearbeitete oder gelöschte Quellfragen werden weder erse
 noch als zweite Kopie angelegt. Ein unverändertes bereits installiertes
 Originalpaket bleibt auch nach eigenen Änderungen idempotent.
 
-Grenzen: maximal 500 Fragen je Export, Auswahlübersicht bis 1000 eigenen Fragen,
-ZIP bis 25 MiB und weiterhin die bestehenden Bildgrenzen. Es gibt keinen
-verlustbehafteten Teilexport und keine automatische Herabstufung auf 0.1.0.
-Kontrollierte Änderungen an importierten Fragen, instanzweite Paketverwaltung,
-Community-Veröffentlichung und stabile Formatmigrationen sind weitere Schritte.
-Die Issues #115, #116 und #118 bleiben bis zur vollständigen Abnahme offen.
+Grenzen: maximal 10000 Fragen je Export und in der Auswahlübersicht, ZIP bis
+25 MiB; die bestehenden Bildgrenzen gelten weiter. Überschreitungen werden vor
+dem Import abgewiesen. Es gibt keinen verlustbehafteten Teilexport und keine
+automatische Herabstufung auf 0.1.0. Stabile Formatmigrationen und die umfassende
+Moderationsmatrix bleiben die getrennten Anforderungen von #118 und #119.
 
 | API | Zweck |
 | --- | --- |
@@ -207,3 +208,108 @@ legt zwei frische unabhängige Datenbanken an, erstellt fünf Fragen auf A, übe
 eine Teilmenge auf B, prüft Reimport und überlappende Auswahl ohne Duplikate sowie
 Bildreihenfolge, Quellen-IDs, private Sichtbarkeit und fehlende Lernstände.
 Dies ist keine Freigabe eines stabilen Schemas und keine stabile Major-Migration.
+
+## Optionale Instanzpakete und bestätigte Updates
+
+Unter **Administration > Optionale Lernpakete** lokale ZIP-Datei auswählen,
+**Paketfassung und Änderungen prüfen**, Originaltexte unter LICENSES.md, NOTICE
+und ATTRIBUTION lesen und Bereitstellung ausdrücklich bestätigen. Keine Auswahl
+und kein Download erfolgt automatisch. Das Paket wird Lernenden als optionale
+private Übernahme angeboten; die Bereitstellung veröffentlicht keine Kontodaten.
+Titel, Beschreibung/Zielgruppe, Sprache, Version, Quellenstand, Fragenzahl sowie
+Archivgröße und entpackter Speicherbedarf werden vor Bestätigung angezeigt.
+
+Versionen sind unveränderlich: geänderte Inhalte benötigen eine neue
+`catalog_version`. Updates deaktivieren das vorherige Angebot, verändern jedoch
+keine privaten Kopien, persönlichen Bearbeitungen oder historischen Lernfassungen.
+Deaktivierung ist umkehrbar. **Endgültig entfernen** löscht nur die Instanzdatei;
+private Kopien und Lernstände bleiben bestehen. Ein Audit-Nachweis verhindert,
+dass eine entfernte Version später mit anderem Inhalt wiederverwendet wird.
+Administratoren benötigen eine frische Anmeldung. Normale Benutzer können keine
+Instanzpakete verwalten.
+
+Bereits privat importierte Pakete können nach neuer Vorschau ausdrücklich
+aktualisiert werden. ZIP-Prüfsumme und bisheriger Paketfingerabdruck müssen zur
+Bestätigung passen. Unbearbeitete Fragen behalten ihre lokale Kennung und erhalten
+eine neue unveränderliche Fassung. Entfernte Quellfragen, frühere ZIPs und alte
+Fassungen bleiben als Nachweis erhalten. Persönliche Änderungen oder Löschungen
+sperren den gesamten Wechsel; es findet kein stilles Überschreiben statt.
+Neue Importe dürfen einen eigenen bestehenden privaten Zielkatalog verwenden.
+
+### Offline-Setup und geprüfte Online-Quellen
+
+`./scripts/install-release.sh install --catalog-package /absoluter/pfad/paket.zip`
+prüft das optionale lokale Paket beim erstmaligen Setup und zeigt die Original-
+Lizenztexte vor gesonderter Bestätigung. Die Option ist wiederholbar. Ohne diese
+Option funktioniert Installation unverändert. Mit wiederholbarem
+`--catalog-offer /absoluter/pfad/paket.zip` werden verfügbare lokale Pakete samt
+Metadaten, Einzelquellen und Lizenztexten angezeigt und bleiben zunächst abgewählt.
+Nur `yes` wählt das jeweilige Paket aus; mit `--yes` bleiben Angebote abgewählt.
+Mehrere gewählte Dateien werden einzeln geprüft und mit Fortschritt bereitgestellt.
+`--yes` bestätigt auch ausdrücklich
+angegebene Pakete; Dateien zuvor prüfen. Spätere Nachinstallation und Updates
+laufen über Administration. Pakete sind externe ZIP-Artefakte: keine Repo-,
+GitHub-, Cloudkonto- oder Internetpflicht und keine Inhalte im App-Image.
+
+Ein Betreiber kann eine neutrale HTTPS-Quelle mit
+`LEARNPIP_CATALOG_SOURCE_TITLE`, `LEARNPIP_CATALOG_SOURCE_URL` und dem unabhängig
+geprüften `LEARNPIP_CATALOG_SOURCE_SHA256` konfigurieren. In Administration startet
+ein ausdrücklicher Klick den Download; SHA-256, Größenlimit, Schema und Medien
+werden geprüft. Weiterleitungen werden abgewiesen. Fehlschläge verändern die
+Paketverwaltung nicht. Ohne Quellenkonfiguration gibt es keinen externen Zugriff.
+Weitere Quellen sind über `CatalogPackages:Sources` mit Title/Url/Sha256 möglich.
+Ein Prüfsummenvergleich beweist Integrität gegenüber dem vertrauten Sollwert,
+keine Urheberrechte oder Echtheit eines unbekannten Herausgebers.
+
+## Quellen, Rechte und Community-Bericht
+
+Unter **Fragen > Quellen und Rechte je Frage und Bild** tatsächliche Lizenz,
+Rechteinhaber, Attribution, Herkunft, Quellenrevision und Bearbeitungsvermerk je
+Text und einzeln je Bild erfassen. Die Bestätigung wird bei Feldänderungen
+zurückgesetzt. Nachweise sind an die gespeicherte Inhaltsfassung einschließlich
+Bildbytes und Alternativtexten gebunden. Nach Inhaltänderungen erneut prüfen;
+ein Export mit veralteten Nachweisen wird verhindert. Importierte Originale
+behalten ihre vollständigen Originalnachweise. Bearbeitete Importfragen benötigen
+explizite Bearbeitungsnachweise, behalten die Quelllizenz und führen ursprüngliche
+Attribution/Quellrevision zusätzlich mit. Unveränderte importierte Bilder behalten
+auch in einer bearbeiteten Frage ihre Quelllizenz. Keine Lizenz wird aus einem
+Thema erzeugt.
+
+Klasse/Zielgruppe, Schwierigkeit und Themenhierarchie/Schlagworte können im selben
+Bereich ausdrücklich erfasst werden. Die Exportauswahl kombiniert diese Angaben
+mit Katalog, Fach, Thema und Sprache. Importierte Angaben bleiben verfügbar und
+werden bei einer bewussten Metadatenänderung zusammen mit den Originalnachweisen
+weitergegeben.
+
+Frühere bestätigte Einzelnachweise bleiben in einer begrenzten Historie (100 Stände,
+8 MiB je Frage) erhalten; bei Erreichen wird eine weitere Änderung abgewiesen,
+kein alter Nachweis still gelöscht. Eine Community-Einreichung erhält zusätzlich
+einen festen Nachweisstand, den Moderation und öffentliche Fassung anzeigen.
+Spätere Änderungen der privaten Angaben verändern diesen Stand nicht.
+
+Der Export zeigt einen **Rechtebericht für offene Weitergabe**. Text und jedes Bild
+werden separat geprüft; eine offene Textlizenz verdeckt keine private Bildlizenz.
+Wikipedia-Bearbeitungen benötigen CC BY-SA 4.0, Attribution, tatsächliche Revision
+und Bearbeitungsvermerk; amtliche Originalquellen DL-DE/BY-2.0 werden getrennt
+behandelt. Gemischte Quellen müssen im Bearbeitungs- und Attributionsnachweis
+abgegrenzt sein. Der technische Bericht ersetzt keine Prüfung tatsächlicher Rechte
+oder komplexer Lizenzkompatibilität. Unbekannte/private Lizenzen sperren den
+Community-Zweck, verhindern jedoch keinen berechtigten privaten ZIP-Download.
+
+`LEARNPIP_COMMUNITY_EXPORT_ENABLED=false` ist die Standardeinstellung. Auch bestehende öffentliche Einreichungen und ihre Moderationsfreigabe verwenden
+den aktuellen Einzellizenzbericht. Fehlende oder veraltete Nachweise sperren die
+Freigabe; eine Einreichung darf die Quelllizenz nicht ersetzen. Erst nach
+bewusster administrativer Aktivierung und vollständigen offenen Einzelnachweisen
+kann **Paket für einen Community-Vorschlag** gewählt werden. Eigene Originale dürfen
+bewusst etwa CC BY-SA 4.0 erhalten; zuerst die gespeicherte Frage und ihre Nachweise
+entsprechend ändern. Eine zusätzliche Bestätigung erklärt offene Weitergabe und
+Unwiderrufbarkeit erteilter offener Lizenzen. Dies erzeugt nur einen lokalen ZIP-
+Download: kein Upload, kein Versand und keine automatische Veröffentlichung.
+LICENSES.md, NOTICE und ATTRIBUTION samt Einzellizenzen werden mitgeführt.
+
+Prüfungen: Golden-ZIPs 0.1.0/0.2.0, Schema/Prüfsummen, Zwei-Datenbank-Roundtrip mit
+fünf Fragen und Bild/Teilauswahl/Reimport, Rechte- und Admin-Grenzen, bestätigte
+Updates, historische Fassungen, Installationsablauf mit/ohne optionale Auswahl
+sowie Browserprüfungen einschließlich Smartphone und automatisierter Accessibility.
+Ein manueller Test mit zwei vollständigen VM-Installationen und echten Hilfsmitteln
+ist damit nicht behauptet; dafür den beschriebenen A/B-Ablauf als Abnahme nutzen.

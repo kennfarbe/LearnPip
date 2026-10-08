@@ -29,6 +29,9 @@ public sealed class PublicSubmission
     /// </summary>
     public string LicenseChoice { get; set; } = string.Empty;
 
+    /// <summary>Holt oder setzt die unveränderlichen Einzelnachweise dieser Einreichung.</summary>
+    public string RightsJson { get; set; } = "{}";
+
     /// <summary>
     /// Holt oder setzt author attribution.
     /// </summary>

@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { LanguageService } from './language';
-import { NgTemplateOutlet } from '@angular/common';
+import { JsonPipe, NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 interface Submission {
@@ -18,6 +18,7 @@ interface Block {
   altText: string | null;
 }
 interface Version {
+  rights?: unknown;
   prompt: Block[];
   explanation: Block[];
   answers: { blocks: Block[]; isCorrect: boolean }[];
@@ -28,7 +29,7 @@ interface Api<T> {
 
 @Component({
   selector: 'app-moderation-queue',
-  imports: [FormsModule, NgTemplateOutlet],
+  imports: [JsonPipe, FormsModule, NgTemplateOutlet],
   template: `
     @if (available()) {
       <section class="queue" aria-labelledby="moderation-title">
@@ -54,6 +55,10 @@ interface Api<T> {
               {{ language.t('Private Vorschau prüfen') }}
             </button>
             @if (selected() === item.questionVersionId && version(); as view) {
+              <details>
+                <summary>{{ language.t('Eingereichte Einzelquellen und Lizenzen') }}</summary>
+                <pre>{{ view.rights | json }}</pre>
+              </details>
               <h4>{{ language.t('Frage') }}</h4>
               @for (block of view.prompt; track $index) {
                 <ng-container
@@ -136,6 +141,10 @@ interface Api<T> {
     }
   `,
   styles: `
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
     :host {
       display: block;
     }

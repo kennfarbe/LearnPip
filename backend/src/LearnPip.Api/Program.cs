@@ -168,6 +168,9 @@ builder.Services.AddRateLimiter(options =>
                 }));
 });
 
+builder.Services.AddHttpClient("catalog-package-source", client => client.Timeout = TimeSpan.FromSeconds(30))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+
 var app = builder.Build();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
@@ -271,6 +274,9 @@ app.MapAiEndpoints();
 app.MapCatalogEditorEndpoints();
 app.MapCatalogPackageEndpoints();
 app.MapCatalogExportEndpoints();
+app.MapCatalogRightsEndpoints();
+app.MapInstanceCatalogEndpoints();
+app.MapCatalogSourceEndpoints();
 app.MapGroupEndpoints();
 app.MapAdministrationEndpoints();
 app.MapQuestionPermissionEndpoints();
@@ -281,6 +287,14 @@ if (args.Contains("--migrate", StringComparer.OrdinalIgnoreCase))
     await using var scope = app.Services.CreateAsyncScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<LearnPipDbContext>();
     await dbContext.Database.MigrateAsync();
+    return;
+}
+
+if (args is ["--preview-instance-package"] or ["--install-instance-package"])
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<LearnPipDbContext>();
+    Environment.ExitCode = await InstanceCatalogSetup.Run(Console.OpenStandardInput(), dbContext, args[0] == "--preview-instance-package", CancellationToken.None);
     return;
 }
 

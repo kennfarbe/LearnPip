@@ -35,6 +35,10 @@ echo "docker $*" >> "$MOCK_LOG"
 if [[ "$*" == 'info --format '* ]]; then
   if [[ "${MOCK_ROOTFUL:-}" == 1 ]]; then echo '[]'; else echo '["name=rootless"]'; fi
 fi
+if [[ "$*" == *'--preview-instance-package'* || "$*" == *'--install-instance-package'* ]]; then
+  cat >/dev/null
+  exit 0
+fi
 if [[ "$*" == *'initialize-admin'* ]]; then
   read -r username
   read -r password
@@ -58,12 +62,12 @@ if [[ "$*" == *'run --rm migrate'* && "${MOCK_FAIL_MIGRATE:-}" == 1 ]]; then exi
     secret_file.write_text('synthetic-test-password-123\n')
     secret_file.chmod(0o600)
 
-    def run(*args, directory=target, extra=None, success=True):
+    def run(*args, directory=target, extra=None, success=True, input_text=None):
         if args and args[0] == 'install' and '--admin-password-file' not in args:
             args = (*args, '--admin-password-file', str(secret_file))
         result = subprocess.run(['bash', str(repo / 'scripts/install-release.sh'), *args,
                                  '--directory', str(directory)], env=env | (extra or {}),
-                                text=True, capture_output=True)
+                                text=True, capture_output=True, input=input_text)
         assert (result.returncode == 0) == success, result.stdout + result.stderr
         return result
 
@@ -146,6 +150,22 @@ if [[ "$*" == *'run --rm migrate'* && "${MOCK_FAIL_MIGRATE:-}" == 1 ]]; then exi
     assert (target / 'current').resolve() == target / 'releases/v1.0.1'
     run('prepare', directory=work / 'prerelease', extra={'MOCK_PRERELEASE': '1'}, success=False)
     run('prepare', '--version', '../evil', directory=work / 'invalid', success=False)
+    package = work / 'synthetic.zip'
+    package.write_bytes(b'synthetic package fixture')
+    optional = work / 'optional-packages'
+    run('install', '--domain', 'learn.test.invalid', '--internal', '--yes', '--catalog-package', str(package), directory=optional)
+    assert (optional / 'current').exists()
+    commands = log.read_text()
+    assert commands.index('--preview-instance-package') < commands.index('--install-instance-package')
+    before_imports = log.read_text().count('--install-instance-package')
+    offered = run('install', '--domain', 'learn.test.invalid', '--internal', '--yes', '--catalog-offer', str(package), directory=work / 'offered-default')
+    assert 'bleibt abgewählt' in offered.stdout
+    assert log.read_text().count('--install-instance-package') == before_imports
+    run('install', '--domain', 'learn.test.invalid', '--internal', '--catalog-offer', str(package), directory=work / 'offered-selected', input_text='yes\nyes\nyes\n')
+    assert log.read_text().count('--install-instance-package') == before_imports + 1
+    run('update', '--catalog-offer', str(package), '--yes', directory=optional, success=False)
+    run('update', '--catalog-package', str(package), '--yes', directory=optional, success=False)
+    run('install', '--catalog-package', str(work / 'missing.zip'), '--yes', directory=work / 'missing-package', success=False)
     malicious = work / 'malicious.tar.gz'
     with tarfile.open(malicious, 'w:gz') as archive:
         entry = tarfile.TarInfo('../escaped')

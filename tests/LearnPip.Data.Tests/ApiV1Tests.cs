@@ -33,8 +33,10 @@ namespace LearnPip.Data.Tests;
 /// <summary>
 /// Enthält Regressionstests für die API-Zugriffsrechte.
 /// </summary>
-public sealed class ApiV1Tests
+public sealed partial class ApiV1Tests
 {
+    private static readonly string[] ClassificationTopics = ["Klasse 9", "Biologie / Zellen"];
+
     /// <summary>
     /// Prüft den Zugriff auf private Ressourcen durch Besitzer oder ausdrückliche Gruppenfreigaben.
     /// </summary>
@@ -751,6 +753,26 @@ public sealed class ApiV1Tests
             }
 
             var license = JsonSerializer.SerializeToElement(new { id = "LicenseRef-Private", holder = "Synthetischer Testautor", attribution = "Eigene synthetische Originaldaten" });
+            var rightsPath = "/api/v1/catalog-rights/" + questions[0];
+            Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync(rightsPath)).StatusCode);
+            var rightsPreview = (await client.GetFromJsonAsync<JsonElement>(rightsPath)).GetProperty("data");
+            var contentHash = rightsPreview.GetProperty("contentSha256").GetString()!;
+            var evidence = new { license, provenance = new { kind = "original" } };
+            var rights = JsonSerializer.SerializeToElement(new { license, evidence.provenance, metadata = new { age_band = "Klasse 9", difficulty = "unknown", topics = ClassificationTopics }, media = new Dictionary<string, object> { [imageId.ToString()] = evidence } });
+            Assert.Equal(HttpStatusCode.Conflict, (await client.PutAsJsonAsync(rightsPath, new CatalogRightsEndpoints.RightsInput(new string('0', 64), rights))).StatusCode);
+            var missingImage = JsonSerializer.SerializeToElement(new { license, evidence.provenance, media = new Dictionary<string, object>() });
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync(rightsPath, new CatalogRightsEndpoints.RightsInput(contentHash, missingImage))).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync(rightsPath, new CatalogRightsEndpoints.RightsInput(contentHash, rights))).StatusCode);
+            var updatedRights = System.Text.Json.Nodes.JsonNode.Parse(rights.GetRawText())!;
+            updatedRights["metadata"]!["difficulty"] = "easy";
+            Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync(rightsPath, new CatalogRightsEndpoints.RightsInput(contentHash, JsonSerializer.SerializeToElement(updatedRights)))).StatusCode);
+            var rightsHistory = (await client.GetFromJsonAsync<JsonElement>(rightsPath)).GetProperty("data").GetProperty("history");
+            Assert.Single(rightsHistory.EnumerateArray());
+            Assert.Equal("unknown", rightsHistory[0].GetProperty("rights").GetProperty("metadata").GetProperty("difficulty").GetString());
+            var classified = (await client.GetFromJsonAsync<JsonElement>("/api/v1/catalog-exports/questions")).GetProperty("data").EnumerateArray().Single(item => item.GetProperty("id").GetGuid() == questions[0]);
+            Assert.Equal("Klasse 9", classified.GetProperty("audience").GetString());
+            Assert.Equal("easy", classified.GetProperty("difficulty").GetString());
+
             var request = new CatalogExportRequest(
                 questions.Take(3).ToArray(),
                 "Synthetische Teilauswahl",
@@ -772,6 +794,7 @@ public sealed class ApiV1Tests
             var hash = preview.GetProperty("previewSha256").GetString();
             Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/catalog-exports/download", request with { PreviewSha256 = hash })).StatusCode);
             var confirmed = request with { RightsConfirmed = true, PreviewSha256 = hash };
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/catalog-exports/download", confirmed with { Purpose = "community", PublicationConfirmed = true })).StatusCode);
             Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/v1/catalog-exports/download", confirmed with { Title = "Geändert" })).StatusCode);
             using var download = await client.PostAsJsonAsync("/api/v1/catalog-exports/download", confirmed);
             Assert.Equal(HttpStatusCode.OK, download.StatusCode);
@@ -779,6 +802,11 @@ public sealed class ApiV1Tests
             Assert.True(download.Headers.CacheControl.NoStore);
             var bytes = await download.Content.ReadAsByteArrayAsync();
             var package = CatalogPackageReader.Read(bytes);
+            var classifiedQuestion = package.Questions.Single(item => item.GetProperty("id").GetString() == "learnpip-question:" + questions[0].ToString("N"));
+            Assert.Equal("Klasse 9", classifiedQuestion.GetProperty("age_band").GetString());
+            Assert.Equal("easy", classifiedQuestion.GetProperty("difficulty").GetString());
+            Assert.Contains("Biologie / Zellen", classifiedQuestion.GetProperty("topics").EnumerateArray().Select(topic => topic.GetString()));
+
             var text = System.Text.Encoding.UTF8.GetString(bytes);
             Assert.DoesNotContain(owner.ToString(), text);
             Assert.DoesNotContain(owner.ToString("N"), text);
@@ -789,6 +817,8 @@ public sealed class ApiV1Tests
             Assert.Equal(bytes, await repeated.Content.ReadAsByteArrayAsync());
             Assert.Equal(HttpStatusCode.Created, (await PostPackage(second, "import", bytes, Convert.ToHexStringLower(SHA256.HashData(bytes)))).StatusCode);
             Assert.Equal(HttpStatusCode.OK, (await PostPackage(second, "import", bytes, Convert.ToHexStringLower(SHA256.HashData(bytes)))).StatusCode);
+            var transferredMetadata = (await second.GetFromJsonAsync<JsonElement>("/api/v1/catalog-exports/questions")).GetProperty("data").EnumerateArray().Single(item => item.GetProperty("prompt").GetString() == "Synthetische Frage 0");
+            Assert.Equal("Klasse 9", transferredMetadata.GetProperty("audience").GetString());
             await using (var db = new LearnPipDbContext(secondOptions))
             {
                 Assert.Equal(3, await db.Questions.CountAsync());
@@ -866,7 +896,7 @@ public sealed class ApiV1Tests
 
             Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/catalog-exports/preview", request with { QuestionIds = [questions[4]] })).StatusCode);
 
-            // An actual edit invalidates an earlier preview; no download of stale contents.
+            // An actual edit invalidates both saved rights and the earlier preview; no stale download is allowed.
             await using (var db = new LearnPipDbContext(firstOptions))
             {
                 var draft = await db.QuestionDrafts.SingleAsync(item => item.QuestionId == questions[0]);
@@ -876,7 +906,7 @@ public sealed class ApiV1Tests
                 await db.SaveChangesAsync();
             }
 
-            Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/v1/catalog-exports/download", confirmed)).StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/catalog-exports/download", confirmed)).StatusCode);
             var old = CatalogPackageReaderTests.Golden();
             Assert.Equal(HttpStatusCode.Created, (await PostPackage(client, "import", old, Convert.ToHexStringLower(SHA256.HashData(old)))).StatusCode);
             Guid importedId;
@@ -904,9 +934,35 @@ public sealed class ApiV1Tests
             Assert.Equal("image/png", preserved.Manifest.GetProperty("files").EnumerateArray().Single(file => file.GetProperty("path").GetString()!.StartsWith("media/", StringComparison.Ordinal)).GetProperty("media_type").GetString());
             Assert.Equal("CC-BY-4.0", originalQuestion.GetProperty("media")[0].GetProperty("license").GetProperty("id").GetString());
             Assert.True(System.Text.Json.Nodes.JsonNode.DeepEquals(System.Text.Json.Nodes.JsonNode.Parse(CatalogPackageReader.Read(old).Questions[0].GetProperty("provenance").GetRawText()), System.Text.Json.Nodes.JsonNode.Parse(originalQuestion.GetProperty("provenance").GetRawText())));
+            var importedVersion = (await client.GetFromJsonAsync<ApiResponse<PublishedQuestionVersion>>($"/api/v1/questions/{importedId}/versions/1"))!.Data;
+            var editedContent = CatalogRightsEndpoints.VersionContent(importedVersion) with { Topic = "Eigene Bearbeitung" };
             await using (var db = new LearnPipDbContext(firstOptions))
             {
-                db.QuestionDrafts.Add(new QuestionDraft { QuestionId = importedId, PayloadJson = "{}" });
+                db.QuestionDrafts.Add(new QuestionDraft { QuestionId = importedId, PayloadJson = JsonSerializer.Serialize(editedContent) });
+                await db.SaveChangesAsync();
+            }
+
+            var imageProof = originalQuestion.GetProperty("media")[0];
+            var importedImage = importedVersion.Prompt.Single(block => block.Kind == "image").MediaId!.Value;
+            var adaptedProof = JsonSerializer.SerializeToElement(new
+            {
+                license = originalQuestion.GetProperty("license"),
+                provenance = new { kind = "adapted", source_url = "https://example.invalid/synthetic", source_revision = "synthetic-1", modification_note = "Eigene Themenzuordnung" },
+                media = new Dictionary<string, object>
+                {
+                    [importedImage.ToString()] = new { license = new { id = "CC0-1.0", holder = "Testautor", attribution = "Synthetisch" }, provenance = imageProof.GetProperty("provenance") },
+                },
+            });
+            var editedHash = (await client.GetFromJsonAsync<JsonElement>("/api/v1/catalog-rights/" + importedId)).GetProperty("data").GetProperty("contentSha256").GetString()!;
+            Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync("/api/v1/catalog-rights/" + importedId, new CatalogRightsEndpoints.RightsInput(editedHash, adaptedProof))).StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/catalog-exports/preview", originalRequest)).StatusCode);
+            var correctedProof = System.Text.Json.Nodes.JsonNode.Parse(adaptedProof.GetRawText())!;
+            correctedProof["media"]![importedImage.ToString()]!["license"] = System.Text.Json.Nodes.JsonNode.Parse(imageProof.GetProperty("license").GetRawText());
+            Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync("/api/v1/catalog-rights/" + importedId, new CatalogRightsEndpoints.RightsInput(editedHash, JsonSerializer.SerializeToElement(correctedProof)))).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/v1/catalog-exports/preview", originalRequest)).StatusCode);
+            await using (var db = new LearnPipDbContext(firstOptions))
+            {
+                (await db.QuestionDrafts.SingleAsync(item => item.QuestionId == importedId)).PayloadJson = "{}";
                 await db.SaveChangesAsync();
             }
 
@@ -1077,7 +1133,13 @@ public sealed class ApiV1Tests
                 return Task.FromResult(AuthenticateResult.NoResult());
             }
 
-            var ticket = new AuthenticationTicket(PrincipalFor(parsed), TestScheme);
+            var principal = PrincipalFor(parsed);
+            if (this.Request.Headers.TryGetValue("X-Test-Session", out var session) && Guid.TryParse(session, out var sessionId))
+            {
+                ((ClaimsIdentity)principal.Identity!).AddClaim(new Claim(LearnPip.Api.Identity.SessionAuthentication.SessionIdClaim, sessionId.ToString()));
+            }
+
+            var ticket = new AuthenticationTicket(principal, TestScheme);
             return Task.FromResult(AuthenticateResult.Success(ticket));
         }
     }

@@ -69,6 +69,7 @@ public static class CatalogPackageImporter
     /// <param name="owner">Das lokale Eigentümerkonto.</param>
     /// <param name="catalog">Der private Zielkatalog.</param>
     /// <param name="identical">Bereits vorhandene unveränderte Quellfragen.</param>
+    /// <param name="updates">Ausdrücklich zu aktualisierende unpersönlich bearbeitete Fragen.</param>
     /// <returns>Die Zuordnung stabiler externer IDs zu lokalen Fragen.</returns>
     public static IReadOnlyDictionary<string, Guid> AddQuestions(
         LearnPipDbContext db,
@@ -78,7 +79,8 @@ public static class CatalogPackageImporter
         Guid owner,
         PrivateCatalog catalog,
         IReadOnlyDictionary<string,
-        Guid>? identical = null)
+        Guid>? identical = null,
+        IReadOnlyDictionary<string, Question>? updates = null)
     {
         var mappings = new Dictionary<string, Guid>(StringComparer.Ordinal);
         foreach (var original in package.Questions)
@@ -90,16 +92,22 @@ public static class CatalogPackageImporter
                 continue;
             }
 
-            var question = new Question { OwnerAccountId = owner, PrivateCatalogId = catalog.Id };
+            var updating = updates != null && updates.TryGetValue(sourceId, out _);
+            var question = updating ? updates![sourceId] : new Question { OwnerAccountId = owner, PrivateCatalogId = catalog.Id };
             var topic = original.GetProperty("topics")[0].GetString()!;
             var blocksFormat = original.TryGetProperty("prompt_blocks", out _);
-            question.LearningContent = new LearningContent { Id = question.Id, OwnerAccountId = owner, Title = Short(topic) };
+            if (!updating)
+            {
+                question.LearningContent = new LearningContent { Id = question.Id, OwnerAccountId = owner, Title = Short(topic) };
+            }
+
+            question.UpdatedAtUtc = DateTimeOffset.UtcNow;
             var selectionMode = original.GetProperty("correct_answer_ids").GetArrayLength() == 1 ? "single" : "multiple";
             var version = new QuestionVersion
             {
                 Question = question,
                 CreatedByAccountId = owner,
-                VersionNumber = 1,
+                VersionNumber = updating ? question.Versions.Max(item => item.VersionNumber) + 1 : 1,
                 Visibility = "private",
                 Prompt = original.GetProperty("prompt").GetString()!,
                 Explanation = original.GetProperty("explanation").GetString(),
@@ -111,7 +119,11 @@ public static class CatalogPackageImporter
                 License = original.GetProperty("license").GetProperty("id").GetString()!,
                 AuthorAttribution = Short(original.GetProperty("license").GetProperty("attribution").GetString()!),
             };
-            db.Questions.Add(question);
+            if (!updating)
+            {
+                db.Questions.Add(question);
+            }
+
             db.QuestionVersions.Add(version);
             var media = new Dictionary<string, Guid>(StringComparer.Ordinal);
             foreach (var asset in original.GetProperty("media").EnumerateArray())

@@ -28,6 +28,8 @@ import { QuestionRights } from './question-rights';
 import { QuestionPermissions } from './question-permissions';
 import { QuestionModeration } from './question-moderation';
 import { CatalogPackageImport } from './catalog-package-import';
+import { CatalogContentRights } from './catalog-content-rights';
+import { InstanceCatalogLibrary } from './instance-catalog-library';
 
 @Component({
   selector: 'app-overview-workspace',
@@ -78,9 +80,19 @@ export class OverviewWorkspace {
     AiAssistant,
     CatalogPackageExport,
     CatalogPackageImport,
+    CatalogContentRights,
   ],
   template: `
     <app-question-editor />
+    <details
+      class="workspace-disclosure"
+      (toggle)="rightsOpened.set(rightsOpened() || $any($event.target).open)"
+    >
+      <summary>{{ language.t('Quellen und Rechte je Frage und Bild') }}</summary>
+      @if (rightsOpened()) {
+        <app-catalog-content-rights />
+      }
+    </details>
     <details
       class="workspace-disclosure"
       (toggle)="exportOpened.set(exportOpened() || $any($event.target).open)"
@@ -131,6 +143,7 @@ export class OverviewWorkspace {
 export class QuestionsWorkspace {
   readonly rights = inject(QuestionRights);
   readonly exportOpened = signal(false);
+  readonly rightsOpened = signal(false);
   readonly importOpened = signal(false);
   readonly language = inject(LanguageService);
   readonly photoOpened = signal(false);
@@ -231,6 +244,7 @@ export class CatalogsWorkspace {
 @Component({
   selector: 'app-administration-workspace',
   imports: [
+    InstanceCatalogLibrary,
     AdminUpdates,
     ModerationQueue,
     ExamAdministration,
@@ -240,6 +254,7 @@ export class CatalogsWorkspace {
   template: `
     @if (access.capabilities().administration) {
       <app-admin-updates />
+      <app-instance-catalog-library [admin]="true" />
       <details class="workspace-disclosure">
         <summary>Benutzer und Rollen: Fragenberechtigungen</summary>
         <app-question-permissions />
