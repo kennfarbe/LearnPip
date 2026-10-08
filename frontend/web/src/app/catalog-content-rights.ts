@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
+import { JsonPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LanguageService } from './language';
 
@@ -13,6 +14,7 @@ interface Rights {
 }
 interface ContentRights extends Rights {
   media: Record<string, Rights>;
+  metadata?: { age_band: string; difficulty: string; topics: string[] };
 }
 const empty = (): Rights => ({
   license: { id: 'LicenseRef-Private', holder: '', attribution: '' },
@@ -21,7 +23,7 @@ const empty = (): Rights => ({
 
 @Component({
   selector: 'app-catalog-content-rights',
-  imports: [FormsModule],
+  imports: [JsonPipe, FormsModule],
   template: `
     <section class="workspace-card" aria-labelledby="rights-title" [attr.aria-busy]="busy()">
       <h2 id="rights-title">{{ language.t('Quellen und Rechte je Frage und Bild') }}</h2>
@@ -54,9 +56,34 @@ const empty = (): Rights => ({
             }}
           </p>
         }
+        <details>
+          <summary>{{ language.t('Frühere bestätigte Einzelnachweise') }}</summary>
+          <pre>{{ history | json }}</pre>
+        </details>
         <p>{{ language.t('Gespeicherte Quelle / Lizenz') }}: {{ source }} · {{ license }}</p>
         <fieldset [disabled]="busy()">
           <legend>{{ language.t('Einzelnachweise') }}</legend>
+          <label
+            >{{ language.t('Klasse / Zielgruppe des Inhalts')
+            }}<input [(ngModel)]="audience" maxlength="80" (ngModelChange)="confirmed = false"
+          /></label>
+          <label
+            >{{ language.t('Schwierigkeitsgrad')
+            }}<select [(ngModel)]="difficulty" (ngModelChange)="confirmed = false">
+              <option value="unknown">{{ language.t('Unbekannt') }}</option>
+              <option value="easy">{{ language.t('Leicht') }}</option>
+              <option value="medium">{{ language.t('Mittel') }}</option>
+              <option value="hard">{{ language.t('Schwer') }}</option>
+            </select></label
+          >
+          <label
+            >{{ language.t('Themenhierarchie / Schlagworte (eine Angabe je Zeile)')
+            }}<textarea
+              [(ngModel)]="tags"
+              maxlength="12800"
+              (ngModelChange)="confirmed = false"
+            ></textarea>
+          </label>
           @for (entry of entries; track entry.id) {
             <fieldset>
               <legend>{{ entry.name }}</legend>
@@ -149,6 +176,10 @@ const empty = (): Rights => ({
     </section>
   `,
   styles: `
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
     label {
       display: block;
       margin-block: 0.75rem;
@@ -178,6 +209,10 @@ export class CatalogContentRights implements OnInit {
   source = '';
   license = '';
   hash = '';
+  history: unknown[] = [];
+  audience = '';
+  difficulty = 'unknown';
+  tags = '';
   entries: { id: string; name: string; rights: Rights }[] = [];
 
   ngOnInit(): void {
@@ -201,6 +236,7 @@ export class CatalogContentRights implements OnInit {
       if (!response.ok) throw new Error(this.language.t('Frage konnte nicht geladen werden.'));
       const item = (await response.json()) as {
         data: {
+          history?: unknown[];
           contentSha256: string;
           stale: boolean;
           source: string;
@@ -209,10 +245,14 @@ export class CatalogContentRights implements OnInit {
           media: { id: string; altText: string }[];
         };
       };
+      this.history = item.data.history ?? [];
       this.hash = item.data.contentSha256;
       this.stale.set(item.data.stale);
       this.source = item.data.source;
       this.license = item.data.license;
+      this.audience = item.data.rights?.metadata?.age_band ?? '';
+      this.difficulty = item.data.rights?.metadata?.difficulty ?? 'unknown';
+      this.tags = item.data.rights?.metadata?.topics.join('\n') ?? '';
       const text = item.data.rights ?? empty();
       if (!item.data.rights && item.data.license) text.license.id = item.data.license;
       this.entries = [
@@ -237,6 +277,18 @@ export class CatalogContentRights implements OnInit {
       const text = this.clean(this.entries[0].rights);
       const rights: ContentRights = {
         ...text,
+        metadata: {
+          age_band: this.audience.trim(),
+          difficulty: this.difficulty,
+          topics: [
+            ...new Set(
+              this.tags
+                .split('\n')
+                .map((tag) => tag.trim())
+                .filter(Boolean),
+            ),
+          ],
+        },
         media: Object.fromEntries(
           this.entries.slice(1).map((entry) => [entry.id, this.clean(entry.rights)]),
         ),

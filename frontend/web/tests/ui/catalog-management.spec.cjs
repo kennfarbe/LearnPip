@@ -58,11 +58,15 @@ test('content rights bind each image and the confirmation to the loaded content'
   const save = section.getByRole('button', { name: 'Rechteangaben speichern' });
   await expect(save).toBeDisabled();
   await section.getByRole('checkbox', { name: /^Ich habe Inhalt, Quellen/ }).check();
+  await section.getByLabel('Klasse / Zielgruppe des Inhalts', { exact: true }).fill('Klasse 9');
+  await expect(save).toBeDisabled();
+  await section.getByRole('checkbox', { name: /^Ich habe Inhalt, Quellen/ }).check();
   await save.click();
   await expect(section.getByRole('status')).toContainText('Rechteangaben für diese Fassung gespeichert');
   expect(saved[0].contentSha256).toBe('b'.repeat(64));
   expect(saved[0].rights.media['11111111-1111-1111-1111-111111111111'].license.holder).toBe('Bildautor');
   expect(saved[0].rights.license.holder).toBe('Fragenautor');
+  expect(saved[0].rights.metadata.age_band).toBe('Klasse 9');
   await expect(section.getByRole('alert')).toHaveCount(0);
   await expect(section.getByRole('checkbox')).not.toBeChecked();
   await page.setViewportSize({ width: 390, height: 844 });

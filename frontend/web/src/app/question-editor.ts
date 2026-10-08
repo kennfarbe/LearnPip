@@ -1,6 +1,7 @@
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { QuestionRights } from './question-rights';
 import { LanguageService } from './language';
+import { JsonPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
@@ -26,6 +27,7 @@ type Draft = {
 type Catalog = { id: string; name: string; questionCount: number };
 type Api<T> = { data: T };
 type SubmissionPreview = {
+  rights?: unknown;
   rightsReport?: string[];
   communityEnabled?: boolean;
   communityEligible?: boolean;
@@ -47,7 +49,7 @@ type SubmissionPreview = {
 
 @Component({
   selector: 'app-question-editor',
-  imports: [FormsModule, RouterLink],
+  imports: [JsonPipe, FormsModule, RouterLink],
   template: `
     <section class="editor" aria-labelledby="editor-title">
       <header>
@@ -383,6 +385,12 @@ type SubmissionPreview = {
                         )
                       }}
                     </p>
+                    <details>
+                      <summary>
+                        {{ uiLanguage.t('Tatsächliche Einzelquellen und Lizenzen') }}
+                      </summary>
+                      <pre>{{ preview.rights | json }}</pre>
+                    </details>
                     <p>Herkunft: {{ preview.version.source }}</p>
                     @for (block of preview.version.prompt; track $index) {
                       @if (block.kind === 'text') {

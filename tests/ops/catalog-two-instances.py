@@ -60,7 +60,7 @@ for index in range(5):
 license = {'id': 'LicenseRef-Private', 'holder': 'Synthetischer Testautor', 'attribution': 'Eigene Frage und eigene Grafik'}
 proof = request(a, 'catalog-rights/' + ids[0], token=at)
 evidence = {'license': license, 'provenance': {'kind': 'original'}}
-request(a, 'catalog-rights/' + ids[0], 'PUT', {'contentSha256': proof['contentSha256'], 'rights': {**evidence, 'media': {image: evidence}}}, at)
+request(a, 'catalog-rights/' + ids[0], 'PUT', {'contentSha256': proof['contentSha256'], 'rights': {**evidence, 'metadata': {'age_band': 'Klasse 9', 'difficulty': 'easy', 'topics': ['Biologie / Grundlagen', 'Klasse 9']}, 'media': {image: evidence}}}, at)
 export = {'questionIds': ids[:3], 'title': 'Unabhängige Teilauswahl', 'publisher': 'Synthetischer Testautor',
           'questionLicense': license, 'imageLicense': license, 'licenseNotice': 'LicenseRef-Private: berechtigte private Weitergabe.',
           'rightsConfirmed': False, 'previewSha256': None}
@@ -87,6 +87,9 @@ request(b, 'catalog-packages/import', 'POST', token=bt, raw=raw, content_type=ki
 assert request(b, 'catalog-packages/import', 'POST', token=bt, raw=raw, content_type=kind)['alreadyImported']
 imported = request(b, 'catalog-exports/questions', token=bt)
 assert len(imported) == 3
+classified = next(item for item in imported if item['prompt'] == 'Synthetische Frage 0')
+assert classified['audience'] == 'Klasse 9' and classified['difficulty'] == 'easy'
+assert 'Biologie / Grundlagen' in classified['tags']
 local = next(item for item in imported if item['prompt'] == 'Synthetische Frage 0')['id']
 version = request(b, f'questions/{local}/versions/1', token=bt)
 assert version['visibility'] == 'private' and version['license'] == 'LicenseRef-Private'

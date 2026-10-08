@@ -266,7 +266,21 @@ Bildbytes und Alternativtexten gebunden. Nach Inhaltänderungen erneut prüfen;
 ein Export mit veralteten Nachweisen wird verhindert. Importierte Originale
 behalten ihre vollständigen Originalnachweise. Bearbeitete Importfragen benötigen
 explizite Bearbeitungsnachweise, behalten die Quelllizenz und führen ursprüngliche
-Attribution/Quellrevision zusätzlich mit. Keine Lizenz wird aus einem Thema erzeugt.
+Attribution/Quellrevision zusätzlich mit. Unveränderte importierte Bilder behalten
+auch in einer bearbeiteten Frage ihre Quelllizenz. Keine Lizenz wird aus einem
+Thema erzeugt.
+
+Klasse/Zielgruppe, Schwierigkeit und Themenhierarchie/Schlagworte können im selben
+Bereich ausdrücklich erfasst werden. Die Exportauswahl kombiniert diese Angaben
+mit Katalog, Fach, Thema und Sprache. Importierte Angaben bleiben verfügbar und
+werden bei einer bewussten Metadatenänderung zusammen mit den Originalnachweisen
+weitergegeben.
+
+Frühere bestätigte Einzelnachweise bleiben in einer begrenzten Historie (100 Stände,
+8 MiB je Frage) erhalten; bei Erreichen wird eine weitere Änderung abgewiesen,
+kein alter Nachweis still gelöscht. Eine Community-Einreichung erhält zusätzlich
+einen festen Nachweisstand, den Moderation und öffentliche Fassung anzeigen.
+Spätere Änderungen der privaten Angaben verändern diesen Stand nicht.
 
 Der Export zeigt einen **Rechtebericht für offene Weitergabe**. Text und jedes Bild
 werden separat geprüft; eine offene Textlizenz verdeckt keine private Bildlizenz.

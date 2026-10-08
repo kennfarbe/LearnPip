@@ -10,6 +10,9 @@ interface Candidate {
   topic: string;
   language: string;
   hasDraft: boolean;
+  audience?: string;
+  difficulty?: string;
+  tags?: string[];
 }
 interface License {
   id: string;
@@ -72,6 +75,24 @@ interface Preview {
           <label
             >{{ language.t('Thema') }}<input [(ngModel)]="topic" (ngModelChange)="invalidate()"
           /></label>
+          <label
+            >{{ language.t('Klasse / Zielgruppe')
+            }}<input [(ngModel)]="audience" (ngModelChange)="invalidate()"
+          /></label>
+          <label
+            >{{ language.t('Schlagwort / Themenhierarchie')
+            }}<input [(ngModel)]="tags" (ngModelChange)="invalidate()"
+          /></label>
+          <label
+            >{{ language.t('Schwierigkeitsgrad')
+            }}<select [(ngModel)]="difficulty" (ngModelChange)="invalidate()">
+              <option value="">{{ language.t('Alle') }}</option>
+              <option value="unknown">{{ language.t('Unbekannt') }}</option>
+              <option value="easy">{{ language.t('Leicht') }}</option>
+              <option value="medium">{{ language.t('Mittel') }}</option>
+              <option value="hard">{{ language.t('Schwer') }}</option>
+            </select></label
+          >
           <label
             >{{ language.t('Sprache')
             }}<input [(ngModel)]="questionLanguage" (ngModelChange)="invalidate()"
@@ -341,6 +362,9 @@ export class CatalogPackageExport implements OnInit {
   selected = new Set<string>();
   catalog = 'all';
   subject = '';
+  audience = '';
+  tags = '';
+  difficulty = '';
   topic = '';
   questionLanguage = '';
   search = '';
@@ -375,6 +399,9 @@ export class CatalogPackageExport implements OnInit {
       (item) =>
         (this.catalog === 'all' ||
           (this.catalog === 'none' ? !item.catalogId : item.catalogId === this.catalog)) &&
+        matches(item.audience ?? '', this.audience) &&
+        matches((item.tags ?? []).join(' '), this.tags) &&
+        (!this.difficulty || item.difficulty === this.difficulty) &&
         matches(item.subject, this.subject) &&
         matches(item.topic, this.topic) &&
         matches(item.language, this.questionLanguage) &&

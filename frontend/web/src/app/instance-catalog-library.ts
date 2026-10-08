@@ -7,6 +7,9 @@ interface Package {
   packageId: string;
   catalogVersion: string;
   archiveSha256: string;
+  publisher?: string;
+  audiences?: string[];
+  sourceUrls?: string[];
   title: string;
   description: string;
   language: string;
@@ -107,6 +110,8 @@ interface Preview {
             }}
           </p>
           <p>
+            {{ item.package.publisher }} · Zielgruppe:
+            {{ item.package.audiences?.join(', ') || 'Keine Angabe' }} ·
             {{ item.package.description }} · {{ item.package.language }} ·
             {{ item.package.sourceRevision }}
           </p>
@@ -143,6 +148,12 @@ interface Preview {
           <li>
             <h3>{{ item.title }} · {{ item.catalogVersion }}</h3>
             <p>{{ item.description }} · {{ item.language }} · {{ item.sourceRevision }}</p>
+            <p>
+              {{ item.publisher }} · Zielgruppe: {{ item.audiences?.join(', ') || 'Keine Angabe' }}
+            </p>
+            @for (source of item.sourceUrls || []; track source) {
+              <p>{{ source }}</p>
+            }
             <p>
               {{ item.questionCount }} {{ language.t('Fragen') }} · {{ size(item.archiveBytes) }} /
               {{ size(item.expandedBytes) }}
