@@ -26,6 +26,9 @@ type Draft = {
 type Catalog = { id: string; name: string; questionCount: number };
 type Api<T> = { data: T };
 type SubmissionPreview = {
+  rightsReport?: string[];
+  communityEnabled?: boolean;
+  communityEligible?: boolean;
   previewToken: string;
   hasImages: boolean;
   version: {
@@ -359,6 +362,27 @@ type SubmissionPreview = {
                 @if (submissionPreview(); as preview) {
                   <div class="privacy">
                     <h4>{{ uiLanguage.t('Vorschau der einzureichenden Fassung') }}</h4>
+                    @if (!preview.communityEnabled) {
+                      <p>
+                        {{
+                          uiLanguage.t(
+                            'Öffentliche Einreichungen sind auf dieser Instanz administrativ gesperrt. Private Nutzung bleibt möglich.'
+                          )
+                        }}
+                      </p>
+                    }
+                    <ul>
+                      @for (issue of preview.rightsReport ?? []; track $index) {
+                        <li>{{ issue }}</li>
+                      }
+                    </ul>
+                    <p>
+                      {{
+                        uiLanguage.t(
+                          'Einzelnachweise unter Quellen und Rechte je Frage und Bild prüfen und speichern. Die Einreichung darf fremde Lizenzen nicht ersetzen. CC BY-SA 4.0 erlaubt Weitergabe und Bearbeitung unter Namensnennung und Share-Alike; erteilte offene Lizenzen sind nicht widerrufbar.'
+                        )
+                      }}
+                    </p>
                     <p>Herkunft: {{ preview.version.source }}</p>
                     @for (block of preview.version.prompt; track $index) {
                       @if (block.kind === 'text') {
@@ -384,16 +408,23 @@ type SubmissionPreview = {
                     </ol>
                     <label
                       >{{ uiLanguage.t('Inhaltslizenz')
-                      }}<select [(ngModel)]="publicLicense">
+                      }}<select
+                        [(ngModel)]="publicLicense"
+                        (ngModelChange)="rightsConfirmed = false; imageRightsConfirmed = false"
+                      >
                         <option value="">{{ uiLanguage.t('Bitte bewusst auswählen') }}</option>
                         <option value="CC BY 4.0">{{ uiLanguage.t('CC BY 4.0') }}</option>
                         <option value="CC BY-SA 4.0">{{ uiLanguage.t('CC BY-SA 4.0') }}</option>
                         <option value="CC0 1.0">{{ uiLanguage.t('CC0 1.0') }}</option>
+                        <option value="DL-DE/BY-2.0">DL-DE/BY-2.0</option>
                       </select>
                     </label>
                     <label
                       >{{ uiLanguage.t('Urheberangabe')
-                      }}<input [(ngModel)]="authorAttribution" maxlength="120"
+                      }}<input
+                        [(ngModel)]="authorAttribution"
+                        maxlength="120"
+                        (ngModelChange)="rightsConfirmed = false; imageRightsConfirmed = false"
                     /></label>
                     <label
                       >{{ uiLanguage.t('Alterserklärung')
@@ -421,7 +452,11 @@ type SubmissionPreview = {
                         }}</label
                       >
                     }
-                    <button type="button" [disabled]="busy()" (click)="submitForReview()">
+                    <button
+                      type="button"
+                      [disabled]="busy() || !preview.communityEligible"
+                      (click)="submitForReview()"
+                    >
                       {{ uiLanguage.t('Diese Fassung zur Moderation einreichen') }}
                     </button>
                   </div>
@@ -941,6 +976,7 @@ export class QuestionEditor implements OnInit, OnDestroy {
     const preview = this.submissionPreview();
     if (
       !preview ||
+      !preview.communityEligible ||
       !this.publicLicense ||
       !this.authorAttribution.trim() ||
       !this.rightsConfirmed ||
