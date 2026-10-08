@@ -31,6 +31,9 @@ public sealed class CatalogPackageImport
     /// <summary>Holt oder setzt Zuordnung externer Fragekennungen zu lokalen Fragen.</summary>
     public string QuestionIdsJson { get; set; } = "{}";
 
+    /// <summary>Holt oder setzt die importierten Basisfassungen für den Schutz persönlicher Änderungen.</summary>
+    public string QuestionVersionIdsJson { get; set; } = "{}";
+
     /// <summary>Holt oder setzt Zeitpunkt des bestätigten Imports.</summary>
     public DateTimeOffset ImportedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 }

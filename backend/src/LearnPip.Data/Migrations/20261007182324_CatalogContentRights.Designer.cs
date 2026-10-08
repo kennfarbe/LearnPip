@@ -3,6 +3,7 @@ using System;
 using LearnPip.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace LearnPip.Data.Migrations
 {
     [DbContext(typeof(LearnPipDbContext))]
-    partial class LearnPipDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261007182324_CatalogContentRights")]
+    partial class CatalogContentRights
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -287,10 +290,6 @@ namespace LearnPip.Data.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
-                    b.Property<string>("QuestionVersionIdsJson")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
                     b.HasKey("Id");
 
                     b.HasIndex("PrivateCatalogId");
@@ -299,42 +298,6 @@ namespace LearnPip.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("CatalogPackageImports");
-                });
-
-            modelBuilder.Entity("LearnPip.Data.Domain.CatalogPackageImportRevision", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<byte[]>("Archive")
-                        .IsRequired()
-                        .HasColumnType("bytea");
-
-                    b.Property<DateTimeOffset>("ArchivedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("OwnerAccountId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("PackageId")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<string>("QuestionIdsJson")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("QuestionVersionIdsJson")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OwnerAccountId");
-
-                    b.ToTable("CatalogPackageImportRevisions");
                 });
 
             modelBuilder.Entity("LearnPip.Data.Domain.EmailLoginCode", b =>
@@ -827,45 +790,6 @@ namespace LearnPip.Data.Migrations
                     b.HasIndex("QuestionVersionId");
 
                     b.ToTable("GroupVersionShares");
-                });
-
-            modelBuilder.Entity("LearnPip.Data.Domain.InstanceCatalogPackage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<byte[]>("Archive")
-                        .IsRequired()
-                        .HasColumnType("bytea");
-
-                    b.Property<string>("ArchiveSha256")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<bool>("Available")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("CatalogVersion")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<DateTimeOffset>("InstalledAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("PackageId")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PackageId", "CatalogVersion")
-                        .IsUnique();
-
-                    b.ToTable("InstanceCatalogPackages");
                 });
 
             modelBuilder.Entity("LearnPip.Data.Domain.LearningContent", b =>
@@ -1955,15 +1879,6 @@ namespace LearnPip.Data.Migrations
                         .WithMany()
                         .HasForeignKey("PrivateCatalogId")
                         .OnDelete(DeleteBehavior.SetNull);
-                });
-
-            modelBuilder.Entity("LearnPip.Data.Domain.CatalogPackageImportRevision", b =>
-                {
-                    b.HasOne("LearnPip.Data.Domain.Account", null)
-                        .WithMany()
-                        .HasForeignKey("OwnerAccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("LearnPip.Data.Domain.EmailLoginCode", b =>

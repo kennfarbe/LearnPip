@@ -3,6 +3,8 @@
 // </copyright>
 
 using System.Security.Cryptography;
+using System.Text.Json;
+using LearnPip.Api.CatalogPackages;
 using LearnPip.Api.Identity;
 using LearnPip.Data;
 using LearnPip.Data.Domain;
@@ -15,12 +17,13 @@ namespace LearnPip.Api.Questions;
 /// Verwaltet Vorschau, Einreichung und Moderation öffentlicher Fragenfassungen.
 /// </summary>
 /// <param name="db">Der Datenbankkontext.</param>
-public sealed class PublicSubmissionService(LearnPipDbContext db)
+/// <param name="configuration">Die ausdrückliche administrative Freigabe.</param>
+public sealed class PublicSubmissionService(LearnPipDbContext db, IConfiguration configuration)
 {
     /// <summary>
     /// Die bei öffentlichen Einreichungen unterstützten Inhaltslizenzen.
     /// </summary>
-    public static readonly string[] Licenses = ["CC BY 4.0", "CC BY-SA 4.0", "CC0 1.0"];
+    public static readonly string[] Licenses = ["CC BY 4.0", "CC BY-SA 4.0", "CC0 1.0", "CC-BY-4.0", "CC-BY-SA-4.0", "CC0-1.0", "DL-DE/BY-2.0", "dl-de/by-2-0"];
 
     /// <summary>
     /// Erstellt eine Veröffentlichungsvorschau mit Bestätigungstoken.
@@ -70,7 +73,9 @@ public sealed class PublicSubmissionService(LearnPipDbContext db)
         var hasImages = version.Prompt.Concat(version.Explanation)
             .Concat(version.Answers.SelectMany(answer => answer.Blocks))
             .Any(block => block.Kind == "image");
-        return new PublicPreview(version, token, hasImages);
+        var report = await CatalogRightsReport.ForVersion(questionId, version, db, cancellationToken);
+        var enabled = configuration.GetValue<bool>("CatalogPackages:CommunityExportEnabled");
+        return new PublicPreview(version, token, hasImages) { RightsReport = report, CommunityEnabled = enabled, CommunityEligible = enabled && report.Count == 0 };
     }
 
     /// <summary>
@@ -89,6 +94,11 @@ public sealed class PublicSubmissionService(LearnPipDbContext db)
         PublicSubmissionInput input,
         CancellationToken cancellationToken)
     {
+        if (!configuration.GetValue<bool>("CatalogPackages:CommunityExportEnabled"))
+        {
+            return "rights_blocked";
+        }
+
         if (input.PreviewToken is not { Length: 43 } ||
             !Licenses.Contains(input.LicenseChoice, StringComparer.Ordinal) ||
             string.IsNullOrWhiteSpace(input.AuthorAttribution) ||
@@ -114,6 +124,19 @@ public sealed class PublicSubmissionService(LearnPipDbContext db)
         if (version.Visibility != "private" || string.IsNullOrWhiteSpace(version.Source))
         {
             return "invalid";
+        }
+
+        var content = (await QuestionEndpoints.LoadVersion(db, version.Id, cancellationToken))!;
+        if ((await CatalogRightsReport.ForVersion(questionId, content, db, cancellationToken)).Count != 0)
+        {
+            return "rights_blocked";
+        }
+
+        var rights = await db.QuestionRights.SingleAsync(item => item.QuestionId == questionId, cancellationToken);
+        var declaredLicense = JsonSerializer.Deserialize<JsonElement>(rights.PayloadJson).GetProperty("license").GetProperty("id").GetString()!;
+        if (CatalogRightsReport.Normalize(declaredLicense) != CatalogRightsReport.Normalize(input.LicenseChoice))
+        {
+            return "rights_blocked";
         }
 
         await db.Accounts.Where(item => item.Id == accountId && item.AgeBand == "unknown")
@@ -164,9 +187,10 @@ public sealed class PublicSubmissionService(LearnPipDbContext db)
             db.PublicSubmissions.Add(submission);
         }
 
-        version.License = input.LicenseChoice;
+        version.License = declaredLicense;
+        rights.ContentSha256 = await CatalogRightsEndpoints.Fingerprint(CatalogRightsEndpoints.VersionContent(content) with { License = declaredLicense }, db, cancellationToken);
         version.AuthorAttribution = input.AuthorAttribution.Trim();
-        submission.LicenseChoice = input.LicenseChoice;
+        submission.LicenseChoice = declaredLicense;
         submission.AuthorAttribution = version.AuthorAttribution;
         submission.RightsConfirmed = true;
         submission.ImageRightsConfirmed = input.ImageRightsConfirmed;
@@ -246,6 +270,12 @@ public sealed class PublicSubmissionService(LearnPipDbContext db)
             version.AuthorAttribution != submission.AuthorAttribution)
         {
             return "conflict";
+        }
+
+        if (input.Decision == "approve" && (!configuration.GetValue<bool>("CatalogPackages:CommunityExportEnabled") ||
+            (await CatalogRightsReport.ForVersion(version.QuestionId, (await QuestionEndpoints.LoadVersion(db, version.Id, cancellationToken))!, db, cancellationToken)).Count != 0))
+        {
+            return "rights_blocked";
         }
 
         var now = DateTimeOffset.UtcNow;

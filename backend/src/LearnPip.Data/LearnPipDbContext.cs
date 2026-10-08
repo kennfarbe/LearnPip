@@ -52,6 +52,15 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
     /// <summary>Holt die Originalpakete privater Katalogimporte.</summary>
     public DbSet<CatalogPackageImport> CatalogPackageImports => this.Set<CatalogPackageImport>();
 
+    /// <summary>Holt die unveränderten historischen privaten Originalpakete.</summary>
+    public DbSet<CatalogPackageImportRevision> CatalogPackageImportRevisions => this.Set<CatalogPackageImportRevision>();
+
+    /// <summary>Holt die optionalen instanzweiten Paketfassungen.</summary>
+    public DbSet<InstanceCatalogPackage> InstanceCatalogPackages => this.Set<InstanceCatalogPackage>();
+
+    /// <summary>Holt die fassungsgebundenen Inhaltsrechte.</summary>
+    public DbSet<QuestionRights> QuestionRights => this.Set<QuestionRights>();
+
     /// <summary>Holt die Datenmenge PrivateCatalogs.</summary>
     public DbSet<PrivateCatalog> PrivateCatalogs => this.Set<PrivateCatalog>();
 
@@ -359,6 +368,31 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
                 .HasForeignKey(x => x.RoleDefinitionId).OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<CatalogPackageImportRevision>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.PackageId).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.QuestionIdsJson).HasColumnType("jsonb").IsRequired();
+            entity.Property(x => x.QuestionVersionIdsJson).HasColumnType("jsonb").IsRequired();
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.OwnerAccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<InstanceCatalogPackage>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.PackageId).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.CatalogVersion).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.ArchiveSha256).HasMaxLength(64).IsRequired();
+            entity.HasIndex(x => new { x.PackageId, x.CatalogVersion }).IsUnique();
+        });
+        modelBuilder.Entity<QuestionRights>(entity =>
+        {
+            entity.HasKey(x => x.QuestionId);
+            entity.Property(x => x.ContentSha256).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.PayloadJson).HasColumnType("jsonb").IsRequired();
+            entity.HasOne<Question>().WithMany().HasForeignKey(x => x.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
         modelBuilder.Entity<CatalogPackageImport>(entity =>
         {
             entity.HasKey(x => x.Id);
@@ -366,6 +400,7 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
             entity.Property(x => x.CatalogVersion).HasMaxLength(128).IsRequired();
             entity.Property(x => x.Fingerprint).HasMaxLength(64).IsRequired();
             entity.Property(x => x.QuestionIdsJson).HasColumnType("jsonb").IsRequired();
+            entity.Property(x => x.QuestionVersionIdsJson).HasColumnType("jsonb").IsRequired();
             entity.HasIndex(x => new { x.OwnerAccountId, x.PackageId }).IsUnique();
             entity.HasOne<Account>().WithMany().HasForeignKey(x => x.OwnerAccountId)
                 .OnDelete(DeleteBehavior.Cascade);

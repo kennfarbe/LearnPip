@@ -21,11 +21,13 @@ internal static class CatalogPackageComparison
     internal static async Task<(Dictionary<string, Guid> Identical, List<string> Conflicts)> Compare(CatalogPackage package, LearnPipDbContext db, Guid owner, CancellationToken ct)
     {
         var imports = await db.CatalogPackageImports.AsNoTracking().Where(item => item.OwnerAccountId == owner)
-            .Select(item => new { item.Id, item.QuestionIdsJson }).ToListAsync(ct);
+            .OrderByDescending(item => item.ImportedAtUtc).Select(item => new { item.Id, item.QuestionIdsJson, item.QuestionVersionIdsJson }).ToListAsync(ct);
+        var history = await db.CatalogPackageImportRevisions.AsNoTracking().Where(item => item.OwnerAccountId == owner)
+            .OrderByDescending(item => item.ArchivedAtUtc).Select(item => new { item.Id, item.QuestionIdsJson, item.QuestionVersionIdsJson }).ToListAsync(ct);
         var sourceIds = package.Questions.Select(question => question.GetProperty("id").GetString()!).ToHashSet(StringComparer.Ordinal);
-        var known = new Dictionary<string, (Guid ImportId, Guid QuestionId)>(StringComparer.Ordinal);
+        var known = new Dictionary<string, (Guid ImportId, Guid QuestionId, string VersionsJson)>(StringComparer.Ordinal);
         var ambiguous = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var import in imports)
+        foreach (var import in imports.Concat(history))
         {
             foreach (var (sourceId, questionId) in JsonSerializer.Deserialize<Dictionary<string, Guid>>(import.QuestionIdsJson)!.Where(pair => sourceIds.Contains(pair.Key)))
             {
@@ -35,7 +37,7 @@ internal static class CatalogPackageComparison
                 }
                 else
                 {
-                    known.TryAdd(sourceId, (import.Id, questionId));
+                    known.TryAdd(sourceId, (import.Id, questionId, import.QuestionVersionIdsJson));
                 }
             }
         }
@@ -59,10 +61,9 @@ internal static class CatalogPackageComparison
                 continue;
             }
 
-            var unedited = await db.Questions.AnyAsync(
-                item => item.Id == origin.QuestionId && item.OwnerAccountId == owner && item.DeletedAtUtc == null &&
-                item.Draft == null && item.Versions.Count == 1 && item.Versions.Any(version => version.VersionNumber == 1),
-                ct);
+            var local = await db.Questions.AsNoTracking().Include(item => item.Draft).Include(item => item.Versions)
+                .SingleOrDefaultAsync(item => item.Id == origin.QuestionId && item.OwnerAccountId == owner, ct);
+            var unedited = local != null && CatalogPackageUpdates.Unedited(local, origin.VersionsJson, sourceId);
             if (ambiguous.Contains(sourceId) || !unedited)
             {
                 conflicts.Add(sourceId);
@@ -71,7 +72,8 @@ internal static class CatalogPackageComparison
 
             if (!originals.TryGetValue(origin.ImportId, out var original))
             {
-                var bytes = await db.CatalogPackageImports.Where(item => item.Id == origin.ImportId && item.OwnerAccountId == owner).Select(item => item.Archive).SingleAsync(ct);
+                var bytes = await db.CatalogPackageImports.Where(item => item.Id == origin.ImportId && item.OwnerAccountId == owner).Select(item => item.Archive).SingleOrDefaultAsync(ct)
+                    ?? await db.CatalogPackageImportRevisions.Where(item => item.Id == origin.ImportId && item.OwnerAccountId == owner).Select(item => item.Archive).SingleAsync(ct);
                 original = CatalogPackageReader.Read(bytes);
                 originals.Add(origin.ImportId, original);
             }

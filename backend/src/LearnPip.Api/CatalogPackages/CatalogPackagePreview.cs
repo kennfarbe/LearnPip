@@ -48,4 +48,11 @@ public sealed record CatalogPackagePreview(
     Guid? CatalogId,
     int NewQuestionCount,
     int IdenticalQuestionCount,
-    int ConflictQuestionCount);
+    int ConflictQuestionCount)
+{
+    /// <summary>Holt einen Wert, der angibt, ob ein bestätigtes Update ohne persönliche Änderungen möglich ist.</summary>
+    public bool CanUpdate { get; init; }
+
+    /// <summary>Holt den ausdrücklich zu bestätigenden bisherigen Paketstand.</summary>
+    public string? PreviousFingerprint { get; init; }
+}
