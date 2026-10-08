@@ -82,6 +82,10 @@ services:
       LearnPip__UpdateQueuePath: /var/lib/learnpip-update/queue
       LearnPip__UpdateStatusPath: /var/lib/learnpip-update/status
       Authentication__PublicOrigin: https://${LEARNPIP_DOMAIN:?Set LEARNPIP_DOMAIN in deploy/.env.production}
+      CatalogPackages__CommunityExportEnabled: ${LEARNPIP_COMMUNITY_EXPORT_ENABLED:-false}
+      CatalogPackages__Sources__0__Title: ${LEARNPIP_CATALOG_SOURCE_TITLE:-}
+      CatalogPackages__Sources__0__Url: ${LEARNPIP_CATALOG_SOURCE_URL:-}
+      CatalogPackages__Sources__0__Sha256: ${LEARNPIP_CATALOG_SOURCE_SHA256:-}
       Mail__Host: ${LEARNPIP_MAIL_HOST:-}
       Mail__Port: ${LEARNPIP_MAIL_PORT:-587}
       Mail__From: ${LEARNPIP_MAIL_FROM:-}
