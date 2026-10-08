@@ -36,6 +36,21 @@ public sealed class CatalogRightsReportTests
         Assert.Equal(blocked, CatalogRightsReport.Inspect([question]).Count != 0);
     }
 
+    /// <summary>Eine tatsächliche Drittquelle darf nicht durch eine Originalbehauptung verdeckt werden.</summary>
+    [Fact]
+    public void ActualSourceCannotBeRelabeledAsOriginal()
+    {
+        var question = JsonSerializer.SerializeToElement(new
+        {
+            id = "synthetic",
+            source_note = "https://de.wikipedia.org/wiki/Synthetic",
+            license = new { id = "CC-BY-4.0", holder = "Testautor", attribution = "Synthetisch" },
+            provenance = new { kind = "original" },
+            media = Array.Empty<object>(),
+        });
+        Assert.Single(CatalogRightsReport.Inspect([question]));
+    }
+
     /// <summary>Eine offene Textlizenz darf ein privat lizenziertes Bild nicht verdecken.</summary>
     [Fact]
     public void MixedMediaAreCheckedIndependently()

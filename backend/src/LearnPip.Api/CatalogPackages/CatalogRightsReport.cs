@@ -58,6 +58,7 @@ public static class CatalogRightsReport
         var question = new JsonObject
         {
             ["id"] = questionId.ToString(),
+            ["source_note"] = version.Source,
             ["license"] = rights["license"]!.DeepClone(),
             ["provenance"] = rights["provenance"]!.DeepClone(),
             ["media"] = new JsonArray(assets.Select(asset =>
@@ -131,6 +132,12 @@ public static class CatalogRightsReport
         if (kind == "original" && provenance.TryGetProperty("source_url", out _))
         {
             issues.Add(label + ": Originalangabe mit Drittquelle widersprüchlich. Herkunft und gemischte Quellen einzeln abgrenzen.");
+        }
+
+        if (content.TryGetProperty("source_note", out var sourceNote) && Uri.TryCreate(sourceNote.GetString(), UriKind.Absolute, out var actualSource) && actualSource.Scheme is "http" or "https" &&
+            (kind == "original" || !provenance.TryGetProperty("source_url", out var declaredSource) || declaredSource.GetString() != actualSource.AbsoluteUri))
+        {
+            issues.Add(label + ": Die gespeicherte Drittquelle benötigt einen passenden Herkunftsnachweis; keine Kennzeichnung als eigenes Original.");
         }
 
         if (provenance.TryGetProperty("source_url", out var source) && Uri.TryCreate(source.GetString(), UriKind.Absolute, out var uri))
