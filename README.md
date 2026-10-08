@@ -74,6 +74,11 @@ Die ursprünglichen Meilensteine beschreiben Entwicklungsschwerpunkte, nicht den
 | M5 – Optionale KI | Konfigurierbare Cloud-/Lokal-/Aus-Betriebsarten und vorhandene KI-Funktionen; standardmäßig deaktiviert. | Betriebs- und vom Anwendungsfall abhängige Transparenz-/Rechtsprüfung (#102), keine pauschale Einsatzfreigabe. |
 | M6 – Ausbau | Responsive/PWA-Oberfläche, Betriebsfunktionen und Admin-Web-Updates in wesentlichen Teilen vorhanden. | Weitere Zugänge, Verteilung von Katalogen und Betriebs-/Sicherheitsnachweise (#95–#107, #96/#97). |
 
+**Private Kataloge:** Name und optionale Beschreibung sind bearbeitbar. Eine Frage
+kann mehreren Katalogen angehören; die Auswahl im Editor, in der Verwaltung und
+beim Lernen berücksichtigt alle Zuordnungen. Das Löschen eines Katalogs erhält
+Fragen und Lernstände. Details: [Eigene Kataloge verwalten](docs/PRIVATE-CATALOGS.md).
+
 **Austausch von Katalogen:** Private ZIP-Importe, selektive Exporte, optionale
 Pakete für die ganze Instanz und bestätigte Updates sind vorhanden. Neue Exporte
 verwenden den stabilen Vertrag 1.0.0; die alten Entwürfe können weiterhin importiert

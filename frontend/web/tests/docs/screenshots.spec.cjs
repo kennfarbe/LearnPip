@@ -26,10 +26,12 @@ test('document the current application with synthetic sample data', async ({ pag
   await page.goto('/questions');
   await page.locator('.draft-list button').first().click();
   await expect(page.getByLabel('Frage', { exact: true })).toHaveValue('Was ergibt 2 + 2?');
+  await page.getByText('Sprache und Katalogzuordnung', { exact: true }).click();
   await capture(page, 'question-editor');
 
   await page.goto('/catalogs');
   await expect(page.getByText('Mathematik', { exact: true })).toBeVisible();
+  await page.getByText('Katalog bearbeiten', { exact: true }).click();
   await capture(page, 'catalogs');
 
   await page.goto('/settings');
