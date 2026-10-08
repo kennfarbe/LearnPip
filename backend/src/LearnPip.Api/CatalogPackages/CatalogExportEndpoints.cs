@@ -433,11 +433,13 @@ public static class CatalogExportEndpoints
 
     private static void PreserveMediaLicenses(JsonElement original, JsonObject adapted, CatalogPackage package, Dictionary<string, byte[]> media)
     {
+        var originalImages = CatalogPackageImporter.PrepareImages(package);
         foreach (var asset in adapted["media"]!.AsArray())
         {
             var bytes = media[asset!["path"]!.GetValue<string>()];
             if (original.GetProperty("media").EnumerateArray().Any(source =>
-                bytes.AsSpan().SequenceEqual(package.Files[source.GetProperty("path").GetString()!]) &&
+                (bytes.AsSpan().SequenceEqual(package.Files[source.GetProperty("path").GetString()!]) ||
+                    bytes.AsSpan().SequenceEqual(originalImages[source.GetProperty("path").GetString()!])) &&
                 asset["license"]!["id"]!.GetValue<string>() != source.GetProperty("license").GetProperty("id").GetString()))
             {
                 throw new InvalidDataException("Unveränderte importierte Bilder müssen ihre ursprüngliche Lizenz behalten. Keine automatische Umlizenzierung.");
