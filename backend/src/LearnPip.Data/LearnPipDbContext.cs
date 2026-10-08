@@ -64,6 +64,9 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
     /// <summary>Holt die Datenmenge PrivateCatalogs.</summary>
     public DbSet<PrivateCatalog> PrivateCatalogs => this.Set<PrivateCatalog>();
 
+    /// <summary>Holt die n:m-Zuordnungen zwischen Fragen und Katalogen.</summary>
+    public DbSet<QuestionCatalogMembership> QuestionCatalogMemberships => this.Set<QuestionCatalogMembership>();
+
     /// <summary>Holt die Datenmenge QuestionDrafts.</summary>
     public DbSet<QuestionDraft> QuestionDrafts => this.Set<QuestionDraft>();
 
@@ -413,9 +416,19 @@ public sealed class LearnPipDbContext(DbContextOptions<LearnPipDbContext> option
         {
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Name).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(2048);
             entity.HasIndex(x => new { x.OwnerAccountId, x.Name }).IsUnique();
             entity.HasOne<Account>().WithMany().HasForeignKey(x => x.OwnerAccountId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<QuestionCatalogMembership>(entity =>
+        {
+            entity.HasKey(x => new { x.CatalogId, x.QuestionId });
+            entity.HasOne(x => x.Catalog).WithMany(x => x.Memberships)
+                .HasForeignKey(x => x.CatalogId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.Question).WithMany(x => x.CatalogMemberships)
+                .HasForeignKey(x => x.QuestionId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<QuestionDraft>(entity =>
