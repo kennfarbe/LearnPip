@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Read a validated LearnPip draft catalog fully offline without extracting files.
+"""Read a validated LearnPip versioned catalog fully offline without extracting files.
 
 The returned objects are in-memory snapshots; this module does not write to a
-database or silently migrate unknown versions. Format 0.1.0 is still a draft.
+database or silently migrate unknown versions. Stable 1.0.0 and retained drafts 0.1.0/0.2.0 are supported.
 """
 from __future__ import annotations
 

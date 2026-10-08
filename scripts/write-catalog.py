@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write a complete draft 0.1.0 catalog snapshot without changing its source.
+"""Write a complete versioned catalog snapshot without changing its source.
 
 No database access, network calls, automatic publication or schema migration.
 """
@@ -52,11 +52,11 @@ def write_catalog(snapshot, destination: str | Path) -> None:
                                      delete=False) as temporary:
         name = Path(temporary.name)
     try:
-        with zipfile.ZipFile(name, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-            archive.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False,
+        with zipfile.ZipFile(name, "w", compression=zipfile.ZIP_STORED) as archive:
+            archive.writestr(zipfile.ZipInfo("manifest.json", (1980, 1, 1, 0, 0, 0)), json.dumps(manifest, ensure_ascii=False,
                                                          separators=(",", ":")).encode("utf-8"))
             for record in manifest["files"]:
-                archive.writestr(record["path"], files[record["path"]])
+                archive.writestr(zipfile.ZipInfo(record["path"], (1980, 1, 1, 0, 0, 0)), files[record["path"]])
         _validator.validate(str(name))
         name.replace(destination)
     finally:

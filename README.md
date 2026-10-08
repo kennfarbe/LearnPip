@@ -74,7 +74,12 @@ Die ursprünglichen Meilensteine beschreiben Entwicklungsschwerpunkte, nicht den
 | M5 – Optionale KI | Konfigurierbare Cloud-/Lokal-/Aus-Betriebsarten und vorhandene KI-Funktionen; standardmäßig deaktiviert. | Betriebs- und vom Anwendungsfall abhängige Transparenz-/Rechtsprüfung (#102), keine pauschale Einsatzfreigabe. |
 | M6 – Ausbau | Responsive/PWA-Oberfläche, Betriebsfunktionen und Admin-Web-Updates in wesentlichen Teilen vorhanden. | Weitere Zugänge, Verteilung von Katalogen und Betriebs-/Sicherheitsnachweise (#95–#107, #96/#97). |
 
-**Bereits erledigte Grundlagen:** Die PRs #91 (Admin-Web-Updates), #122 (selektive CI mit Integration), #123 (Entwurf des Austauschs von Katalogen), #124 (zyklischer Security-Audit), #125 (mit Protokollierung Zugriff zur Moderation), #126 (EU-Nachweismatrix) und #127 (Archivvertrag-Härtung) wurden zusammengeführt. Der Vertrag für den Austausch von Katalogen ist weiter ein **Entwurf 0.1.0**, kein fertiger produktiver Import-/Exportweg. Auch PR #128 (Offline-Reader) wurde inzwischen zusammengeführt. Der Reader ist schreibgeschützt und noch kein produktiver Import in die Anwendung.
+**Katalogaustausch:** Private ZIP-Importe, selektive Exporte, instanzweite optionale
+Pakete und bestätigte Updates sind vorhanden. Neue Exporte verwenden den stabilen
+Vertrag 1.0.0; die alten Entwürfe bleiben importierbar. Archivierte Schemas,
+Golden-Pakete, verlustgeprüfte Offline-Migration und Versions-/Instanztests sichern
+den [öffentlichen Formatvertrag](docs/CATALOG-INTERCHANGE.md). Tatsächliche
+Community-Kataloge und ihre unabhängigen Repository-/Reviewprozesse bleiben gesondert.
 
 Die [offenen GitHub-Issues](https://github.com/kennfarbe/LearnPip/issues) sind die verbindliche Detailübersicht. Ein technischer Zwischenstand ersetzt weder die vollständigen Akzeptanzkriterien noch eine rechtliche oder betriebliche Abnahme.
 

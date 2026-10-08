@@ -87,6 +87,25 @@ public sealed class CatalogPackageReaderTests
         return output.ToArray();
     }
 
+    /// <summary>Prüft jeden unveränderten Archivstand mit dem aktuellen produktiven Reader.</summary>
+    /// <param name="filename">Der dauerhaft archivierte Vertragsbestand.</param>
+    /// <param name="version">Die ausdrücklich unterstützte Formatversion.</param>
+    [Theory]
+    [InlineData("catalog-golden.zip", "0.1.0")]
+    [InlineData("catalog-blocks-golden.zip", "0.2.0")]
+    [InlineData("catalog-stable-golden.zip", "1.0.0")]
+    public void EveryArchivedContractRemainsReadable(string filename, string version)
+    {
+        var bytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", filename));
+        var package = CatalogPackageReader.Read(bytes);
+        Assert.Equal(version, package.Manifest.GetProperty("schema_version").GetString());
+        Assert.Equal(bytes, package.Archive);
+        Assert.Single(CatalogPackageImporter.PrepareImages(package));
+        var question = Assert.Single(package.Questions);
+        Assert.Equal("CC-BY-SA-4.0", question.GetProperty("license").GetProperty("id").GetString());
+        Assert.Equal("CC-BY-4.0", question.GetProperty("media")[0].GetProperty("license").GetProperty("id").GetString());
+    }
+
     /// <summary>Verhindert Teilimporte bei Modellgrenzen und nicht speicherbaren Nullzeichen.</summary>
     /// <param name="kind">Die synthetische Darstellungsgrenze.</param>
     [Theory]

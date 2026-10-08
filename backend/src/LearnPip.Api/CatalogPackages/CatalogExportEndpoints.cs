@@ -306,7 +306,7 @@ public static class CatalogExportEndpoints
                 MediaCount = media.Count,
                 ArchiveBytes = exported.Archive.Length,
                 PreviewSha256 = hash,
-                SchemaVersion = "0.2.0",
+                SchemaVersion = "1.0.0",
                 Topics = exported.Questions.SelectMany(question => question.GetProperty("topics").EnumerateArray().Select(topic => topic.GetString())).Distinct(StringComparer.Ordinal).ToArray(),
                 Licenses = exported.Questions.SelectMany(question => question.GetProperty("media").EnumerateArray().Select(asset => asset.GetProperty("license")).Prepend(question.GetProperty("license")))
                     .DistinctBy(license => license.GetRawText()).ToArray(),

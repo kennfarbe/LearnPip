@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Offline safety and semantic validation of draft LearnPip catalog ZIP files.
+"""Offline safety, archived schema and semantic validation of LearnPip catalog ZIP files.
 
-Draft formats 0.1.0 and 0.2.0. This does not establish publication or usage rights.
+Stable format 1.0.0 and retained drafts 0.1.0/0.2.0; no publication/usage rights proof.
 The immutable JSON schemas are the format specification; this validator also
 checks relationships and ZIP properties which JSON Schema cannot express.
 """
@@ -16,10 +16,15 @@ import re
 import stat
 import sys
 import zipfile
+from pathlib import Path
+import runpy
+
+_SCHEMA = runpy.run_path(str(Path(__file__).with_name("catalog-schema.py")))
+validate_document = _SCHEMA["validate_document"]
 
 FORMAT_ID = "org.learnpip.catalog.zip"
 VERSION = "0.1.0"
-VERSIONS = {"0.1.0", "0.2.0"}
+VERSIONS = {"0.1.0", "0.2.0", "1.0.0"}
 REQUIRED = {"questions.json", "LICENSES.md", "NOTICE", "ATTRIBUTION"}
 FILE_LIMIT = 2000
 TOTAL_LIMIT = 100 * 1024 * 1024
@@ -179,7 +184,7 @@ def validate(filename: str) -> tuple[str, int]:
             questions = questions_root.get("questions")
             require(isinstance(questions, list) and 0 < len(questions) <= QUESTION_LIMIT,
                     "Invalid question count")
-            blocks_format = manifest["schema_version"] == "0.2.0"
+            blocks_format = manifest["schema_version"] != "0.1.0"
             question_ids = set()
             referenced_media = set()
             for question in questions:
@@ -236,6 +241,11 @@ def validate(filename: str) -> tuple[str, int]:
                     check_blocks_question(question)
             require({path for path in declared if path.startswith("media/")} == referenced_media,
                     "Unused or missing media assets")
+            try:
+                validate_document(manifest, manifest["schema_version"], "manifest")
+                validate_document(questions_root, manifest["schema_version"], "questions")
+            except ValueError as error:
+                raise InvalidPackage("Archived JSON schema rejected package: " + str(error)) from error
             return manifest["package_id"], len(questions)
     except (zipfile.BadZipFile, EOFError, RuntimeError) as error:
         raise InvalidPackage("Malformed ZIP archive") from error
@@ -302,8 +312,8 @@ def main() -> int:
     except (OSError, InvalidPackage) as error:
         print("Rejected catalog: " + str(error), file=sys.stderr)
         return 1
-    print(f"Draft catalog {package_id}: {count} questions, integrity verified")
-    print("This check does not verify legal rights or certify a stable import format.")
+    print(f"Catalog {package_id}: {count} questions, schema and integrity verified")
+    print("This check does not verify legal rights or authenticate the publisher.")
     return 0
 
 

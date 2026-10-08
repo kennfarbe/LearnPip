@@ -1,0 +1,5 @@
+{
+  "tests/fixtures/catalog/1.0.0/golden.zip": "0b69291740d25831b02304b889ea0b8289d57911f6b57fc041c33d5f88a53edc",
+  "schemas/catalog/1.0.0/manifest.schema.json": "6fd9b3ef5119334e4110c868a71b860a58f071de8bc80bf550d47287b9d219e3",
+  "schemas/catalog/1.0.0/questions.schema.json": "a796bee9851a64c03fe6971524eb5e020cc7fb79af92e4943aba7017ff05c930"
+}

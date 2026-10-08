@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Select questions from a validated offline draft catalog without publication.
+"""Select questions from a validated offline versioned catalog without publication.
 
 This is a package-level helper, not an API endpoint or authorization boundary.
 The caller must separately enforce ownership, sharing rights and export consent.

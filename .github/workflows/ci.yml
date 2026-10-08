@@ -69,8 +69,15 @@ jobs:
       - name: Test Dependabot screenshot publication boundaries
         run: python3 -m unittest discover -s tests/ops -p 'test_dependabot_screenshots.py' -v
 
+      - name: Install independent catalog schema oracle
+        run: |
+          python3 -m venv "$RUNNER_TEMP/catalog-oracle"
+          "$RUNNER_TEMP/catalog-oracle/bin/python" -m pip install -r tests/ops/catalog-contract-requirements.txt
+
       - name: Test offline catalog interchange contract
-        run: python3 -m unittest discover -s tests/ops -p 'test_catalog_contract.py' -v
+        run: |
+          python3 -m unittest discover -s tests/ops -p 'test_catalog_contract.py' -v
+          "$RUNNER_TEMP/catalog-oracle/bin/python" -m unittest discover -s tests/ops -p 'test_catalog_versions.py' -v
 
       - name: Exercise synthetic incident escalation and reporting deadlines
         run: node scripts/incident-exercise.mjs
@@ -464,10 +471,11 @@ jobs:
     needs: [changes, backend, web]
     if: always() && needs.changes.result == 'success' && needs.changes.outputs.integration == 'true' && (needs.backend.result == 'success' || needs.backend.result == 'skipped') && (needs.web.result == 'success' || needs.web.result == 'skipped')
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          fetch-depth: 0
           persist-credentials: false
       - name: Verify integrated Docker stack
         run: bash tests/ops/integration-smoke.sh
