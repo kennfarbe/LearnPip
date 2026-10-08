@@ -73,12 +73,14 @@ async function api(page, options = {}) {
       data = { totalContents: 2, masteredContents: 1, oftenForMeCount: 0, contents: [] };
     else if (/\/catalogs\/?$/.test(path)) {
       if (method === 'POST')
-        catalogs.push({ id: 'catalog-2', name: request.postDataJSON().name, questionCount: 0 });
+        catalogs.push({ id: 'catalog-2', name: request.postDataJSON().name, description: request.postDataJSON().description, questionCount: 0 });
       data = catalogs;
+    } else if (path.endsWith('/catalogs/questions')) {
+      data = drafts.map(item => ({ id: item.questionId, prompt: item.content.prompt[0].text, catalogId: item.catalogId, catalogIds: item.catalogIds }));
     } else if (path.includes('/catalogs/')) {
       const id = path.split('/').at(-1);
       if (method === 'PUT')
-        catalogs.find((item) => item.id === id).name = request.postDataJSON().name;
+        Object.assign(catalogs.find((item) => item.id === id), request.postDataJSON());
       if (method === 'DELETE') catalogs = catalogs.filter((item) => item.id !== id);
     } else if (path.endsWith('/questions/drafts')) {
       if (method === 'POST') {
@@ -127,4 +129,4 @@ async function api(page, options = {}) {
   return options;
 }
 
-module.exports = { api };
+module.exports = { api, draft };

@@ -21,6 +21,7 @@ type DraftContent = {
 type Draft = {
   questionId: string;
   catalogId: string | null;
+  catalogIds?: string[];
   latestVersion: number;
   content: DraftContent;
 };
@@ -136,20 +137,28 @@ type SubmissionPreview = {
             </div>
             <details class="editor-disclosure">
               <summary>{{ uiLanguage.t('Sprache und Katalogzuordnung') }}</summary>
-              <div class="two-column">
+              <div class="two-column catalog-selection">
                 <label
                   >{{ uiLanguage.t('Sprache')
                   }}<input [(ngModel)]="language" maxlength="35" placeholder="de"
                 /></label>
-                <label
-                  >{{ uiLanguage.t('Katalog')
-                  }}<select [(ngModel)]="catalogId">
-                    <option value="">{{ uiLanguage.t('Ohne Katalog') }}</option>
-                    @for (catalog of catalogs(); track catalog.id) {
-                      <option [value]="catalog.id">{{ catalog.name }}</option>
-                    }
-                  </select>
-                </label>
+                <fieldset>
+                  <legend>{{ uiLanguage.t('Kataloge') }}</legend>
+                  <p>
+                    {{
+                      uiLanguage.t('Mehrere Kataloge möglich. Keine Auswahl bedeutet ohne Katalog.')
+                    }}
+                  </p>
+                  @for (catalog of catalogs(); track catalog.id) {
+                    <label class="choice">
+                      <input
+                        type="checkbox"
+                        [checked]="catalogIds.includes(catalog.id)"
+                        (change)="toggleCatalog(catalog.id)"
+                      />{{ catalog.name }}
+                    </label>
+                  }
+                </fieldset>
               </div>
             </details>
             <label
@@ -505,7 +514,7 @@ export class QuestionEditor implements OnInit, OnDestroy {
   search = '';
   filterStatus = 'all';
   filterCatalog = 'all';
-  catalogId = '';
+  catalogIds: string[] = [];
   publicLicense = 'CC BY-SA 4.0';
   authorAttribution = '';
   ageDeclaration = '';
@@ -546,6 +555,16 @@ export class QuestionEditor implements OnInit, OnDestroy {
     });
   };
 
+  memberships(draft: Draft): string[] {
+    return draft.catalogIds ?? (draft.catalogId ? [draft.catalogId] : []);
+  }
+
+  toggleCatalog(id: string): void {
+    this.catalogIds = this.catalogIds.includes(id)
+      ? this.catalogIds.filter((item) => item !== id)
+      : [...this.catalogIds, id];
+  }
+
   activeCatalog(): Catalog | undefined {
     return this.catalogs().find((item) => item.id === this.filterCatalog);
   }
@@ -563,7 +582,9 @@ export class QuestionEditor implements OnInit, OnDestroy {
     return this.drafts().filter((item) => {
       const inCatalog =
         this.filterCatalog === 'all' ||
-        (this.filterCatalog === 'none' ? !item.catalogId : item.catalogId === this.filterCatalog);
+        (this.filterCatalog === 'none'
+          ? this.memberships(item).length === 0
+          : this.memberships(item).includes(this.filterCatalog));
       const matchesStatus =
         this.filterStatus === 'all' ||
         (this.filterStatus === 'draft' ? !item.latestVersion : item.latestVersion > 0);
@@ -575,7 +596,7 @@ export class QuestionEditor implements OnInit, OnDestroy {
   }
 
   private draftState(): string {
-    return JSON.stringify({ content: this.content(), catalogId: this.catalogId });
+    return JSON.stringify({ content: this.content(), catalogIds: this.catalogIds });
   }
 
   private isDirty(): boolean {
@@ -631,7 +652,7 @@ export class QuestionEditor implements OnInit, OnDestroy {
     this.visibility.set('private');
     this.submissionPreview.set(null);
     this.submissionStatus.set('');
-    this.catalogId = this.activeCatalog()?.id ?? '';
+    this.catalogIds = this.activeCatalog() ? [this.activeCatalog()!.id] : [];
     this.subject = '';
     this.topic = '';
     this.language = this.uiLanguage.current();
@@ -659,7 +680,7 @@ export class QuestionEditor implements OnInit, OnDestroy {
     this.submissionPreview.set(null);
     this.submissionStatus.set('');
     if (draft.latestVersion) void this.loadVisibility(draft.questionId, draft.latestVersion);
-    this.catalogId = draft.catalogId ?? '';
+    this.catalogIds = this.memberships(draft);
     this.promptImageAlt = '';
     const content = draft.content;
     this.subject = content.subject ?? '';
@@ -786,7 +807,11 @@ export class QuestionEditor implements OnInit, OnDestroy {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: this.content(), catalogId: this.catalogId || null }),
+        body: JSON.stringify({
+          content: this.content(),
+          catalogIds: this.catalogIds,
+          catalogId: null,
+        }),
       });
       if (!response.ok) {
         this.status.set('Variante konnte nicht angelegt werden.');
@@ -819,7 +844,11 @@ export class QuestionEditor implements OnInit, OnDestroy {
           method: id ? 'PUT' : 'POST',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: this.content(), catalogId: this.catalogId || null }),
+          body: JSON.stringify({
+            content: this.content(),
+            catalogIds: this.catalogIds,
+            catalogId: null,
+          }),
         },
       );
       if (!response.ok) {
