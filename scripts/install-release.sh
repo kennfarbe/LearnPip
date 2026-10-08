@@ -6,7 +6,7 @@ umask 077
 export PATH="${PATH:-/usr/local/bin:/usr/bin:/bin}:/usr/local/sbin:/usr/sbin:/sbin"
 
 usage() {
-  echo 'Usage: install-release.sh [prepare|install|update] [--version latest|vX.Y.Z] [--domain HOST] [--internal] [--rootless-standard-ports] [--directory PATH] [--yes] [--admin-user NAME] [--admin-password-file PATH] [--catalog-package ZIP]'
+  echo 'Usage: install-release.sh [prepare|install|update] [--version latest|vX.Y.Z] [--domain HOST] [--internal] [--rootless-standard-ports] [--directory PATH] [--yes] [--admin-user NAME] [--admin-password-file PATH] [--catalog-package ZIP] [--catalog-offer ZIP]'
   echo 'Default: prepare only. Docker/Compose must already be installed for install/update.'
 }
 die() { echo "Error: $*" >&2; exit 1; }
@@ -22,6 +22,7 @@ admin_user=admin
 admin_password_file=''
 admin_options=false
 catalog_packages=()
+catalog_offers=()
 if [[ ${1:-} =~ ^(prepare|install|update)$ ]]; then action=$1; shift; fi
 while (($#)); do
   case "$1" in
@@ -35,10 +36,14 @@ while (($#)); do
         --admin-password-file) admin_password_file=$2; admin_options=true ;;
       esac
       shift 2 ;;
-    --catalog-package)
-      (($# >= 2)) || die 'Missing value for --catalog-package'
+    --catalog-package|--catalog-offer)
+      (($# >= 2)) || die "Missing value for $1"
       [[ -f $2 && ! -L $2 ]] || die 'Catalog package must be a regular local ZIP file.'
-      catalog_packages+=("$(realpath -e "$2")")
+      if [[ $1 == --catalog-offer ]]; then
+        catalog_offers+=("$(realpath -e "$2")")
+      else
+        catalog_packages+=("$(realpath -e "$2")")
+      fi
       shift 2 ;;
     --internal) internal=true; shift ;;
     --rootless-standard-ports) rootless_standard_ports=true; shift ;;
@@ -47,7 +52,7 @@ while (($#)); do
     *) usage; die "Unknown argument: $1" ;;
   esac
 done
-[[ $action == install || ${#catalog_packages[@]} == 0 ]] || die 'Optional setup packages are only valid with install; use Administration after installation.'
+[[ $action == install || ( ${#catalog_packages[@]} == 0 && ${#catalog_offers[@]} == 0 ) ]] || die 'Optional setup packages are only valid with install; use Administration after installation.'
 [[ $action == install || $admin_options == false ]] || die 'Admin-Zugangsdaten sind nur bei install zulässig; Updates erhalten Konten und Rollen.'
 [[ $admin_user =~ ^[a-zA-Z0-9_.-]{1,64}$ ]] || die 'Benutzername: 1–64 Buchstaben, Ziffern, Punkt, Unterstrich oder Bindestrich.'
 ! command -v pveversion >/dev/null || die 'Do not run this on the Proxmox host. Use a Debian VM.'
@@ -347,7 +352,22 @@ ADMINPY
   elif (( bootstrap_status != 10 )); then
     die 'Administrator-Einrichtung fehlgeschlagen; Installation nicht abgeschlossen.'
   fi
+  for catalog_offer in "${catalog_offers[@]}"; do
+    "${compose[@]}" --profile ops run --rm -T initialize-admin --preview-instance-package < "$catalog_offer"
+    package_answer=''
+    if [[ $confirmed == false ]]; then
+      read -r -p 'Optionales Paket ist abgewählt. Lizenztexte geprüft; dieses Paket auswählen? [yes/N]: ' package_answer
+    fi
+    if [[ $package_answer == yes ]]; then
+      catalog_packages+=("$catalog_offer")
+    else
+      echo 'Optionales Paket bleibt abgewählt; kein Import.'
+    fi
+  done
+  package_index=0
   for catalog_package in "${catalog_packages[@]}"; do
+    package_index=$((package_index + 1))
+    echo "Optionales Paket $package_index/${#catalog_packages[@]}: prüfen und bereitstellen."
     "${compose[@]}" --profile ops run --rm -T initialize-admin --preview-instance-package < "$catalog_package"
     if [[ $confirmed == false ]]; then
       read -r -p 'Lizenz- und Weitergaberechte geprüft; dieses Paket für Lernende bereitstellen? Type yes: ' package_answer

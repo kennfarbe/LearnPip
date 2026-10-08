@@ -4,6 +4,7 @@
 
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 using LearnPip.Data;
 
 namespace LearnPip.Api.CatalogPackages;
@@ -37,6 +38,19 @@ public static class InstanceCatalogSetup
         if (previewOnly)
         {
             Console.WriteLine(package.Manifest.GetRawText());
+            Console.WriteLine(JsonSerializer.Serialize(new
+            {
+                Fragen = package.Questions.Count,
+                ArchivBytes = package.Archive.Length,
+                SpeicherbedarfBytes = package.Files.Values.Sum(file => (long)file.Length),
+                Zielgruppen = package.Questions.Where(question => question.TryGetProperty("age_band", out _)).Select(question => question.GetProperty("age_band").GetString()).Distinct(StringComparer.Ordinal),
+                Einzelnachweise = package.Questions.Select(question => new
+                {
+                    Lizenz = question.GetProperty("license"),
+                    Herkunft = question.GetProperty("provenance"),
+                    Medien = question.GetProperty("media"),
+                }),
+            }));
             foreach (var notice in package.Files.Where(file => file.Key is "LICENSES.md" or "NOTICE" or "ATTRIBUTION"))
             {
                 Console.WriteLine(notice.Key);

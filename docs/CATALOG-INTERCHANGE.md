@@ -241,7 +241,12 @@ Neue Importe dürfen einen eigenen bestehenden privaten Zielkatalog verwenden.
 `./scripts/install-release.sh install --catalog-package /absoluter/pfad/paket.zip`
 prüft das optionale lokale Paket beim erstmaligen Setup und zeigt die Original-
 Lizenztexte vor gesonderter Bestätigung. Die Option ist wiederholbar. Ohne diese
-Option funktioniert Installation unverändert. `--yes` bestätigt auch ausdrücklich
+Option funktioniert Installation unverändert. Mit wiederholbarem
+`--catalog-offer /absoluter/pfad/paket.zip` werden verfügbare lokale Pakete samt
+Metadaten, Einzelquellen und Lizenztexten angezeigt und bleiben zunächst abgewählt.
+Nur `yes` wählt das jeweilige Paket aus; mit `--yes` bleiben Angebote abgewählt.
+Mehrere gewählte Dateien werden einzeln geprüft und mit Fortschritt bereitgestellt.
+`--yes` bestätigt auch ausdrücklich
 angegebene Pakete; Dateien zuvor prüfen. Spätere Nachinstallation und Updates
 laufen über Administration. Pakete sind externe ZIP-Artefakte: keine Repo-,
 GitHub-, Cloudkonto- oder Internetpflicht und keine Inhalte im App-Image.
