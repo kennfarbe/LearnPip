@@ -13,7 +13,7 @@ with tempfile.TemporaryDirectory(prefix='learnpip-installer-test-') as temporary
     work = Path(temporary)
     fixture = work / 'release.tar.gz'
     with tarfile.open(fixture, 'w:gz') as archive:
-        for name in ['deploy/compose.prod.yaml', 'deploy/compose.rootless.yaml', 'deploy/compose.internal.yaml', 'deploy/Caddyfile.internal', 'deploy/.env.production.example', 'scripts/prod-init.sh']:
+        for name in ['deploy/compose.prod.yaml', 'deploy/compose.rootless.yaml', 'deploy/compose.internal.yaml', 'deploy/Caddyfile.internal', 'deploy/.env.production.example', 'scripts/prod-init.sh', 'scripts/setup-admin.sh', 'scripts/setup-admin.py']:
             archive.add(repo / name, arcname='LearnPip-1.0.0/' + name)
         data = b'#!/bin/bash\necho backup >> "$MOCK_LOG"\n'
         entry = tarfile.TarInfo('LearnPip-1.0.0/scripts/backup-prod.sh')
@@ -98,6 +98,9 @@ if [[ "$*" == *'run --rm migrate'* && "${MOCK_FAIL_MIGRATE:-}" == 1 ]]; then exi
         assert secret in init_script
 
     run('prepare')
+    setup = target / 'releases/v1.0.0/scripts/setup-admin.sh'
+    assert setup.is_file() and os.access(setup, os.X_OK), 'Admin-Skript fehlt im Release oder ist nicht ausführbar.'
+    assert (setup.parent / 'setup-admin.py').is_file(), 'Admin-Helfer fehlt im Release.'
     assert not (target / 'current').exists()
     assert not log.exists(), 'prepare must not invoke Docker'
     password = (target / 'shared/secrets/postgres_password').read_bytes()

@@ -50,7 +50,8 @@ def classify(paths: list[str], force_all: bool = False) -> dict[str, bool]:
             flags["installer"] = True
             flags["restore"] = True
             flags["integration"] = True
-        elif path == "scripts/install-release.sh" or path == "tests/ops/install-release-smoke.py":
+        elif path in {"scripts/install-release.sh", "tests/ops/install-release-smoke.py",
+                      "scripts/setup-admin.sh", "scripts/setup-admin.py", "tests/ops/test_setup_admin.py"}:
             flags["installer"] = True
         elif path in {"scripts/backup-prod.sh", "scripts/restore-test-prod.sh",
                       "tests/ops/restore-smoke.sh"}:

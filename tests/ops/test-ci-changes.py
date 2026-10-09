@@ -46,6 +46,11 @@ class ChangeClassifierTests(unittest.TestCase):
     def test_installer(self):
         self.check(["scripts/install-release.sh"], installer=True, release=True)
 
+    def test_admin_setup_uses_installer_checks(self):
+        for path in ("scripts/setup-admin.sh", "scripts/setup-admin.py", "tests/ops/test_setup_admin.py"):
+            with self.subTest(path=path):
+                self.check([path], installer=True, release=True)
+
     def test_restore(self):
         self.check(["tests/ops/restore-smoke.sh"], restore=True, release=True)
 

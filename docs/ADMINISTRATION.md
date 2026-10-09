@@ -18,6 +18,48 @@ Einrichtung, Bootstrap-Marker, Rolle und Audit werden gemeinsam unter PostgreSQL
 
 ### Lokale Wiederherstellung und bestehende Installationen
 
+Eine bestehende Installation ohne Administrator nach abgeschlossener Migration
+direkt auf dem Docker-Host einrichten:
+
+```sh
+cd ~/learnpip/current
+./scripts/setup-admin.sh
+```
+
+Das ausführbare Skript wird mit dem Release ausgeliefert. Bei einem abweichenden
+Installationspfad dessen `current`-Verzeichnis verwenden. Bash, Python 3 und
+Docker Compose müssen verfügbar sein; derselbe Benutzer und Docker-Kontext wie
+beim bestehenden Deployment genügen, auch bei Rootless Docker ohne `sudo`.
+Es verwendet die vorhandene `deploy/.env.production`, die Compose-Konfiguration
+einschließlich LAN-/Rootless-Modus und die bestehenden Secrets. Der gleiche
+Compose-Projektname muss gelten; eine eigene Einstellung über
+`COMPOSE_PROJECT_NAME` auch beim Aufruf beibehalten. Ohne bestehende Datenbank
+im Projekt wird die Einrichtung abgelehnt. Das Skript startet keine Datenbank,
+führt keine Migration aus und legt kein zweites Deployment an.
+
+Der Benutzername hat die Vorgabe `admin`; ungültige Namen werden erneut abgefragt.
+Das Passwort wird am Terminal verdeckt eingegeben und ein zweites Mal bestätigt.
+Ungültige Passwörter oder abweichende Bestätigung führen zur erneuten Eingabe
+im selben Aufruf. Es gelten 12–128 UTF-16-Codeeinheiten wie im Backend, nicht
+ausschließlich Leerraum, keine Nullzeichen oder Zeilenumbrüche. Ein Zeichen
+außerhalb der Unicode-Basisebene, etwa ein Emoji, zählt dabei als zwei Einheiten.
+Leerzeichen im Passwort bleiben erhalten; es gibt keine zusätzlichen
+Zeichenklassen und kein automatisches Zufallspasswort in diesem Skript.
+
+Passwörter werden ausschließlich über stdin an `initialize-admin` übertragen,
+ohne Passwortdatei, Prozessargument oder exportierte Umgebungsvariable.
+Container-Ausgaben werden nicht durchgereicht. Der Backend-Rückgabecode `10`
+wird als „Administrator bereits eingerichtet; unverändert“ angezeigt und ist
+ein erfolgreicher Aufruf ohne Änderung. Andere Docker-/Backendfehler, EOF oder
+Abbruch melden keinen Erfolg und führen zu keiner weiteren Eingabeschleife.
+Bei Abbruch während eines bereits laufenden Ops-Aufrufs den tatsächlichen
+Administratorstatus prüfen; eine abgeschlossene Datenbanktransaktion kann
+nicht durch den Abbruch rückgängig gemacht werden.
+
+Danach unter **Einstellungen > Administrator-Anmeldung** anmelden. Vorhandene
+Konten und Administratorzugänge werden durch das Skript nicht überschrieben;
+ein Passwort-Reset ist weiterhin eine getrennte lokale Aktion:
+
 Bei vergessenem Passwort nur auf dem vertrauenswürdigen Host mit Datenbankzugang arbeiten. In einer geschützten Datei zwei Zeilen bereitstellen: bestehender Benutzername und neues Passwort. Dann im aktuellen Release-Verzeichnis mit denselben Compose-Dateien wie die Installation ausführen:
 
 ```sh
@@ -27,7 +69,7 @@ docker compose --env-file deploy/.env.production -f deploy/compose.prod.yaml \
 
 Bei Rootless-/LAN-Betrieb die zugehörigen `-f deploy/compose.rootless.yaml` und `-f deploy/compose.internal.yaml` vor `--profile` ergänzen. Der lokale Reset verändert keine Rollen, widerruft alle Sitzungen und wird ohne Passwortwerte auditiert. Passwortdatei anschließend entfernen. Host-/Datenbankzugang ist der Identitätsnachweis; dieser Weg darf niemals öffentlich exponiert werden.
 
-Eine ältere Installation ohne Administrator kann nach Migration denselben Ops-Container `initialize-admin` mit zwei geschützten Eingabezeilen verwenden. Ein schon verwendeter Bootstrap bleibt gesperrt. Bereits bestehende Administratoren behalten ihren bisherigen Anmeldeweg; es wird ihnen beim Update kein Passwort aufgezwungen.
+Ein schon verwendeter Bootstrap bleibt gesperrt. Bereits bestehende Administratoren behalten ihren bisherigen Anmeldeweg; es wird ihnen beim Update kein Passwort aufgezwungen.
 
 Der bisherige lokale Weg für ein bereits vorhandenes Konto bleibt verfügbar:
 

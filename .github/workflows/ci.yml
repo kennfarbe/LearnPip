@@ -464,6 +464,8 @@ jobs:
       - name: Test installer without network or real Docker
         run: |
           bash -n scripts/install-release.sh
+          bash -n scripts/setup-admin.sh
+          python3 -m unittest discover -s tests/ops -p 'test_setup_admin.py' -v
           sudo python3 tests/ops/install-release-smoke.py
 
   integration-smoke:

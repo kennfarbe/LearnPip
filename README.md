@@ -67,7 +67,7 @@ Die ursprünglichen Meilensteine beschreiben Entwicklungsschwerpunkte, nicht den
 | Phase | Technischer Stand am 3. Oktober 2026 | Was noch offen ist |
 | --- | --- | --- |
 | M0 – Projektregeln | AGPL-Lizenzgrenzen, Beitrags- und Sicherheitsdokumentation vorhanden; CLA-Entwurf erstellt. | Juristische Prüfung und wirksamer CLA-Annahme-/Prüfprozess (#3), weitere für verschiedene Betreiber nötige EU-Nachweise (#93–#103). |
-| M1 – Technisches Fundament | API, Datenbank, bestehende Anmeldewege, Container, CI und Release-/Installationsweg vorhanden. | Vereinfachte Administrator-Ersteinrichtung und zusätzliche Identitätswege (#94–#107). |
+| M1 – Technisches Fundament | API, Datenbank, bestehende Anmeldewege, Container, CI, Release-/Installationsweg und direkte Administrator-Ersteinrichtung vorhanden. | Zusätzliche Identitätswege (#104–#107). |
 | M2 – Nutzbares MVP | Private Text-/Bildfragen, Lerneinheiten, Antworten, Erklärungen und Fortschritt implementiert. | Weiterentwicklung des portablen Imports von Katalogen und -exports (#108, #110, #115, #118). |
 | M3 – Zusammenarbeit | Gruppen, öffentliche Einreichung und Wege zur Moderation vorhanden; gesonderter mit Protokollierung Zugriff für Moderatoren ergänzt. | Vollständige nach Rollen getrennte Frageaktionen und konfigurierbare Rechte (#119/#120), Community-Freigabe (#117). |
 | M4 – Prüfungsvorbereitung | Lernziele, Prüfungsübungen und Simulationen technisch vorhanden. | Optionale unabhängige Lernpakete und fachspezifische Amateurfunkprüfung N/E/A (#109–#114). |
@@ -78,6 +78,12 @@ Die ursprünglichen Meilensteine beschreiben Entwicklungsschwerpunkte, nicht den
 abgelaufene Administrator-Anmeldungen, Verbindungsfehler und Zeitüberschreitungen.
 Die Versionsquelle und die erneute Anmeldung sind unter
 [Admin-Web-Updates](docs/admin-web-updates.md#manuell-nach-neuen-versionen-suchen) beschrieben.
+
+**Administrator einrichten:** In einer bestehenden Installation ohne Administrator
+`./scripts/setup-admin.sh` im aktuellen Release aufrufen. Benutzername und Passwort
+werden interaktiv geprüft; das Passwort wird verdeckt wiederholt. Bestehende
+Zugänge bleiben unverändert.
+[Anleitung](docs/ADMINISTRATION.md#lokale-wiederherstellung-und-bestehende-installationen).
 
 **Private Kataloge:** Name und optionale Beschreibung sind bearbeitbar. Eine Frage
 kann mehreren Katalogen angehören; die Auswahl im Editor, in der Verwaltung und
