@@ -111,10 +111,10 @@ public static class MediaEndpoints
             cancellationToken);
         var bytesUsed = await db.MediaAssets.Where(item => item.OwnerAccountId == accountId &&
                 item.DeletedAtUtc == null).SumAsync(item => (long?)item.ByteLength, cancellationToken) ?? 0;
-        if (count >= 100 || bytesUsed + asset.ByteLength > 100L * 1024 * 1024)
+        if (!PrivateImageQuota.Fits(count + 1, bytesUsed + asset.ByteLength))
         {
             return Results.Problem(
-                "Private image quota reached (100 images or 100 MiB).",
+                "Private image quota reached (2000 images or 100 MiB).",
                 statusCode: StatusCodes.Status413PayloadTooLarge);
         }
 

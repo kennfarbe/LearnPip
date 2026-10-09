@@ -81,7 +81,7 @@ test('service worker precaches actual bundles and leaves API/private media alone
     },
     fetch: async (url) =>
       url.endsWith('shell-assets.json')
-        ? new Response(JSON.stringify(['chunk-workspaces.js']))
+        ? new Response(JSON.stringify(['chunk-workspaces.js', 'media/KaTeX_Main-Regular-ABC123.woff2']))
         : new Response(
             '<script type="module" src="main-123.js"></script><link rel="stylesheet" href="styles-123.css">',
           ),
@@ -94,6 +94,7 @@ test('service worker precaches actual bundles and leaves API/private media alone
   assert(added.includes('https://learnpip.test/styles-123.css'));
   assert(added.includes('https://learnpip.test/theme-init.js'));
   assert(added.includes('https://learnpip.test/chunk-workspaces.js'));
+  assert(added.includes('https://learnpip.test/media/KaTeX_Main-Regular-ABC123.woff2'));
   assert.equal(added.length, new Set(added).size);
   for (const [url, destination] of [
     ['/api/questions', ''],

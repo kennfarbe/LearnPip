@@ -34,7 +34,7 @@ Die konkrete Lösch-/Restorekontrolle ist vor organisatorischem Betrieb
 nachzuweisen; siehe [Betriebsnachweis](privacy/EU-OPERATING-RECORD.md).
 
 Für Missbrauchsschutz gelten bestehende Größen- und Bildtypgrenzen plus
-höchstens 100 aktive private Bilder bzw. 100 MiB pro Konto. Ein DB-Lock schützt
+höchstens 2000 aktive private Bilder bzw. 100 MiB pro Konto. Ein DB-Lock schützt
 bei parallelen Uploads vor Überschreiten. Neue Uploads, Frageerstellung und
 Kommentare sind zusätzlich mit 30 Aktionen je Konto pro zehn Minuten limitiert;
 Anmelde- und E-Mail-Codes bleiben über das eigene IP-Zeitfenster begrenzt und

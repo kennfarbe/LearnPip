@@ -6,6 +6,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using LearnPip.Api.Media;
 using LearnPip.Api.Security;
 using LearnPip.Data;
 using LearnPip.Data.Domain;
@@ -214,7 +215,7 @@ public static class CatalogPackageEndpoints
                 var storedHistory = await db.CatalogPackageImportRevisions.Where(item => item.OwnerAccountId == owner).SumAsync(item => (long)item.Archive.Length, ct);
                 var imageSizes = await db.MediaAssets.Where(item => item.OwnerAccountId == owner && item.DeletedAtUtc == null).Select(item => item.ByteLength).ToListAsync(ct);
                 var incoming = package.Questions.SelectMany(question => question.GetProperty("media").EnumerateArray()).Select(asset => images[asset.GetProperty("path").GetString()!].LongLength).ToArray();
-                if (storedArchives + storedHistory + package.Archive.Length > 100L * 1024 * 1024 || imageSizes.Count + incoming.Length > 100 || imageSizes.Sum() + incoming.Sum() > 100L * 1024 * 1024)
+                if (storedArchives + storedHistory + package.Archive.Length > 100L * 1024 * 1024 || !PrivateImageQuota.Fits(imageSizes.Count + incoming.Length, imageSizes.Sum() + incoming.Sum()))
                 {
                     return Results.Problem("Updatekontingent erreicht. Historische Originalpakete und Bilder werden für den Erhalt von Nachweisen und Lernständen mitgerechnet.", statusCode: 413);
                 }
@@ -265,9 +266,9 @@ public static class CatalogPackageEndpoints
             var addedImages = package.Questions.Where(question => !comparison.Identical.ContainsKey(question.GetProperty("id").GetString()!)).SelectMany(question => question.GetProperty("media").EnumerateArray())
                 .Select(asset => images[asset.GetProperty("path").GetString()!].LongLength).ToArray();
             if (stored.Count >= 20 || stored.Sum(size => (long)size) + historyBytes + package.Archive.Length > 100L * 1024 * 1024 ||
-                media.Count + addedImages.Length > 100 || media.Sum() + addedImages.Sum() > 100L * 1024 * 1024)
+                !PrivateImageQuota.Fits(media.Count + addedImages.Length, media.Sum() + addedImages.Sum()))
             {
-                return Results.Problem("Importkontingent erreicht: maximal 20 Originalpakete/100 MiB und 100 Bilder/100 MiB pro Konto. Kein Teilimport.", statusCode: 413);
+                return Results.Problem("Importkontingent erreicht: maximal 20 Originalpakete/100 MiB und 2000 Bilder/100 MiB pro Konto. Kein Teilimport.", statusCode: 413);
             }
 
             PrivateCatalog? destination = null;

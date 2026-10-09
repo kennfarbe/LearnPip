@@ -1,3 +1,4 @@
+import { FormulaText } from './formula-text';
 import { Component, inject, input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LanguageService } from './language';
@@ -73,7 +74,7 @@ const sessionKey = 'learnpip-learning-session';
 
 @Component({
   selector: 'app-learning-session',
-  imports: [FormsModule],
+  imports: [FormulaText, FormsModule],
   template: `
     <section class="learning" aria-labelledby="learning-title">
       <h2 id="learning-title">
@@ -180,7 +181,7 @@ const sessionKey = 'learnpip-learning-session';
                   <div class="blocks">
                     @for (block of result.explanation; track $index) {
                       @if (block.kind === 'text') {
-                        <p>{{ block.text }}</p>
+                        <p><app-formula-text [text]="block.text ?? ''" /></p>
                       }
                       @if (block.kind === 'image' && block.mediaId) {
                         <img [src]="imageUrl(block.mediaId)" [alt]="block.altText ?? ''" />
@@ -216,7 +217,7 @@ const sessionKey = 'learnpip-learning-session';
               <div class="blocks">
                 @for (block of question.prompt; track $index) {
                   @if (block.kind === 'text') {
-                    <p>{{ block.text }}</p>
+                    <p><app-formula-text [text]="block.text ?? ''" /></p>
                   }
                   @if (block.kind === 'image' && block.mediaId) {
                     <img [src]="imageUrl(block.mediaId)" [alt]="block.altText ?? ''" />
@@ -268,7 +269,7 @@ const sessionKey = 'learnpip-learning-session';
                     <span class="blocks">
                       @for (block of option.blocks; track $index) {
                         @if (block.kind === 'text') {
-                          <span>{{ block.text }}</span>
+                          <span><app-formula-text [text]="block.text ?? ''" /></span>
                         }
                         @if (block.kind === 'image' && block.mediaId) {
                           <img [src]="imageUrl(block.mediaId)" [alt]="block.altText ?? ''" />
