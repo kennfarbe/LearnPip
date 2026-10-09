@@ -1,5 +1,5 @@
 {
-  "sourceHash": "f78c6fc481a6f84b3ee6535ec2a522296d6bc27f30f933f785563d961f428ae7",
+  "sourceHash": "d88a7d55dbfdf61cf1ac9c23c9a61d86ea9a31e1bf4a2ae966ddbefe0e019cf9",
   "images": {
     "overview.png": {
       "sha256": "85c93c29333540c6ef47a074db31524561829bc2900a9a4161e4123a2ff8f1b4",
@@ -12,9 +12,9 @@
       "height": 3053
     },
     "catalogs.png": {
-      "sha256": "2f420947e1d1bbcb97745d0c4d2bc2ae833966a0db66d195540b94a3cd1c3c93",
+      "sha256": "8b03ef7136af71bea9a03309a1de20db7465f14f47b4abe69a3610ea166a12e0",
       "width": 1440,
-      "height": 2458
+      "height": 2457
     },
     "learning-mobile-dark.png": {
       "sha256": "755c986e740aace9e037b0ccfb3d5dbb79e08afb2a55a8b1bdbffe8b8fb3368e",
