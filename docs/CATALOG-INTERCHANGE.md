@@ -268,3 +268,8 @@ entsprechend ändern. Eine zusätzliche Bestätigung erklärt offene Weitergabe 
 Unwiderrufbarkeit erteilter offener Lizenzen. Dies erzeugt nur einen lokalen ZIP-
 Download: kein Upload, kein Versand und keine automatische Veröffentlichung.
 LICENSES.md, NOTICE und ATTRIBUTION samt Einzellizenzen werden mitgeführt.
+
+Für die anschließende freiwillige Einreichung, getrennte Fach-/Rechteprüfung,
+versionierte Freigaben und Rücknahmen steht ein
+[separater Offline-Review-Prozess](COMMUNITY-CATALOGS.md) bereit. Er führt einen
+Index ausschließlich freigegebener Paketfassungen, ohne automatisch zu publizieren.
