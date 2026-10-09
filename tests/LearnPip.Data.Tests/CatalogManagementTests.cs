@@ -68,6 +68,18 @@ public sealed partial class ApiV1Tests
             Assert.Equal(HttpStatusCode.Created, installed.StatusCode);
             var id = (await installed.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data").GetProperty("id").GetGuid();
             Assert.Equal(HttpStatusCode.OK, (await InstancePackage(administrator, original, originalHash, true)).StatusCode);
+            using (var form = new MultipartFormDataContent())
+            {
+                form.Add(new ByteArrayContent(changed), "file", "synthetic.zip");
+                using var response = await administrator.PostAsync("/api/v1/instance-catalogs/admin/preview", form);
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+                var changes = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data");
+                Assert.Equal(1, changes.GetProperty("changedQuestions").GetInt32());
+                Assert.Equal(0, changes.GetProperty("unchangedQuestions").GetInt32());
+                Assert.Equal(0, changes.GetProperty("newQuestions").GetInt32());
+                Assert.Equal(0, changes.GetProperty("removedQuestions").GetInt32());
+            }
+
             Assert.Equal(HttpStatusCode.Conflict, (await InstancePackage(administrator, changed, changedHash, true)).StatusCode);
             Assert.Equal(original, await learner.GetByteArrayAsync($"/api/v1/instance-catalogs/{id}/archive"));
             var confirmation = new InstanceCatalogEndpoints.AvailabilityInput(false, true, originalHash);
@@ -82,6 +94,9 @@ public sealed partial class ApiV1Tests
             var preview = (await previewResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data");
             Assert.True(preview.GetProperty("canUpdate").GetBoolean());
             Assert.Equal(originalFingerprint, preview.GetProperty("previousFingerprint").GetString());
+            Assert.Equal(CatalogPackageReader.Read(original).Manifest.GetProperty("source_revision").GetString(), preview.GetProperty("previousSourceRevision").GetString());
+            Assert.Equal(1, preview.GetProperty("changes").GetProperty("changedQuestions").GetInt32());
+            Assert.Equal(0, preview.GetProperty("changes").GetProperty("removedQuestions").GetInt32());
             Assert.Equal(HttpStatusCode.Conflict, (await UpdatePackage(learner, changed, changedHash, new string('0', 64))).StatusCode);
             Assert.Equal(HttpStatusCode.OK, (await UpdatePackage(learner, changed, changedHash, originalFingerprint)).StatusCode);
             Guid questionId;
