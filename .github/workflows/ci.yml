@@ -480,6 +480,8 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Verify rebuilt Caddy with public and internal configuration
+        run: bash tests/ops/proxy-smoke.sh
       - name: Verify integrated Docker stack
         run: bash tests/ops/integration-smoke.sh
 
@@ -598,6 +600,8 @@ jobs:
             dockerfile: frontend/web/Dockerfile
           - component: db
             dockerfile: deploy/postgres.Dockerfile
+          - component: proxy
+            dockerfile: deploy/caddy.Dockerfile
           - component: build-node
             dockerfile: frontend/web/Dockerfile
             target: node-toolchain

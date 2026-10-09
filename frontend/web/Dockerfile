@@ -13,7 +13,7 @@ COPY frontend/web/ ./
 RUN pnpm --config.pm-on-fail=ignore run build
 
 FROM nginx:1.30.5-alpine3.24 AS runtime
-RUN apk add --no-cache "libexpat>=2.8.5-r0" "pcre2>=10.49-r0"
+RUN apk add --no-cache "libexpat>=2.8.5-r0" "pcre2>=10.49-r0" "tiff>=4.7.2-r0"
 COPY frontend/web/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/learnpip-web/browser/ /usr/share/nginx/html/
 EXPOSE 80
