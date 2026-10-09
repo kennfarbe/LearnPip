@@ -1,3 +1,4 @@
+import { FormulaText } from './formula-text';
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { QuestionRights } from './question-rights';
 import { LanguageService } from './language';
@@ -50,7 +51,7 @@ type SubmissionPreview = {
 
 @Component({
   selector: 'app-question-editor',
-  imports: [JsonPipe, FormsModule, RouterLink],
+  imports: [FormulaText, JsonPipe, FormsModule, RouterLink],
   template: `
     <section class="editor" aria-labelledby="editor-title">
       <header>
@@ -403,7 +404,7 @@ type SubmissionPreview = {
                     <p>Herkunft: {{ preview.version.source }}</p>
                     @for (block of preview.version.prompt; track $index) {
                       @if (block.kind === 'text') {
-                        <p>{{ block.text }}</p>
+                        <p><app-formula-text [text]="block.text ?? ''" /></p>
                       }
                       @if (block.kind === 'image' && block.mediaId) {
                         <img [src]="imageUrl(block.mediaId)" [alt]="block.altText || ''" />
@@ -414,7 +415,7 @@ type SubmissionPreview = {
                         <li>
                           @for (block of answer.blocks; track $index) {
                             @if (block.kind === 'text') {
-                              {{ block.text }}
+                              <app-formula-text [text]="block.text ?? ''" />
                             }
                             @if (block.kind === 'image' && block.mediaId) {
                               <img [src]="imageUrl(block.mediaId)" [alt]="block.altText || ''" />

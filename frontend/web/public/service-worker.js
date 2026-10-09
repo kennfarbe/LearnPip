@@ -31,7 +31,7 @@ self.addEventListener('install', (event) => {
       if (
         !Array.isArray(assets) ||
         assets.some(
-          (name) => typeof name !== 'string' || !/^[a-zA-Z0-9_.-]+\.(?:js|css)$/.test(name),
+          (name) => typeof name !== 'string' || !/^(?:[a-zA-Z0-9_.-]+\.(?:js|css)|media\/KaTeX_[A-Za-z0-9_-]+\.woff2)$/.test(name),
         )
       ) {
         throw new Error('Invalid LearnPip shell asset manifest');

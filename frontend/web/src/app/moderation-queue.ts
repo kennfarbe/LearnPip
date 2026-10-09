@@ -1,3 +1,4 @@
+import { FormulaText } from './formula-text';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { LanguageService } from './language';
 import { JsonPipe, NgTemplateOutlet } from '@angular/common';
@@ -29,7 +30,7 @@ interface Api<T> {
 
 @Component({
   selector: 'app-moderation-queue',
-  imports: [JsonPipe, FormsModule, NgTemplateOutlet],
+  imports: [FormulaText, JsonPipe, FormsModule, NgTemplateOutlet],
   template: `
     @if (available()) {
       <section class="queue" aria-labelledby="moderation-title">
@@ -131,7 +132,7 @@ interface Api<T> {
         }
         <ng-template #blockTemplate let-block>
           @if (block.kind === 'text') {
-            <p>{{ block.text }}</p>
+            <p><app-formula-text [text]="block.text ?? ''" /></p>
           }
           @if (block.kind === 'image' && block.mediaId) {
             <img [src]="mediaUrl(block.mediaId)" [alt]="block.altText || ''" />
