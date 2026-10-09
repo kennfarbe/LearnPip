@@ -77,6 +77,7 @@ jobs:
       - name: Test offline catalog interchange contract
         run: |
           python3 -m unittest discover -s tests/ops -p 'test_catalog_contract.py' -v
+          python3 -m unittest discover -s tests/ops -p 'test_catalog_review.py' -v
           "$RUNNER_TEMP/catalog-oracle/bin/python" -m unittest discover -s tests/ops -p 'test_catalog_versions.py' -v
 
       - name: Exercise synthetic incident escalation and reporting deadlines
@@ -479,6 +480,8 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Verify rebuilt Caddy with public and internal configuration
+        run: bash tests/ops/proxy-smoke.sh
       - name: Verify integrated Docker stack
         run: bash tests/ops/integration-smoke.sh
 
@@ -597,6 +600,8 @@ jobs:
             dockerfile: frontend/web/Dockerfile
           - component: db
             dockerfile: deploy/postgres.Dockerfile
+          - component: proxy
+            dockerfile: deploy/caddy.Dockerfile
           - component: build-node
             dockerfile: frontend/web/Dockerfile
             target: node-toolchain

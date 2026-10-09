@@ -273,14 +273,14 @@ jobs:
           - component: db
             dockerfile: deploy/postgres.Dockerfile
           - component: proxy
-            image: caddy:2-alpine
+            dockerfile: deploy/caddy.Dockerfile
           - component: build-sdk
             image: mcr.microsoft.com/dotnet/sdk:10.0
           - component: build-node
             dockerfile: frontend/web/Dockerfile
             target: node-toolchain
           - component: build-go
-            image: golang:1.26.8-alpine3.24
+            image: golang:1.26.9-alpine3.24
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:

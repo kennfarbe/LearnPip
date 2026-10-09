@@ -38,7 +38,7 @@ Besonders relevant: `semantic-release@25.0.9` enthält das npm-Publishing-Plugin
 
 ## Korrektur der Image-Befunde in PR #143
 
-Die Web-Basis wird auf nginx `1.30.5-alpine3.24` und Node `24.21.0-alpine3.24` aktualisiert; für libexpat und pcre2 werden die ausgewiesenen behobenen Mindestversionen aus derselben Alpine-Linie installiert. Inventarabfragen wiederholen vorübergehende Registry-/Netzwerkfehler begrenzt und bleiben bei endgültigem Fehler unvollständig. Das Datenbankimage bleibt bei PostgreSQL 18 (`18.6-alpine3.24`); der unveränderte gosu-Quellcode aus Commit `6456aaa0f3c854d199d0f037f068eb97515b7513` wird mit Go `1.26.8` neu gebaut. Das beseitigt die veraltete eingebettete Go-Standardbibliothek, ohne PostgreSQL-Datenformat oder Berechtigungswechsel zu ersetzen. Das Datenbankimage wird pro Release zusammen mit API, Worker und Web veröffentlicht. Integration und Wiederherstellungsprüfung verwenden dasselbe Dockerfile; die Sicherung erfasst den tatsächlich konfigurierten Imagenamen. Die Go-Build-Basis wird ebenfalls gescannt.
+Die Web-Basis wird auf nginx `1.30.5-alpine3.24` und Node `24.21.0-alpine3.24` aktualisiert; für libexpat und pcre2 werden die ausgewiesenen behobenen Mindestversionen aus derselben Alpine-Linie installiert. Inventarabfragen wiederholen vorübergehende Registry-/Netzwerkfehler begrenzt und bleiben bei endgültigem Fehler unvollständig. Das Datenbankimage bleibt bei PostgreSQL 18 (`18.6-alpine3.24`); der unveränderte gosu-Quellcode aus Commit `6456aaa0f3c854d199d0f037f068eb97515b7513` wird mit Go `1.26.9` neu gebaut. Das beseitigt die veraltete eingebettete Go-Standardbibliothek, ohne PostgreSQL-Datenformat oder Berechtigungswechsel zu ersetzen. Das Datenbankimage wird pro Release zusammen mit API, Worker und Web veröffentlicht. Integration und Wiederherstellungsprüfung verwenden dasselbe Dockerfile; die Sicherung erfasst den tatsächlich konfigurierten Imagenamen. Die Go-Build-Basis wird ebenfalls gescannt.
 
 Der überprüfte aktuelle npm-CLI-Graph (`12.2.0`) enthält weiterhin relevante Befunde, darunter einen ohne ausgewiesene Behebung. Ein pauschales Downgrade oder eine Unterdrückung wird nicht vorgenommen. Die Freigabesperre bleibt bestehen, bis eine tragfähige Lösung oder eine ausdrücklich genehmigte, dokumentierte Ausnahme vorliegt. Befunde in bereits veröffentlichten Digests bleiben im Register erhalten; ein neuer Build verändert diese Digests nicht. Ein vollständiger Scan mit Befunden wird in der Workflow-Anzeige von einem unvollständigen Scan unterschieden.
 
@@ -61,3 +61,31 @@ Ungültige oder unvollständige Scans, fehlende Ziele und veraltete Datenbanken 
 Der Web-Build ersetzt den mit Node gebündelten npm-Paketmanager durch pnpm 12.9.1. npm und seine Bibliotheken werden aus der verwendeten Werkzeugstufe entfernt; die Prüfung wird nicht ausgenommen. pnpm importiert die eingecheckte `package-lock.json` und installiert anschließend mit unveränderlicher pnpm-Lockdatei ohne Installationsskripte. Die npm-Lockdatei bleibt für die vorhandenen Entwickler- und Audit-Abläufe maßgeblich. Der Angular-Build wird mit pnpm ausgeführt.
 
 Der Kandidaten-Audit prüft die tatsächlich verwendete Docker-Stufe `node-toolchain` für AMD64 und ARM64. Diese Stufe wird mit jedem Release zusätzlich als `build-node-vX.Y.Z` und `build-node-latest` veröffentlicht, einschließlich SBOM. Das Inventar neuer Releases prüft deren konkrete Plattform-Digests. Alte Releases behalten ihre bisherigen Inventarziele.
+
+## Aktualisierung der Container vom 9. Oktober 2026
+
+Der vollständige Kandidatenscan zu PR #176 meldet veraltetes `tiff` im
+Web-Laufzeitimage und Go 1.26.8 im Go-Buildimage sowie den eingebetteten
+Standardbibliotheken von gosu und Caddy. Die ausgewiesenen behobenen Stände
+werden verwendet: `tiff >= 4.7.2-r0` aus derselben Alpine-Linie und Go 1.26.9.
+Die Go-Basis in Datenbankbuild und Kandidatenaudit bleibt identisch. Grundlage:
+[offizielle Go-Releasehistorie](https://go.dev/doc/devel/release).
+
+`deploy/caddy.Dockerfile` baut die unveränderten Standardmodule von Caddy 2.11.7
+mit Go 1.26.9 neu. Ein separates Go-Buildmodul erhält die konkrete Caddy-Version
+in den Binär- und SBOM-Metadaten. Das offizielle Runtime-Image bleibt die Basis;
+sein Caddy-Binary wird durch den Neubau ersetzt. Lizenzhinweise der Basis bleiben
+erhalten. Auch die transitiven Module bleiben im vollständigen Scan erfasst.
+
+Das korrigierte Proxy-Image wird wie API, Worker, Web und Datenbank pro Release
+für AMD64 und ARM64 als `kennfarbe/learnpip:proxy-vX.Y.Z` mit SBOM veröffentlicht.
+Compose installiert genau das zur gewählten LearnPip-Version gehörende Image.
+Der Kandidatenaudit baut dasselbe Dockerfile; das Inventar veröffentlichter
+Versionen liest wie bisher die damalige Compose-Konfiguration und deren
+unveränderliche Plattform-Digests. Ältere Releases behalten ihre bisherigen
+Inventarziele. Der CI-Smoke prüft beide Caddy-Konfigurationen und den tatsächlichen
+Start samt Health-Endpunkt ohne externe Netzwerkverbindung.
+
+Keine Befundschwelle, Scanpflicht oder Freigabesperre wird gelockert. Die Behebung
+ist erst durch erfolgreiche Neubauten und vollständige Kandidatenscans für beide
+Architekturen nachgewiesen; alte veröffentlichte Digests werden nicht umgeschrieben.

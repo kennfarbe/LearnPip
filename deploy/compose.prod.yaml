@@ -184,7 +184,7 @@ services:
       retries: 3
 
   proxy:
-    image: caddy:2-alpine
+    image: kennfarbe/learnpip:proxy-${LEARNPIP_VERSION:?Set LEARNPIP_VERSION in deploy/.env.production}
     restart: unless-stopped
     logging:
       driver: json-file
