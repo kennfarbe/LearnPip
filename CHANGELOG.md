@@ -1,3 +1,25 @@
+# [1.16.0](https://github.com/kennfarbe/LearnPip/compare/v1.15.0...v1.16.0) (2026-10-09)
+
+
+### Bug Fixes
+
+* **catalogs:** align Unicode schema bounds across portable readers ([71fec38](https://github.com/kennfarbe/LearnPip/commit/71fec383ceb7947b00a18a9a681f22a46ee3f7d9))
+* **catalogs:** avoid database reads for new imports and verify publish responses ([fa79ecd](https://github.com/kennfarbe/LearnPip/commit/fa79ecdafd2fe9815178716bc26be948396e8895))
+* **security:** isolate password diagnostics and strengthen test transport digests ([9b4a218](https://github.com/kennfarbe/LearnPip/commit/9b4a2182d3da4abaa0ad4be8cc41b57af033a783))
+* **security:** rebuild Go runtime images and update web tiff ([cfba1e1](https://github.com/kennfarbe/LearnPip/commit/cfba1e11825d7be142f9190f3727d7daae5d95a6))
+* **updates:** retain release check failures and handle HTTP timeouts ([4b1f1b0](https://github.com/kennfarbe/LearnPip/commit/4b1f1b025cfe4f404af10e592c457756d37723dc))
+* **web:** report failed manual update checks and expired admin sessions ([99912b5](https://github.com/kennfarbe/LearnPip/commit/99912b509bceb3b4904a5a540de371ea17a7ec67))
+
+
+### Features
+
+* **api:** manage catalog memberships and filter learning sessions ([61c4c9c](https://github.com/kennfarbe/LearnPip/commit/61c4c9cb70a069c0580a221dce78d73c4d761be7))
+* **catalogs:** add independent community package review and release index ([82ad7f9](https://github.com/kennfarbe/LearnPip/commit/82ad7f9a4c786203b16c04fd3b75a913f43ae6ad))
+* **catalogs:** stabilize versioned archive contract and lossless migrations ([c138031](https://github.com/kennfarbe/LearnPip/commit/c138031eb02778b97d59ac8ecc364f06e76cc4ee))
+* **data:** persist multiple question catalog memberships ([a4bc761](https://github.com/kennfarbe/LearnPip/commit/a4bc761cdeb944442fde4f2438f265e71032e42c))
+* **ops:** add interactive administrator setup for existing deployments ([25a83ee](https://github.com/kennfarbe/LearnPip/commit/25a83ee8539f6afb1bc1e7214deed7e447052c99))
+* **web:** edit descriptions and select multiple catalogs ([58e434d](https://github.com/kennfarbe/LearnPip/commit/58e434d36d73077dad22d801ab28cb75fad5dca7))
+
 # [1.15.0](https://github.com/kennfarbe/LearnPip/compare/v1.14.0...v1.15.0) (2026-10-08)
 
 
