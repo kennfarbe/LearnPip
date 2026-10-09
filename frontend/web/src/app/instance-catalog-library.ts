@@ -24,10 +24,13 @@ interface Preview {
   package: Package;
   previousId: string | null;
   previousVersion: string | null;
+  previousSourceRevision: string | null;
   previousSha256: string | null;
   newQuestions: number;
   removedQuestions: number;
   sharedQuestions: number;
+  changedQuestions: number;
+  unchangedQuestions: number;
 }
 
 @Component({
@@ -99,15 +102,20 @@ interface Preview {
           <h3>{{ item.package.title }} · {{ item.package.catalogVersion }}</h3>
           <p>{{ language.t('Bisherige Fassung') }}: {{ item.previousVersion ?? '—' }}</p>
           <p>
-            {{ language.t('Neue / entfallene / gemeinsame Fragen') }}: {{ item.newQuestions }} /
-            {{ item.removedQuestions }} / {{ item.sharedQuestions }}
+            {{ language.t('Neue / geänderte / entfallene / unveränderte Fragen') }}:
+            {{ item.newQuestions }} / {{ item.changedQuestions }} / {{ item.removedQuestions }} /
+            {{ item.unchangedQuestions }}
           </p>
           <p>
             {{
               language.t(
-                'Gemeinsame Fragen können inhaltlich geändert sein. Alle Nachweise der neuen Fassung müssen geprüft werden; persönliche Kopien werden nicht überschrieben.'
+                'Änderungen umfassen auch Antworten, Bilder, Quellen und Rechteangaben. Alle Nachweise der neuen Fassung müssen geprüft werden; persönliche Kopien werden nicht überschrieben.'
               )
             }}
+          </p>
+          <p>
+            {{ language.t('Quellenstand bisher / neu') }}:
+            {{ item.previousSourceRevision ?? '—' }} / {{ item.package.sourceRevision }}
           </p>
           <p>
             {{ item.package.publisher }} · Zielgruppe:

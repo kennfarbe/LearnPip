@@ -181,6 +181,14 @@ private Übernahme angeboten; die Bereitstellung veröffentlicht keine Kontodate
 Titel, Beschreibung/Zielgruppe, Sprache, Version, Quellenstand, Fragenzahl sowie
 Archivgröße und entpackter Speicherbedarf werden vor Bestätigung angezeigt.
 
+Die Vorschau trennt neue, geänderte, entfallene und unveränderte Fragen anhand
+ihrer stabilen Kennungen. Änderungen umfassen Fragetext, Antworten, richtige
+Antworten, Erklärungen, Quellen- und Rechteangaben sowie Originalbildbytes und
+Alternativtexte. Andere ZIP-Kompression oder JSON-Formatierung zählt nicht als
+Inhaltsänderung. Der bisherige und neue Quellenstand erscheinen getrennt von der
+Katalogversion. Die Prüfung arbeitet lokal auf den beiden validierten Archiven
+und verändert keine Fragen oder Lernstände.
+
 Versionen sind unveränderlich: geänderte Inhalte benötigen eine neue
 `catalog_version`. Updates deaktivieren das vorherige Angebot, verändern jedoch
 keine privaten Kopien, persönlichen Bearbeitungen oder historischen Lernfassungen.

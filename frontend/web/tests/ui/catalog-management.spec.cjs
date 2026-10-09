@@ -13,7 +13,7 @@ test('administrator explicitly confirms package installation and separately conf
     if (path.endsWith('/sources/')) return route.fulfill({ json: { data: [] } });
     if (method === 'GET') return route.fulfill({ json: { data: [item] } });
     calls.push({ path, method, body: route.request().postData() });
-    if (path.endsWith('/preview')) return route.fulfill({ json: { data: { package: item, previousId: null, previousVersion: null, previousSha256: null, newQuestions: 5, removedQuestions: 0, sharedQuestions: 0 } } });
+    if (path.endsWith('/preview')) return route.fulfill({ json: { data: { package: item, previousId: null, previousVersion: "1", previousSourceRevision: "revision-1", previousSha256: "b".repeat(64), newQuestions: 1, removedQuestions: 2, sharedQuestions: 4, changedQuestions: 3, unchangedQuestions: 1 } } });
     return route.fulfill({ status: 204 });
   });
   await page.goto('/administration');
@@ -23,6 +23,8 @@ test('administrator explicitly confirms package installation and separately conf
   await section.getByRole('button', { name: 'Paketfassung und Änderungen prüfen' }).click();
   const install = section.getByRole('button', { name: 'Paketfassung bereitstellen' });
   await expect(install).toBeDisabled();
+  await expect(section).toContainText('Neue / geänderte / entfallene / unveränderte Fragen: 1 / 3 / 2 / 1');
+  await expect(section).toContainText('Quellenstand bisher / neu: revision-1 / revision-2');
   expect(calls).toHaveLength(1);
   await section.getByRole('checkbox', { name: /^Ich habe Inhalte, Lizenz-/ }).check();
   await install.click();
@@ -85,13 +87,15 @@ test('private update requires licence consent and a version-specific confirmatio
   await page.route('**/api/v1/catalog-packages/**', async route => {
     if (route.request().method() === 'GET') return route.fulfill({ json: { data: [] } });
     calls.push(route.request().postData());
-    if (new URL(route.request().url()).pathname.endsWith('/preview')) return route.fulfill({ json: { data: { title: 'Updatepaket', catalogVersion: '2', schemaVersion: '0.2.0', sourceRevision: '2', language: 'de', questionCount: 5, mediaCount: 0, archiveBytes: 1024, expandedBytes: 1024, topics: ['Technik'], license: { id: 'CC-BY-SA-4.0', holder: 'Testautor', attribution: 'Synthetisch' }, questionLicenses: [], notices, archiveSha256: 'c'.repeat(64), state: 'conflict', catalogId: 'catalog-1', canUpdate: true, previousFingerprint: 'd'.repeat(64) } } });
+    if (new URL(route.request().url()).pathname.endsWith('/preview')) return route.fulfill({ json: { data: { title: 'Updatepaket', catalogVersion: '2', schemaVersion: '0.2.0', sourceRevision: '2', language: 'de', questionCount: 5, mediaCount: 0, archiveBytes: 1024, expandedBytes: 1024, topics: ['Technik'], license: { id: 'CC-BY-SA-4.0', holder: 'Testautor', attribution: 'Synthetisch' }, questionLicenses: [], notices, archiveSha256: 'c'.repeat(64), state: 'conflict', catalogId: 'catalog-1', canUpdate: true, previousFingerprint: 'd'.repeat(64), previousCatalogVersion: '1', previousSourceRevision: 'source-1', changes: { newQuestions: 1, changedQuestions: 2, removedQuestions: 1, unchangedQuestions: 2 } } } });
     return route.fulfill({ json: { data: { catalogId: 'catalog-1' } } });
   });
   await page.goto('/catalogs');
   const section = page.locator('app-catalog-package-import');
   await section.locator('input[type=file]').setInputFiles({ name: 'synthetic.zip', mimeType: 'application/zip', buffer: Buffer.from('fixture') });
   await section.getByRole('button', { name: 'Importvorschau prüfen' }).click();
+  await expect(section).toContainText('1 / source-1');
+  await expect(section).toContainText('1 / 2 / 1 / 2');
   const install = section.getByRole('button', { name: 'Import bestätigen' });
   await section.getByRole('checkbox', { name: /^Ich habe die Lizenzangaben/ }).check();
   await expect(install).toBeDisabled();
