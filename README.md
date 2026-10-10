@@ -91,7 +91,11 @@ beim Lernen berücksichtigt alle Zuordnungen. Das Löschen eines Katalogs erhäl
 Fragen und Lernstände. Details: [Eigene Kataloge verwalten](docs/PRIVATE-CATALOGS.md).
 
 **Austausch von Katalogen:** Private ZIP-Importe, selektive Exporte, optionale
-Pakete für die ganze Instanz und bestätigte Updates sind vorhanden. Neue Exporte
+Pakete für die ganze Instanz und bestätigte Updates sind vorhanden. Vor einem
+Paketwechsel zeigen beide Vorschauen neue, geänderte, entfallene und unveränderte
+Fragen einschließlich Medien-/Rechteänderungen und den bisherigen Quellenstand.
+Der automatische Bezug eines Aktualisierungsindex und optionale Prüfintervalle
+sind weiterhin offen (#113). Neue Exporte
 verwenden den stabilen Vertrag 1.0.0; die alten Entwürfe können weiterhin importiert
 werden. Archivierte Schemas, Golden-Pakete, Migrationen mit Prüfung auf Datenverlust
 und Tests zwischen Versionen und unabhängigen Instanzen sichern den

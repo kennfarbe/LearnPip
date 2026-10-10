@@ -148,7 +148,15 @@ public static class CatalogPackageEndpoints
                 package.Questions.Count - identical - conflicts,
                 identical,
                 conflicts);
-            return Results.Ok(new ApiResponse<CatalogPackagePreview>(preview with { CanUpdate = canUpdate, PreviousFingerprint = existing?.Fingerprint }));
+            var original = existing == null ? null : CatalogPackageReader.Read(existing.Archive);
+            return Results.Ok(new ApiResponse<CatalogPackagePreview>(preview with
+            {
+                CanUpdate = canUpdate,
+                PreviousFingerprint = existing?.Fingerprint,
+                PreviousCatalogVersion = existing?.CatalogVersion,
+                PreviousSourceRevision = original?.Manifest.GetProperty("source_revision").GetString(),
+                Changes = CatalogPackageChanges.Compare(original, package),
+            }));
         }
         catch (InvalidDataException error)
         {

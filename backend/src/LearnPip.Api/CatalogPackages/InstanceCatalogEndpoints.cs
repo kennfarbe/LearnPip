@@ -121,18 +121,20 @@ public static class InstanceCatalogEndpoints
             var packageId = package.Manifest.GetProperty("package_id").GetString()!;
             var previous = await db.InstanceCatalogPackages.AsNoTracking().Where(item => item.PackageId == packageId && item.Available).SingleOrDefaultAsync(ct);
             var original = previous == null ? null : CatalogPackageReader.Read(previous.Archive);
-            var before = original?.Questions.Select(question => question.GetProperty("id").GetString()!).ToHashSet(StringComparer.Ordinal) ?? [];
-            var after = package.Questions.Select(question => question.GetProperty("id").GetString()!).ToHashSet(StringComparer.Ordinal);
+            var changes = CatalogPackageChanges.Compare(original, package);
             var record = new InstanceCatalogPackage { PackageId = packageId, CatalogVersion = package.Manifest.GetProperty("catalog_version").GetString()!, Archive = package.Archive, ArchiveSha256 = Hash(package.Archive) };
             return Results.Ok(new ApiResponse<object>(new
             {
                 Package = Metadata(record),
                 PreviousId = previous?.Id,
                 PreviousVersion = previous?.CatalogVersion,
+                PreviousSourceRevision = original?.Manifest.GetProperty("source_revision").GetString(),
                 PreviousSha256 = previous?.ArchiveSha256,
-                NewQuestions = after.Except(before).Count(),
-                RemovedQuestions = before.Except(after).Count(),
-                SharedQuestions = after.Intersect(before).Count(),
+                changes.NewQuestions,
+                changes.RemovedQuestions,
+                changes.ChangedQuestions,
+                changes.UnchangedQuestions,
+                SharedQuestions = changes.ChangedQuestions + changes.UnchangedQuestions,
             }));
         }
         catch (InvalidDataException error)

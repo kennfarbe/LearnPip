@@ -79,7 +79,7 @@ internal static class CatalogPackageComparison
             }
 
             var previousQuestion = original.Questions.Single(item => item.GetProperty("id").GetString() == sourceId);
-            var same = JsonNode.DeepEquals(Normalize(question, package.Files, package.Manifest), Normalize(previousQuestion, original.Files, original.Manifest));
+            var same = Same(question, package, previousQuestion, original);
             if (same)
             {
                 identical.Add(sourceId, origin.QuestionId);
@@ -92,6 +92,15 @@ internal static class CatalogPackageComparison
 
         return (identical, conflicts);
     }
+
+    /// <summary>Vergleicht Inhalte einschließlich Bildbytes und Rechte unabhängig von Archivpfaden.</summary>
+    /// <param name="question">Die neue Frage.</param>
+    /// <param name="package">Das neue Paket.</param>
+    /// <param name="previousQuestion">Die bisherige Frage.</param>
+    /// <param name="original">Das bisherige Paket.</param>
+    /// <returns>Ob alle normalisierten Frageangaben übereinstimmen.</returns>
+    internal static bool Same(JsonElement question, CatalogPackage package, JsonElement previousQuestion, CatalogPackage original) =>
+        JsonNode.DeepEquals(Normalize(question, package.Files, package.Manifest), Normalize(previousQuestion, original.Files, original.Manifest));
 
     /// <summary>Ergänzt alte Originalfragen verlustfrei um die explizite Blockzuordnung.</summary>
     /// <param name="original">Die unveränderte Quellfrage.</param>

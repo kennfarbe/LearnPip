@@ -29,6 +29,14 @@ interface Preview {
   catalogId: string | null;
   canUpdate?: boolean;
   previousFingerprint?: string | null;
+  previousCatalogVersion?: string | null;
+  previousSourceRevision?: string | null;
+  changes?: {
+    newQuestions: number;
+    changedQuestions: number;
+    removedQuestions: number;
+    unchangedQuestions: number;
+  };
 }
 interface Imported {
   id: string;
@@ -71,6 +79,17 @@ interface Imported {
             <dd>{{ item.schemaVersion }}</dd>
             <dt>{{ language.t('Quellenstand') }}</dt>
             <dd>{{ item.sourceRevision }}</dd>
+            @if (item.previousCatalogVersion) {
+              <dt>{{ language.t('Bisherige Paketversion / Quellenstand') }}</dt>
+              <dd>{{ item.previousCatalogVersion }} / {{ item.previousSourceRevision ?? '—' }}</dd>
+            }
+            @if (item.changes; as changes) {
+              <dt>{{ language.t('Neue / geänderte / entfallene / unveränderte Fragen') }}</dt>
+              <dd>
+                {{ changes.newQuestions }} / {{ changes.changedQuestions }} /
+                {{ changes.removedQuestions }} / {{ changes.unchangedQuestions }}
+              </dd>
+            }
             <dt>{{ language.t('Sprache') }}</dt>
             <dd>{{ item.language }}</dd>
             <dt>{{ language.t('Inhalt') }}</dt>
@@ -107,7 +126,7 @@ interface Imported {
             <p role="alert">
               {{
                 language.t(
-                  'Dieses Paket wurde geändert. Der Import ist gesperrt, damit vorhandene Fragen und Lernstände erhalten bleiben. Kontrollierte Paketupdates sind noch nicht verfügbar.'
+                  'Die Übernahme ist wegen widersprüchlicher Quellfragen, persönlicher Änderungen oder fehlender Katalogzuordnung gesperrt. Vorhandene Fragen und Lernstände bleiben erhalten. Bitte den Konflikt vor einem Update lösen.'
                 )
               }}
             </p>

@@ -55,4 +55,13 @@ public sealed record CatalogPackagePreview(
 
     /// <summary>Holt den ausdrücklich zu bestätigenden bisherigen Paketstand.</summary>
     public string? PreviousFingerprint { get; init; }
+
+    /// <summary>Holt die bisherige unveränderliche Inhaltsversion.</summary>
+    public string? PreviousCatalogVersion { get; init; }
+
+    /// <summary>Holt den Quellenstand der bisher importierten Fassung.</summary>
+    public string? PreviousSourceRevision { get; init; }
+
+    /// <summary>Holt den Inhaltsvergleich unabhängig von persönlichen Importkonflikten.</summary>
+    public CatalogPackageChanges? Changes { get; init; }
 }
