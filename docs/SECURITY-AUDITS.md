@@ -89,3 +89,21 @@ Start samt Health-Endpunkt ohne externe Netzwerkverbindung.
 Keine Befundschwelle, Scanpflicht oder Freigabesperre wird gelockert. Die Behebung
 ist erst durch erfolgreiche Neubauten und vollständige Kandidatenscans für beide
 Architekturen nachgewiesen; alte veröffentlichte Digests werden nicht umgeschrieben.
+
+## Proxy-Nachbesserung vom 10. Oktober 2026
+
+Die Release-Pipeline nach dem Merge von PR #179 sperrt die beiden neuen
+Proxy-Kandidaten wegen einer transitiven Netzwerkbibliothek. Der vollständige
+Scanbericht bleibt im zugriffsgeschützten Workflow-Artefakt; individuelle
+Schwachstellenangaben werden hier nicht veröffentlicht.
+
+Der Caddy-Neubau verwendet ausdrücklich `golang.org/x/net v0.60.0`. Caddy 2.11.7
+und Go 1.26.9 bleiben erhalten. Die
+[Modulanforderungen des Upstream-Tags](https://github.com/golang/net/blob/v0.60.0/go.mod)
+passen zur verwendeten Go-Linie. Nach dem Cross-Build prüft `go version -m`
+die tatsächlich eingebettete Modulversion; eine abweichende Version bricht den
+Build ab. Damit wird die Bibliothek im ausgelieferten Binary aktualisiert.
+
+Die Freigabe benötigt weiterhin vollständige Trivy-Kandidatenscans für AMD64 und
+ARM64 sowie den integrierten Starttest des Proxys. Es gibt keine zusätzliche
+Ignore-Regel und keine Absenkung der bestehenden High-/Critical-Sperre.
