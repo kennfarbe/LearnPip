@@ -1,3 +1,17 @@
+# [1.17.0](https://github.com/kennfarbe/LearnPip/compare/v1.16.0...v1.17.0) (2026-10-11)
+
+
+### Bug Fixes
+
+* **proxy:** rebuild Caddy with patched network module ([11ed17b](https://github.com/kennfarbe/LearnPip/commit/11ed17b10246d04f81d5af13f34c38e13f2fd0b2))
+
+
+### Features
+
+* **catalogs:** compare question content and rights before updates ([4962532](https://github.com/kennfarbe/LearnPip/commit/4962532dcf4616a454466fd9c0e3cb7f683f5c85))
+* **catalogs:** show changed questions and previous source revisions ([6531011](https://github.com/kennfarbe/LearnPip/commit/6531011f3fcfcb1859c4d2d85744a88f053c1ef7))
+* **catalogs:** support rich official learning packages ([fa92222](https://github.com/kennfarbe/LearnPip/commit/fa922225689d8d0c46e65225c8b825901187fe1d))
+
 # [1.16.0](https://github.com/kennfarbe/LearnPip/compare/v1.15.0...v1.16.0) (2026-10-09)
 
 
