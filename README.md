@@ -5,8 +5,6 @@
 
 LearnPip ist ein Open-Source-Projekt für kurze, regelmäßige Lerneinheiten. Lernende sollen eigene Fragen erstellen, in kleinen Schritten üben und ihren Fortschritt nachvollziehen können. Der Quellcode und die Entwicklung finden öffentlich in diesem Repository statt.
 
-> **Projektstatus (3. Oktober 2026):** Backend, responsive Angular-Weboberfläche, Docker-Release-/Installationsweg und die technischen Kernfunktionen der Phasen M1 bis M5 sind vorhanden. Sichere Admin-Web-Updates aus PR #91 wurden zusammengeführt; der Betrieb benötigt einen eigens eingerichteten Host-Operator. M0 ist wegen des noch nicht juristisch freigegebenen CLA-Verfahrens nicht abgeschlossen. M6 und weitere Funktions-, Integrations-, Rechts- und Betriebsabnahmen bleiben in Arbeit. Ein vorhandener Codepfad bedeutet noch keine allgemeine Freigabe für öffentliche oder schulische Installationen.
-
 ## Ein erster Eindruck
 
 Die Übersicht führt direkt zu kurzen Lerneinheiten und eigenen Fragen.
@@ -60,52 +58,11 @@ Der technische Aufbau mit [C1-Systemkontext, C2-Containerübersicht und ADRs](do
 
 Die [optionalen KI-Betriebsarten](docs/AI_PROVIDERS.md) sind standardmäßig deaktiviert und beschreiben Provider, Datenweg und Kostenlimits vor einer Anfrage.
 
-## Roadmap und tatsächlicher Umsetzungsstand
+## Entwicklungsstand und Roadmap
 
-Die ursprünglichen Meilensteine beschreiben Entwicklungsschwerpunkte, nicht den Abschluss sämtlicher zugehöriger Issues. Viele Funktionen sind bereits implementiert; Sicherheits-, Rechts- und Betriebsfreigaben sind davon getrennt zu beurteilen.
+LearnPip wird fortlaufend weiterentwickelt. Der aktuelle technische Stand ist im [Changelog](CHANGELOG.md) nachvollziehbar; noch offene Anforderungen und geplante Arbeiten stehen in den [GitHub-Issues](https://github.com/kennfarbe/LearnPip/issues) und [Meilensteinen](https://github.com/kennfarbe/LearnPip/milestones). Ein vorhandener Codepfad bedeutet nicht automatisch eine rechtliche oder betriebliche Freigabe.
 
-| Phase | Technischer Stand am 3. Oktober 2026 | Was noch offen ist |
-| --- | --- | --- |
-| M0 – Projektregeln | AGPL-Lizenzgrenzen, Beitrags- und Sicherheitsdokumentation vorhanden; CLA-Entwurf erstellt. | Juristische Prüfung und wirksamer CLA-Annahme-/Prüfprozess (#3), weitere für verschiedene Betreiber nötige EU-Nachweise (#93–#103). |
-| M1 – Technisches Fundament | API, Datenbank, bestehende Anmeldewege, Container, CI, Release-/Installationsweg und direkte Administrator-Ersteinrichtung vorhanden. | Zusätzliche Identitätswege (#104–#107). |
-| M2 – Nutzbares MVP | Private Text-/Bildfragen, Lerneinheiten, Antworten, Erklärungen und Fortschritt implementiert. | Weiterentwicklung des portablen Imports von Katalogen und -exports (#108, #110, #115, #118). |
-| M3 – Zusammenarbeit | Gruppen, öffentliche Einreichung, Moderation und konfigurierbare Rechte vorhanden; Community-Paketexport mit separatem Prüfprotokoll und Freigabeindex ergänzt. | Tatsächliche unabhängige Katalog-Repositories und redaktionell geprüfte Inhalte (#114/#109/#111). |
-| M4 – Prüfungsvorbereitung | Lernziele, Prüfungsübungen und Simulationen technisch vorhanden. | Optionale unabhängige Lernpakete und fachspezifische Amateurfunkprüfung N/E/A (#109–#114). |
-| M5 – Optionale KI | Konfigurierbare Cloud-/Lokal-/Aus-Betriebsarten und vorhandene KI-Funktionen; standardmäßig deaktiviert. | Betriebs- und vom Anwendungsfall abhängige Transparenz-/Rechtsprüfung (#102), keine pauschale Einsatzfreigabe. |
-| M6 – Ausbau | Responsive/PWA-Oberfläche, Betriebsfunktionen und Admin-Web-Updates in wesentlichen Teilen vorhanden. | Weitere Zugänge, Verteilung von Katalogen und Betriebs-/Sicherheitsnachweise (#95–#107, #96/#97). |
-
-**Updates prüfen:** Manuelle Abfragen neuer Versionen zeigen ihren Fortschritt und melden
-abgelaufene Administrator-Anmeldungen, Verbindungsfehler und Zeitüberschreitungen.
-Die Versionsquelle und die erneute Anmeldung sind unter
-[Admin-Web-Updates](docs/admin-web-updates.md#manuell-nach-neuen-versionen-suchen) beschrieben.
-
-**Administrator einrichten:** In einer bestehenden Installation ohne Administrator
-`./scripts/setup-admin.sh` im aktuellen Release aufrufen. Benutzername und Passwort
-werden interaktiv geprüft; das Passwort wird verdeckt wiederholt. Bestehende
-Zugänge bleiben unverändert.
-[Anleitung](docs/ADMINISTRATION.md#lokale-wiederherstellung-und-bestehende-installationen).
-
-**Private Kataloge:** Name und optionale Beschreibung sind bearbeitbar. Eine Frage
-kann mehreren Katalogen angehören; die Auswahl im Editor, in der Verwaltung und
-beim Lernen berücksichtigt alle Zuordnungen. Das Löschen eines Katalogs erhält
-Fragen und Lernstände. Details: [Eigene Kataloge verwalten](docs/PRIVATE-CATALOGS.md).
-
-**Austausch von Katalogen:** Private ZIP-Importe, selektive Exporte, optionale
-Pakete für die ganze Instanz und bestätigte Updates sind vorhanden. Vor einem
-Paketwechsel zeigen beide Vorschauen neue, geänderte, entfallene und unveränderte
-Fragen einschließlich Medien-/Rechteänderungen und den bisherigen Quellenstand.
-Der automatische Bezug eines Aktualisierungsindex und optionale Prüfintervalle
-sind weiterhin offen (#113). Neue Exporte
-verwenden den stabilen Vertrag 1.0.0; die alten Entwürfe können weiterhin importiert
-werden. Archivierte Schemas, Golden-Pakete, Migrationen mit Prüfung auf Datenverlust
-und Tests zwischen Versionen und unabhängigen Instanzen sichern den
-[öffentlichen Vertrag für das Format](docs/CATALOG-INTERCHANGE.md). Tatsächliche
-Der [freiwillige Community-Export und separate Review-Prozess](docs/COMMUNITY-CATALOGS.md)
-führen lokale Prüfprotokolle und einen Index freigegebener Fassungen ohne automatische
-Veröffentlichung. Tatsächliche Community-Kataloge und deren unabhängige Repositories
-bleiben gesondert (#109/#111/#114).
-
-Die [offenen GitHub-Issues](https://github.com/kennfarbe/LearnPip/issues) sind die verbindliche Detailübersicht. Ein technischer Zwischenstand ersetzt weder die vollständigen Akzeptanzkriterien noch eine rechtliche oder betriebliche Abnahme.
+Für Installation, Betrieb und Administration sind die jeweiligen Fach-Dokumente maßgeblich. Dadurch muss die README keine versionsabhängige Momentaufnahme einzelner Issues und bereits umgesetzter Zwischenstände doppelt pflegen.
 
 ## Open Source und Beiträge
 
