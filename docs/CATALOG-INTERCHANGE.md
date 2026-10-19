@@ -77,7 +77,6 @@ Integrität und technische Metadatenvalidierung beweisen keine tatsächlichen Re
 oder Authentizität des Herausgebers. Konten, E-Mail-Adressen, Lernstände,
 Gruppencodes und Zugangsdaten gehören nicht in den Inhaltsvertrag.
 
-
 ## Eigenständige Katalog-Repositories
 
 Reale, kuratierte Kataloginhalte werden nicht im LearnPip-Anwendungsrepository gepflegt.
