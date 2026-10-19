@@ -77,6 +77,31 @@ Integrität und technische Metadatenvalidierung beweisen keine tatsächlichen Re
 oder Authentizität des Herausgebers. Konten, E-Mail-Adressen, Lernstände,
 Gruppencodes und Zugangsdaten gehören nicht in den Inhaltsvertrag.
 
+
+## Eigenständige Katalog-Repositories
+
+Reale, kuratierte Kataloginhalte werden nicht im LearnPip-Anwendungsrepository gepflegt.
+Die Referenzkataloge besitzen eigene Versions-, Prüf- und Releasezyklen:
+
+- `kennfarbe/LearnPip-Catalog-Amateurfunk-DE` für den deutschen Amateurfunkkatalog
+- `kennfarbe/LearnPip-Catalog-Wikipedia` für kuratierte Wikipedia-basierte Themenpakete
+
+Diese Repositories bauen die LearnPip-Anwendung nicht und sind weder Build- noch
+Runtime-Abhängigkeit von LearnPip. Umgekehrt benötigt ein neues Katalogrelease
+kein Anwendungsrelease. Die einzige technische Kopplung ist der hier
+dokumentierte, versionierte Archivvertrag. Pakete bleiben deshalb auch als
+lokale Datei ohne GitHub-Zugriff importierbar.
+
+Jedes Katalog-Repository führt seine Inhaltslizenzen, Attributionen,
+Quellenrevisionen und Mediennachweise selbst. Die Softwarelizenz von LearnPip
+oder von katalogspezifischen Werkzeugen ändert keine Rechte an Drittinhalten.
+Katalog-Releases werden erst nach eigener CI-/Review-Prüfung veröffentlicht und
+erhalten eine von der Anwendung unabhängige `catalog_version`.
+
+LearnPip muss ohne installierte Kataloge und ohne Netzwerkzugriff funktionsfähig
+bleiben. Optionale Paketquellen sind lediglich ein Verteilungsweg; sie sind
+keine Voraussetzung für Import, Export oder den Betrieb der Anwendung.
+
 ## Offline-Migration und ältere Zielversionen
 
 Alle drei Versionen sind direkt durch den aktuellen Reader unterstützt.
