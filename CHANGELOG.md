@@ -1,3 +1,11 @@
+## [1.17.3](https://github.com/kennfarbe/LearnPip/compare/v1.17.2...v1.17.3) (2026-11-01)
+
+
+### Performance Improvements
+
+* **ci:** avoid unnecessary QEMU and Buildx setup for candidate scans ([f99b34a](https://github.com/kennfarbe/LearnPip/commit/f99b34a0f07140fd8b5d734d94f1dd5702cbc350))
+* **ci:** execute repository policy in parallel with security gates ([8793e84](https://github.com/kennfarbe/LearnPip/commit/8793e8426bd3f35e17d1ace343476bfd814e6234))
+
 ## [1.17.2](https://github.com/kennfarbe/LearnPip/compare/v1.17.1...v1.17.2) (2026-11-01)
 
 
