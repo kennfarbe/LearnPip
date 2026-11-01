@@ -246,20 +246,3 @@ summary {
   }
 }
 
-/* Subtle feedback; the content surface stays opaque and readable. */
-:where(.primary-action, .secondary-action, button, a) {
-  -webkit-tap-highlight-color: transparent;
-  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
-}
-:where(.workspace-card, .workspace-disclosure, .editor-disclosure) {
-  isolation: isolate;
-}
-:where(input, select, textarea):focus-visible {
-  outline-color: var(--accent-text);
-}
-@media (prefers-contrast: more) {
-  :root {
-    --border: var(--border-strong);
-    --elevation: none;
-  }
-}
