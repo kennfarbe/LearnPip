@@ -159,6 +159,7 @@ jobs:
               )
           PY
 
+      # Merge commits created while updating PR branches are Git metadata, not feature commits.
       - name: Validate pull request commit subjects
         if: github.event_name == 'pull_request'
         env:
@@ -172,7 +173,7 @@ jobs:
           base = os.environ["BASE_SHA"]
           head = os.environ["PR_HEAD_SHA"]
           result = subprocess.run(
-              ["git", "log", "--format=%s", f"{base}..{head}"],
+              ["git", "log", "--no-merges", "--format=%s", f"{base}..{head}"],
               check=True, text=True, capture_output=True
           )
           pattern = re.compile(r"^(feat|fix|perf|refactor|build|ci|docs|style|test|chore|revert)(\([a-z0-9._/-]+\))?!?: .+")
