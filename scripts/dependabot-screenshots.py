@@ -90,13 +90,15 @@ def validate(directory):
 
 
 def main():
-    ctx = context()
     if sys.argv[1] == "prepare":
+        ctx = context()
         with open(os.environ["GITHUB_OUTPUT"], "a") as output:
             output.write(f"eligible={'true' if ctx else 'false'}\n")
-    elif sys.argv[1] == "verify" and ctx:
+    elif sys.argv[1] == "verify":
         validate(sys.argv[2])
         print("Validated Dependabot screenshot artifact without modifying its branch.")
+    else:
+        raise SystemExit("Usage: dependabot-screenshots.py prepare|verify [directory]")
 
 
 if __name__ == "__main__":
