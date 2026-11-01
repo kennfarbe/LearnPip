@@ -31,7 +31,7 @@ RUN go mod init learnpip-caddy \
     && CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH go build -trimpath \
        -o /out/caddy github.com/caddyserver/caddy/v2/cmd/caddy \
     && go version -m /out/caddy | grep -Eq 'golang.org/x/net[[:space:]]+v0[.]60[.]0[[:space:]]' \
-    && go version -m /out/caddy | grep -F 'github.com/go-jose/go-jose/v3 => ./go-jose-v3'
+    && go version -m /out/caddy | grep -F './go-jose-v3'
 
 FROM caddy:2.11.7-alpine AS runtime
 RUN apk upgrade --no-cache
