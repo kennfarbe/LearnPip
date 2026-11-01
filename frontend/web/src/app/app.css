@@ -165,10 +165,20 @@ h1 {
   }
 }
 @media (prefers-reduced-transparency: reduce) {
-  nav { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  nav {
+    background: var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 @media (max-width: 42rem) {
-  nav { border-radius: 1rem; }
-  nav ul { gap: 0.25rem; }
-  nav a { padding: 0.75rem 0.6rem; }
+  nav {
+    border-radius: 1rem;
+  }
+  nav ul {
+    gap: 0.25rem;
+  }
+  nav a {
+    padding: 0.75rem 0.6rem;
+  }
 }
