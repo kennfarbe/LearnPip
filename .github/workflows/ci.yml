@@ -519,7 +519,7 @@ jobs:
   release-security:
     name: Security gate before release
     needs: [changes]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.release == 'true'
+    if: needs.changes.outputs.release == 'true' && (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
     uses: ./.github/workflows/security.yml
     permissions:
       contents: read
