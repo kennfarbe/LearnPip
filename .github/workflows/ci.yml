@@ -488,7 +488,7 @@ jobs:
   ci-result:
     name: CI result
     if: always()
-    needs: [changes, repository-policy, markdown, backend, web, installer-smoke, restore-smoke, integration-smoke]
+    needs: [changes, repository-policy, markdown, backend, web, installer-smoke, restore-smoke, integration-smoke, release-security]
     runs-on: ubuntu-latest
     steps:
       - name: Require all selected checks to pass
