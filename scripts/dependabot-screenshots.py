@@ -1,6 +1,5 @@
-"""Publish only validated screenshot data from an unprivileged Dependabot CI run."""
+"""Read-only validation of screenshots from unprivileged Dependabot CI."""
 
-import base64
 import hashlib
 import json
 import os
@@ -14,15 +13,9 @@ GENERATED = {f"docs/screenshots/{name}.png" for name in NAMES} | {"docs/screensh
 DEPENDENCIES = {"frontend/web/package.json", "frontend/web/package-lock.json"}
 
 
-def api(endpoint, method="GET", payload=None):
-    args = ["gh", "api", endpoint, "--method", method]
-    if payload is not None:
-        args += ["--input", "-"]
-    env = os.environ.copy()
-    if method == "GET" and env.get("GH_TOKEN_READ"):
-        env["GH_TOKEN"] = env["GH_TOKEN_READ"]
-    result = subprocess.run(args, input=json.dumps(payload) if payload is not None else None,
-                            text=True, capture_output=True, check=True, env=env)
+def api(endpoint):
+    result = subprocess.run(["gh", "api", endpoint],
+                            text=True, capture_output=True, check=True)
     return json.loads(result.stdout)
 
 
@@ -94,38 +87,6 @@ def validate(directory):
     return directory
 
 
-def publish(directory, ctx):
-    repo, run, pr = ctx
-    directory = validate(directory)
-    head = pr["head"]["sha"]
-    parent = api(f"repos/{repo}/git/commits/{head}")
-    entries = []
-    for name in sorted(directory.iterdir()):
-        data = name.read_bytes()
-        # Git blob hashes let unchanged images remain untouched.
-        blob_sha = hashlib.sha1(f"blob {len(data)}\0".encode() + data).hexdigest()
-        current = api(f"repos/{repo}/contents/docs/screenshots/{name.name}?ref={head}")
-        if current["sha"] == blob_sha:
-            continue
-        blob = api(f"repos/{repo}/git/blobs", "POST", {
-            "content": base64.b64encode(data).decode(), "encoding": "base64"})
-        entries.append({"path": f"docs/screenshots/{name.name}", "mode": "100644",
-                        "type": "blob", "sha": blob["sha"]})
-    if not entries:
-        print("Documentation screenshots are already current.")
-        return
-    tree = api(f"repos/{repo}/git/trees", "POST", {
-        "base_tree": parent["tree"]["sha"], "tree": entries})
-    commit = api(f"repos/{repo}/git/commits", "POST", {
-        "message": "docs(web): refresh screenshots after dependency updates",
-        "tree": tree["sha"], "parents": [head]})
-    # Never overwrite a newer Dependabot or maintainer commit.
-    fresh = api(f"repos/{repo}/pulls/{pr['number']}")
-    if fresh["state"] != "open" or fresh["head"]["sha"] != head:
-        raise ValueError("PR changed while screenshots were prepared; wait for its next CI run")
-    api(f"repos/{repo}/git/refs/heads/{pr['head']['ref']}", "PATCH", {
-        "sha": commit["sha"], "force": False})
-    print(f"Updated documentation screenshots in PR #{pr['number']}.")
 
 
 def main():
@@ -133,8 +94,9 @@ def main():
     if sys.argv[1] == "prepare":
         with open(os.environ["GITHUB_OUTPUT"], "a") as output:
             output.write(f"eligible={'true' if ctx else 'false'}\n")
-    elif sys.argv[1] == "publish" and ctx:
-        publish(sys.argv[2], ctx)
+    elif sys.argv[1] == "verify" and ctx:
+        validate(sys.argv[2])
+        print("Validated Dependabot screenshot artifact without modifying its branch.")
 
 
 if __name__ == "__main__":
