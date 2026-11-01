@@ -1,4 +1,4 @@
-name: Update Dependabot documentation screenshots
+name: Validate Dependabot documentation screenshots
 
 on:
   workflow_run:
@@ -39,18 +39,11 @@ jobs:
           path: ${{ runner.temp }}/dependabot-screenshots
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
-      - name: Create short-lived screenshot commit token
-        if: steps.prepare.outputs.eligible == 'true'
-        id: commit-token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510
-        with:
-          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
-          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-          permission-contents: write
-      - name: Validate data and commit screenshots without overwriting newer work
+      # Keep Dependabot branches bot-owned so Dependabot can rebase them.
+      # Screenshots remain CI artifacts; changes to tracked screenshots belong
+      # in a separate documentation PR, not a dependency update.
+      - name: Validate downloaded screenshots (read-only)
         if: steps.prepare.outputs.eligible == 'true'
         env:
-          GH_TOKEN: ${{ steps.commit-token.outputs.token }}
-          GH_TOKEN_READ: ${{ github.token }}
           SCREENSHOT_DIRECTORY: ${{ runner.temp }}/dependabot-screenshots
-        run: python3 scripts/dependabot-screenshots.py publish "$SCREENSHOT_DIRECTORY"
+        run: python3 scripts/dependabot-screenshots.py verify "$SCREENSHOT_DIRECTORY"
