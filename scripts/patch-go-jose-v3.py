@@ -60,7 +60,7 @@ patch("jwk.go",
 	return &rsa.PublicKey{
 		N: key.N.bigInt(),
 		E: key.E.toInt(),
-	}
+	}, nil
 }
 """,
     """// Matches the upstream v4 security bound; no practical RSA key exceeds this.
