@@ -266,9 +266,11 @@ jobs:
         with:
           node-version: 24.19.0
           package-manager-cache: false
-      - name: Set up emulation
+      - name: Set up emulation for cross-architecture image builds
+        if: matrix.arch == 'arm64' && matrix.dockerfile != ''
         uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1
-      - name: Set up Buildx
+      - name: Set up Buildx for image builds
+        if: matrix.dockerfile != ''
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
       - name: Build or pull release candidate
         env:
