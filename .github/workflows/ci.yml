@@ -527,6 +527,9 @@ jobs:
               expected = 'success' if flags.get(flag) == 'true' else 'skipped'
               if results[job]['result'] != expected:
                   invalid[job] = f"expected {expected}, received {results[job]['result']}"
+          expected_release_gate = 'success' if flags.get('release') == 'true' else 'skipped'
+          if results['release-security']['result'] != expected_release_gate:
+              invalid['release-security'] = 'Required release gate did not pass'
           if invalid:
               raise SystemExit(f'CI checks failed or were cancelled: {invalid}')
           print('All selected CI checks succeeded; inapplicable jobs were skipped.')
