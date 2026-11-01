@@ -72,12 +72,13 @@ class ScreenshotPublisherTests(unittest.TestCase):
         self.assertNotIn("scripts/dependabot-screenshots.py publish", workflow)
 
     def test_verify_cli_only_checks_artifact(self):
-        with patch.object(SCREENSHOTS, "context", return_value=("owner/repo", {}, {})):
+        with patch.object(SCREENSHOTS, "context") as context:
             with patch.object(SCREENSHOTS, "validate", return_value=self.directory) as checked:
                 with patch("sys.argv", ["dependabot-screenshots.py", "verify",
                                         str(self.directory)]):
                     SCREENSHOTS.main()
                 checked.assert_called_once_with(str(self.directory))
+            context.assert_not_called()
 
     def test_context_rejects_foreign_repository_before_api_calls(self):
         event = self.directory / "event.json"
