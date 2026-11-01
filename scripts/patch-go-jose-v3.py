@@ -24,121 +24,121 @@ def patch(path, old, new):
 patch("jwk.go",
     "func (k *JSONWebKey) UnmarshalJSON(data []byte) (err error) {\n\tvar raw rawJSONWebKey\n",
     """func (k *JSONWebKey) UnmarshalJSON(data []byte) (err error) {
-	return k.unmarshalJSON(data, true)
+\treturn k.unmarshalJSON(data, true)
 }
 
 // unmarshalJSON rejects private key parameters in untrusted embedded headers.
 func (k *JSONWebKey) unmarshalJSON(data []byte, allowPrivate bool) (err error) {
-	var raw rawJSONWebKey
+\tvar raw rawJSONWebKey
 """)
 
 patch("jwk.go",
-    """	if err != nil {
-		return err
-	}
+    """\tif err != nil {
+\t\treturn err
+\t}
 
-	certs, err := parseCertificateChain(raw.X5c)
+\tcerts, err := parseCertificateChain(raw.X5c)
 """,
-    """	if err != nil {
-		return err
-	}
-	if !allowPrivate &&
-		(raw.K != nil || raw.D != nil || raw.P != nil || raw.Q != nil ||
-			raw.Dp != nil || raw.Dq != nil || raw.Qi != nil) {
-		return errors.New("go-jose/go-jose: JWK contains private parameters")
-	}
+    """\tif err != nil {
+\t\treturn err
+\t}
+\tif !allowPrivate &&
+\t\t(raw.K != nil || raw.D != nil || raw.P != nil || raw.Q != nil ||
+\t\t\traw.Dp != nil || raw.Dq != nil || raw.Qi != nil) {
+\t\treturn errors.New("go-jose/go-jose: JWK contains private parameters")
+\t}
 
-	certs, err := parseCertificateChain(raw.X5c)
+\tcerts, err := parseCertificateChain(raw.X5c)
 """)
 
 patch("jwk.go",
     """func (key rawJSONWebKey) rsaPublicKey() (*rsa.PublicKey, error) {
-	if key.N == nil || key.E == nil {
-		return nil, fmt.Errorf("go-jose/go-jose: invalid RSA key, missing n/e values")
-	}
+\tif key.N == nil || key.E == nil {
+\t\treturn nil, fmt.Errorf("go-jose/go-jose: invalid RSA key, missing n/e values")
+\t}
 
-	return &rsa.PublicKey{
-		N: key.N.bigInt(),
-		E: key.E.toInt(),
-	}, nil
+\treturn &rsa.PublicKey{
+\t\tN: key.N.bigInt(),
+\t\tE: key.E.toInt(),
+\t}, nil
 }
 """,
     """// Matches the upstream v4 security bound; no practical RSA key exceeds this.
 const learnPipMaxRSAModulusBits = 4096
 
 func (key rawJSONWebKey) rsaPublicKey() (*rsa.PublicKey, error) {
-	if key.N == nil || key.E == nil {
-		return nil, fmt.Errorf("go-jose/go-jose: invalid RSA key, missing n/e values")
-	}
-	n := key.N.bigInt()
-	if n.BitLen() > learnPipMaxRSAModulusBits {
-		return nil, fmt.Errorf("go-jose/go-jose: invalid RSA key, modulus too large")
-	}
-	return &rsa.PublicKey{N: n, E: key.E.toInt()}, nil
+\tif key.N == nil || key.E == nil {
+\t\treturn nil, fmt.Errorf("go-jose/go-jose: invalid RSA key, missing n/e values")
+\t}
+\tn := key.N.bigInt()
+\tif n.BitLen() > learnPipMaxRSAModulusBits {
+\t\treturn nil, fmt.Errorf("go-jose/go-jose: invalid RSA key, modulus too large")
+\t}
+\treturn &rsa.PublicKey{N: n, E: key.E.toInt()}, nil
 }
 """)
 
 patch("jwk.go",
-    """	rv := &rsa.PrivateKey{
-		PublicKey: rsa.PublicKey{
-			N: key.N.bigInt(),
-			E: key.E.toInt(),
-		},
-		D: key.D.bigInt(),
-		Primes: []*big.Int{
-			key.P.bigInt(),
-			key.Q.bigInt(),
-		},
-	}
+    """\trv := &rsa.PrivateKey{
+\t\tPublicKey: rsa.PublicKey{
+\t\t\tN: key.N.bigInt(),
+\t\t\tE: key.E.toInt(),
+\t\t},
+\t\tD: key.D.bigInt(),
+\t\tPrimes: []*big.Int{
+\t\t\tkey.P.bigInt(),
+\t\t\tkey.Q.bigInt(),
+\t\t},
+\t}
 """,
-    """	n := key.N.bigInt()
-	if n.BitLen() > learnPipMaxRSAModulusBits {
-		return nil, fmt.Errorf("go-jose/go-jose: invalid RSA key, modulus too large")
-	}
-	p, q := key.P.bigInt(), key.Q.bigInt()
-	if p.BitLen()+q.BitLen() > n.BitLen()+1 || new(big.Int).Mul(p, q).Cmp(n) != 0 {
-		return nil, errors.New("go-jose/go-jose: invalid RSA private key, p * q != n")
-	}
-	rv := &rsa.PrivateKey{
-		PublicKey: rsa.PublicKey{N: n, E: key.E.toInt()},
-		D: key.D.bigInt(),
-		Primes: []*big.Int{p, q},
-	}
+    """\tn := key.N.bigInt()
+\tif n.BitLen() > learnPipMaxRSAModulusBits {
+\t\treturn nil, fmt.Errorf("go-jose/go-jose: invalid RSA key, modulus too large")
+\t}
+\tp, q := key.P.bigInt(), key.Q.bigInt()
+\tif p.BitLen()+q.BitLen() > n.BitLen()+1 || new(big.Int).Mul(p, q).Cmp(n) != 0 {
+\t\treturn nil, errors.New("go-jose/go-jose: invalid RSA private key, p * q != n")
+\t}
+\trv := &rsa.PrivateKey{
+\t\tPublicKey: rsa.PublicKey{N: n, E: key.E.toInt()},
+\t\tD: key.D.bigInt(),
+\t\tPrimes: []*big.Int{p, q},
+\t}
 """)
 
 patch("shared.go",
-    """	var epk *JSONWebKey
-	err := json.Unmarshal(*v, &epk)
-	if err != nil {
-		return nil, err
-	}
-	return epk, nil
+    """\tvar epk *JSONWebKey
+\terr := json.Unmarshal(*v, &epk)
+\tif err != nil {
+\t\treturn nil, err
+\t}
+\treturn epk, nil
 """,
-    """	epk := new(JSONWebKey)
-	if err := epk.unmarshalJSON(*v, false); err != nil {
-		return nil, err
-	}
-	return epk, nil
+    """\tepk := new(JSONWebKey)
+\tif err := epk.unmarshalJSON(*v, false); err != nil {
+\t\treturn nil, err
+\t}
+\treturn epk, nil
 """)
 
 patch("shared.go",
-    """		case headerJWK:
-			var jwk *JSONWebKey
-			err = json.Unmarshal(*v, &jwk)
-			if err != nil {
-				err = fmt.Errorf("failed to unmarshal JWK: %v: %#v", err, string(*v))
-				return
-			}
-			h.JSONWebKey = jwk
+    """\t\tcase headerJWK:
+\t\t\tvar jwk *JSONWebKey
+\t\t\terr = json.Unmarshal(*v, &jwk)
+\t\t\tif err != nil {
+\t\t\t\terr = fmt.Errorf("failed to unmarshal JWK: %v: %#v", err, string(*v))
+\t\t\t\treturn
+\t\t\t}
+\t\t\th.JSONWebKey = jwk
 """,
-    """		case headerJWK:
-			jwk := new(JSONWebKey)
-			err = jwk.unmarshalJSON(*v, false)
-			if err != nil {
-				err = fmt.Errorf("failed to unmarshal JWK: %w", err)
-				return
-			}
-			h.JSONWebKey = jwk
+    """\t\tcase headerJWK:
+\t\t\tjwk := new(JSONWebKey)
+\t\t\terr = jwk.unmarshalJSON(*v, false)
+\t\t\tif err != nil {
+\t\t\t\terr = fmt.Errorf("failed to unmarshal JWK: %w", err)
+\t\t\t\treturn
+\t\t\t}
+\t\t\th.JSONWebKey = jwk
 """)
 
 print("Upstream CVE-2026-116587 JWK bounds and private-header protections backported")
