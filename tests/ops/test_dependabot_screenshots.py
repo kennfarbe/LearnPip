@@ -1,4 +1,4 @@
-"""Regression checks for the privileged screenshot publisher's data boundaries."""
+"""Regression checks for read-only Dependabot screenshot validation."""
 
 import importlib.util
 import copy
@@ -64,28 +64,20 @@ class ScreenshotPublisherTests(unittest.TestCase):
         self.assertFalse(SCREENSHOTS.eligible_files([
             {"filename": "docs/screenshots/manifest.json", "status": "modified"}]))
 
-    def test_newer_pr_commit_is_never_overwritten(self):
-        calls = []
+    def test_workflow_does_not_write_to_dependabot_branches(self):
+        workflow = (ROOT / ".github/workflows/dependabot-screenshots.yml").read_text()
+        self.assertIn('scripts/dependabot-screenshots.py verify', workflow)
+        self.assertNotIn("create-github-app-token", workflow)
+        self.assertNotIn("permission-contents: write", workflow)
+        self.assertNotIn("scripts/dependabot-screenshots.py publish", workflow)
 
-        def fake_api(endpoint, method="GET", payload=None):
-            calls.append((endpoint, method, payload))
-            if "/git/commits/" in endpoint:
-                return {"tree": {"sha": "base-tree"}}
-            if "/contents/" in endpoint:
-                return {"sha": "different-blob"}
-            if endpoint.endswith("/git/blobs"):
-                return {"sha": "blob"}
-            if endpoint.endswith("/git/trees"):
-                return {"sha": "tree"}
-            if endpoint.endswith("/git/commits"):
-                return {"sha": "new-commit"}
-            return {"state": "open", "head": {"sha": "newer-head"}}
-
-        ctx = ("owner/repo", {}, {"number": 1, "head": {"sha": "old-head", "ref": "dependabot/npm"}})
-        with patch.object(SCREENSHOTS, "api", side_effect=fake_api):
-            with self.assertRaisesRegex(ValueError, "PR changed"):
-                SCREENSHOTS.publish(self.directory, ctx)
-        self.assertFalse(any(method == "PATCH" for _, method, _ in calls))
+    def test_verify_cli_only_checks_artifact(self):
+        with patch.object(SCREENSHOTS, "context", return_value=("owner/repo", {}, {})):
+            with patch.object(SCREENSHOTS, "validate", return_value=self.directory) as checked:
+                with patch("sys.argv", ["dependabot-screenshots.py", "verify",
+                                        str(self.directory)]):
+                    SCREENSHOTS.main()
+                checked.assert_called_once_with(str(self.directory))
 
     def test_context_rejects_foreign_repository_before_api_calls(self):
         event = self.directory / "event.json"
