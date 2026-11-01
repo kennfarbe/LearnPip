@@ -1,3 +1,10 @@
+## [1.17.2](https://github.com/kennfarbe/LearnPip/compare/v1.17.1...v1.17.2) (2026-11-01)
+
+
+### Bug Fixes
+
+* **ci:** exclude merge commits from conventional subject validation ([e9201d6](https://github.com/kennfarbe/LearnPip/commit/e9201d6dce58bc59f8e4c17f573913a8df8630e6))
+
 ## [1.17.1](https://github.com/kennfarbe/LearnPip/compare/v1.17.0...v1.17.1) (2026-11-01)
 
 
