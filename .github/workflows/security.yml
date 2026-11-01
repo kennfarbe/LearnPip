@@ -251,12 +251,12 @@ jobs:
           - component: proxy
             dockerfile: deploy/caddy.Dockerfile
           - component: build-sdk
-            image: mcr.microsoft.com/dotnet/sdk:10.0
+            dockerfile: deploy/sdk-security.Dockerfile
           - component: build-node
             dockerfile: frontend/web/Dockerfile
             target: node-toolchain
           - component: build-go
-            image: golang:1.26.9-alpine3.24
+            image: golang:1.26.10-alpine3.24
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -289,9 +289,11 @@ jobs:
           fi
       - name: Audit candidate before publishing
         id: scan
+        env:
+          TRIVY_PLATFORM: linux/${{ matrix.arch }}
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
-          image-ref: learnpip-security:candidate
+          image-ref: ${{ matrix.image || 'learnpip-security:candidate' }}
           version: v0.74.0
           format: json
           output: ${{ runner.temp }}/trivy.json
