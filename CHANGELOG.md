@@ -1,3 +1,21 @@
+## [1.17.1](https://github.com/kennfarbe/LearnPip/compare/v1.17.0...v1.17.1) (2026-11-01)
+
+
+### Bug Fixes
+
+* **security:** backport upstream RSA/JWK bounds to legacy go-jose v3 ([84ec4cd](https://github.com/kennfarbe/LearnPip/commit/84ec4cd50e276eacf16117bd70e106eb531c934c))
+* **security:** compile Caddy with tested go-jose v3 backport instead of vulnerable upstream ([50ebe24](https://github.com/kennfarbe/LearnPip/commit/50ebe243d1297028250498840964adb45956af18))
+* **security:** match pinned go-jose public-key source signature ([bd743e6](https://github.com/kennfarbe/LearnPip/commit/bd743e6ff525e5a751439cda40b0e110c9080c5c))
+* **security:** refresh Caddy toolchain and patched transitive modules ([656513b](https://github.com/kennfarbe/LearnPip/commit/656513b498080f3c1d03ad49a38d214904a019da))
+* **security:** scan exact architecture and patched SDK and Go candidates ([dd44d54](https://github.com/kennfarbe/LearnPip/commit/dd44d54d245a8c45ee7825d1947f8df2cdb85840))
+* **security:** scan upstream images without multiarch local retagging ([1582397](https://github.com/kennfarbe/LearnPip/commit/15823972fea88b3664069685b8efec4e642f16f9))
+* **security:** update affected runtime and build image dependencies ([d012f90](https://github.com/kennfarbe/LearnPip/commit/d012f905ca5a1633b242b9ca5edf892dcbf64f3a))
+* **security:** update affected runtime and build image dependencies ([6246834](https://github.com/kennfarbe/LearnPip/commit/6246834b24a5c881486e09f427c33b195f7bbe7d))
+* **security:** update pnpm toolchain to recent patched release ([ab6fc2b](https://github.com/kennfarbe/LearnPip/commit/ab6fc2b286eb3edd755287d9b8fb179fd9ff48c6))
+* **security:** verify replacement module against Go build metadata format ([7aa0fe8](https://github.com/kennfarbe/LearnPip/commit/7aa0fe835b648e3617abb9244092d7cacaa25552))
+* **web:** meet WCAG AA contrast for dark theme primary buttons ([5751d84](https://github.com/kennfarbe/LearnPip/commit/5751d843c9efa181e399c2ffa722dd3b32588811))
+* **web:** remove trailing blank line from stylesheet ([ac4553a](https://github.com/kennfarbe/LearnPip/commit/ac4553a88f78d701d59066a3519cca5258481667))
+
 # [1.17.0](https://github.com/kennfarbe/LearnPip/compare/v1.16.0...v1.17.0) (2026-10-11)
 
 
