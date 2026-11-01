@@ -1,8 +1,8 @@
-FROM node:24.21.0-alpine3.24 AS node-toolchain
+FROM node:24.22.2-alpine3.24 AS node-toolchain
 # pnpm's native package manager replaces npm and its affected bundled libraries.
-RUN npm install --global pnpm@12.9.1 --no-audit --no-fund \
+RUN npm install --global pnpm@12.16.1 --no-audit --no-fund \
     && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx \
-    && test "$(pnpm --version)" = 12.9.1
+    && test "$(pnpm --version)" = 12.16.1
 
 FROM node-toolchain AS build
 WORKDIR /app
@@ -12,8 +12,9 @@ RUN pnpm --config.pm-on-fail=ignore import \
 COPY frontend/web/ ./
 RUN pnpm --config.pm-on-fail=ignore run build
 
-FROM nginx:1.30.5-alpine3.24 AS runtime
-RUN apk add --no-cache "libexpat>=2.8.5-r0" "pcre2>=10.49-r0" "tiff>=4.7.2-r0"
+FROM nginx:1.30.6-alpine3.24 AS runtime
+RUN apk upgrade --no-cache \
+    && apk add --no-cache "libexpat>=2.8.5-r0" "pcre2>=10.49-r0" "tiff>=4.7.2-r0"
 COPY frontend/web/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/learnpip-web/browser/ /usr/share/nginx/html/
 EXPOSE 80

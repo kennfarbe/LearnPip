@@ -5,30 +5,6 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '30 3 * * 0'
-  pull_request:
-    paths:
-      - '.github/workflows/security.yml'
-      - 'backend/**/*.csproj'
-      - 'backend/**/*.props'
-      - 'backend/**/*.sln'
-      - 'frontend/web/package.json'
-      - 'frontend/web/package-lock.json'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'backend/**/Dockerfile'
-      - 'frontend/web/Dockerfile'
-      - 'deploy/compose*.yaml'
-      - 'deploy/*.Dockerfile'
-      - 'scripts/security-report.mjs'
-      - 'scripts/npm-security-audit.sh'
-      - 'scripts/try-security-overrides.sh'
-      - 'tests/ops/test_security*.py'
-      - 'tests/ops/test_security*.mjs'
-      - 'scripts/security-*.py'
-      - 'security/**'
-      - 'Directory.Build.props'
-      - '.github/workflows/ci.yml'
-
 permissions:
   contents: read
 
@@ -65,17 +41,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           EVENT: ${{ github.event_name }}
         run: |
-          if [ "$EVENT" = schedule ] || [ "$EVENT" = workflow_dispatch ] || [ "$EVENT" = pull_request ]; then
+          if [ "$EVENT" = schedule ] || [ "$EVENT" = workflow_dispatch ]; then
             python3 scripts/security-inventory.py --output "$RUNNER_TEMP/sources.json" >> "$GITHUB_OUTPUT"
           else
             echo 'matrix={"include":[{"ref":"","label":"main"}]}' >> "$GITHUB_OUTPUT"
           fi
       - name: Set up Buildx for manifest inspection
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
       - name: Resolve immutable image digests for every supported platform
         id: images
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 scripts/security-inventory.py --images --resolved-sources "$RUNNER_TEMP/sources.json" --output "$RUNNER_TEMP/images.json" >> "$GITHUB_OUTPUT"
@@ -192,7 +168,7 @@ jobs:
   published-images:
     name: Published image audit (${{ matrix.label }})
     needs: inventory
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
@@ -275,12 +251,12 @@ jobs:
           - component: proxy
             dockerfile: deploy/caddy.Dockerfile
           - component: build-sdk
-            image: mcr.microsoft.com/dotnet/sdk:10.0
+            dockerfile: deploy/sdk-security.Dockerfile
           - component: build-node
             dockerfile: frontend/web/Dockerfile
             target: node-toolchain
           - component: build-go
-            image: golang:1.26.9-alpine3.24
+            image: golang:1.26.10-alpine3.24
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -308,14 +284,16 @@ jobs:
             fi
             docker buildx build --platform "linux/$ARCH" --load -f "$DOCKERFILE" "${target_args[@]}" -t learnpip-security:candidate .
           else
-            docker pull --platform "linux/$ARCH" "$IMAGE"
-            docker tag "$IMAGE" learnpip-security:candidate
+            test -n "$IMAGE"
+            echo "The selected architecture will be scanned directly by Trivy."
           fi
       - name: Audit candidate before publishing
         id: scan
+        env:
+          TRIVY_PLATFORM: linux/${{ matrix.arch }}
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
-          image-ref: learnpip-security:candidate
+          image-ref: ${{ matrix.image || 'learnpip-security:candidate' }}
           version: v0.74.0
           format: json
           output: ${{ runner.temp }}/trivy.json

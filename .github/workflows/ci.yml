@@ -54,6 +54,8 @@ jobs:
         run: python3 tests/ops/test-ci-changes.py -v
 
   repository-policy:
+    needs: [changes, release-security]
+    if: always()
     name: Repository policy
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -65,6 +67,20 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+
+      - name: Enforce release security in required repository status
+        env:
+          CHANGE_RESULT: ${{ needs.changes.result }}
+          RELEASE_SELECTED: ${{ needs.changes.outputs.release }}
+          SECURITY_RESULT: ${{ needs.release-security.result }}
+        run: |
+          test "$CHANGE_RESULT" = success
+          if [ "$RELEASE_SELECTED" = true ]; then
+            test "$SECURITY_RESULT" = success || {
+              echo 'Release security did not pass; merge is blocked.' >&2
+              exit 1
+            }
+          fi
 
       - name: Test Dependabot screenshot publication boundaries
         run: python3 -m unittest discover -s tests/ops -p 'test_dependabot_screenshots.py' -v
@@ -488,7 +504,7 @@ jobs:
   ci-result:
     name: CI result
     if: always()
-    needs: [changes, repository-policy, markdown, backend, web, installer-smoke, restore-smoke, integration-smoke]
+    needs: [changes, repository-policy, markdown, backend, web, installer-smoke, restore-smoke, integration-smoke, release-security]
     runs-on: ubuntu-latest
     steps:
       - name: Require all selected checks to pass
@@ -511,6 +527,9 @@ jobs:
               expected = 'success' if flags.get(flag) == 'true' else 'skipped'
               if results[job]['result'] != expected:
                   invalid[job] = f"expected {expected}, received {results[job]['result']}"
+          expected_release_gate = 'success' if flags.get('release') == 'true' else 'skipped'
+          if results['release-security']['result'] != expected_release_gate:
+              invalid['release-security'] = 'Required release gate did not pass'
           if invalid:
               raise SystemExit(f'CI checks failed or were cancelled: {invalid}')
           print('All selected CI checks succeeded; inapplicable jobs were skipped.')
@@ -519,7 +538,7 @@ jobs:
   release-security:
     name: Security gate before release
     needs: [changes]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.release == 'true'
+    if: needs.changes.outputs.release == 'true' && (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
     uses: ./.github/workflows/security.yml
     permissions:
       contents: read

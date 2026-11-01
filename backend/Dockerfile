@@ -1,4 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 COPY backend/src/LearnPip.Api/LearnPip.Api.csproj backend/src/LearnPip.Api/
 COPY backend/src/LearnPip.Data/LearnPip.Data.csproj backend/src/LearnPip.Data/
