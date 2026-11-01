@@ -1,8 +1,8 @@
 FROM node:24.22.2-alpine3.24 AS node-toolchain
 # pnpm's native package manager replaces npm and its affected bundled libraries.
-RUN npm install --global pnpm@12.9.1 --no-audit --no-fund \
+RUN npm install --global pnpm@12.16.1 --no-audit --no-fund \
     && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx \
-    && test "$(pnpm --version)" = 12.9.1
+    && test "$(pnpm --version)" = 12.16.1
 
 FROM node-toolchain AS build
 WORKDIR /app
