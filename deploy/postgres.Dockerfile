@@ -1,5 +1,5 @@
 # Rebuild the unchanged upstream gosu source with a maintained Go standard library.
-FROM --platform=$BUILDPLATFORM golang:1.26.9-alpine3.24 AS build
+FROM --platform=$BUILDPLATFORM golang:1.26.10-alpine3.24 AS build
 ARG TARGETARCH
 RUN apk add --no-cache git
 WORKDIR /src
@@ -10,5 +10,6 @@ RUN git init . \
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH go build -trimpath -o /out/gosu .
 
 FROM postgres:18.6-alpine3.24 AS runtime
+RUN apk upgrade --no-cache
 COPY --from=build /out/gosu /usr/local/bin/gosu
 RUN gosu --version && gosu nobody true
