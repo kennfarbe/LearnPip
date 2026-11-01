@@ -66,3 +66,7 @@ veralteten Aufnahmen fehl. Sie ersetzt keine visuelle Prüfung der Bilder.
 Die Administration enthält die rollenbezogene Matrix mit Änderungsvorschau,
 Bestätigungen und Standardwerten sowie den getrennten Moderationskontext.
 Details: [Fragenberechtigungen](QUESTION-PERMISSIONS.md).
+
+## Aktualisiertes Design
+
+Die Dokumentationsbilder wurden nach der Anpassung des hellen und dunklen Designs neu aufgenommen.
