@@ -258,5 +258,8 @@ summary {
   outline-color: var(--accent-text);
 }
 @media (prefers-contrast: more) {
-  :root { --border: var(--border-strong); --elevation: none; }
+  :root {
+    --border: var(--border-strong);
+    --elevation: none;
+  }
 }
