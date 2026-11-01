@@ -1,30 +1,30 @@
 {
-  "sourceHash": "054de7e0b01d22237a6e8e622844fcb5d44e54da00d954145749f9c1f29ac856",
+  "sourceHash": "77c05b5ee020dab9698c93a574d754b3aa31f15894535778e4fc897dc53e4984",
   "images": {
     "overview.png": {
-      "sha256": "85c93c29333540c6ef47a074db31524561829bc2900a9a4161e4123a2ff8f1b4",
+      "sha256": "6371cd893c5f92c5d31715f9d7f2b6c5d76ff371f79adf968a1efa498bc921e0",
       "width": 1440,
-      "height": 1180
+      "height": 1186
     },
     "question-editor.png": {
-      "sha256": "eb53cebf0c11f634e627c6133671a281040b5be2cb692c64b89330713755227b",
+      "sha256": "50a53e14c82aac7f230305e2f37fd15766839fa1220d81d4fd06ea2b2056e7c6",
       "width": 1440,
-      "height": 3053
+      "height": 3059
     },
     "catalogs.png": {
-      "sha256": "8b03ef7136af71bea9a03309a1de20db7465f14f47b4abe69a3610ea166a12e0",
+      "sha256": "b02122a2a06b0fb88659ed919254938e5aca2a088f8361d1ff14417c294a1e3a",
       "width": 1440,
-      "height": 2457
+      "height": 2463
     },
     "learning-mobile-dark.png": {
-      "sha256": "755c986e740aace9e037b0ccfb3d5dbb79e08afb2a55a8b1bdbffe8b8fb3368e",
+      "sha256": "b11ee17a55f459410cfcd6e012ca6a163c5c963f4e5bac8a7f8c2afa24c8266c",
       "width": 390,
-      "height": 998
+      "height": 1002
     },
     "admin-password.png": {
-      "sha256": "107c1fc54738b9b8d0f380305f82f5d13140557706e6d26b989b0c0c2fb90c1d",
+      "sha256": "fa7d3a0d139f23cf6b734fe2793d877738cb1754dd799d6e1b497b84329779da",
       "width": 1440,
-      "height": 1854
+      "height": 1929
     }
   }
 }
