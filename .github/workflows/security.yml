@@ -284,8 +284,8 @@ jobs:
             fi
             docker buildx build --platform "linux/$ARCH" --load -f "$DOCKERFILE" "${target_args[@]}" -t learnpip-security:candidate .
           else
-            docker pull --platform "linux/$ARCH" "$IMAGE"
-            docker tag "$IMAGE" learnpip-security:candidate
+            test -n "$IMAGE"
+            echo "The selected architecture will be scanned directly by Trivy."
           fi
       - name: Audit candidate before publishing
         id: scan
