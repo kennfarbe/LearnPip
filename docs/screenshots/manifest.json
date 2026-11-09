@@ -1,5 +1,5 @@
 {
-  "sourceHash": "d3cd2e4e87a0237d686a9613d2dd95296cb330ef62ba79de512eccca8d5d2f1d",
+  "sourceHash": "e3cf2d2a41d97b681e08626d8b0e2dbd8af83d142782b2e1557d6b417cabd025",
   "images": {
     "overview.png": {
       "sha256": "6371cd893c5f92c5d31715f9d7f2b6c5d76ff371f79adf968a1efa498bc921e0",
@@ -17,7 +17,7 @@
       "height": 2463
     },
     "learning-mobile-dark.png": {
-      "sha256": "b11ee17a55f459410cfcd6e012ca6a163c5c963f4e5bac8a7f8c2afa24c8266c",
+      "sha256": "43d50be1f64d587a6812efc5b6da47af3eaa25c83dc8ec7ecc5e4a31337519bd",
       "width": 390,
       "height": 1002
     },
