@@ -12,7 +12,7 @@ RUN pnpm --config.pm-on-fail=ignore import \
 COPY frontend/web/ ./
 RUN pnpm --config.pm-on-fail=ignore run build
 
-FROM nginx:1.30.6-alpine3.24 AS runtime
+FROM nginx:1.30.7-alpine3.24 AS runtime
 RUN apk upgrade --no-cache \
     && apk add --no-cache "libexpat>=2.8.5-r0" "pcre2>=10.49-r0" "tiff>=4.7.2-r0"
 COPY frontend/web/nginx.conf /etc/nginx/conf.d/default.conf
