@@ -26,11 +26,11 @@ RUN mkdir -p /src/go-jose-v3 \
 RUN go mod init learnpip-caddy \
     && go mod edit -replace=github.com/go-jose/go-jose/v3=./go-jose-v3 \
     && go get github.com/caddyserver/caddy/v2/cmd/caddy@v2.11.7 \
-    && go get golang.org/x/net@v0.60.0 \
+    && go get golang.org/x/net@v0.62.0 \
     && go get github.com/go-jose/go-jose/v4@v4.1.7 \
     && CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH go build -trimpath \
        -o /out/caddy github.com/caddyserver/caddy/v2/cmd/caddy \
-    && go version -m /out/caddy | grep -Eq 'golang.org/x/net[[:space:]]+v0[.]60[.]0[[:space:]]' \
+    && go version -m /out/caddy | grep -Eq 'golang.org/x/net[[:space:]]+v0[.]62[.]0[[:space:]]' \
     && go version -m /out/caddy | grep -F './go-jose-v3'
 
 FROM caddy:2.11.7-alpine AS runtime
