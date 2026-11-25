@@ -1,3 +1,12 @@
+## [1.17.4](https://github.com/kennfarbe/LearnPip/compare/v1.17.3...v1.17.4) (2026-11-22)
+
+
+### Bug Fixes
+
+* **ci:** synchronize screenshot source manifest after KaTeX update ([464cf47](https://github.com/kennfarbe/LearnPip/commit/464cf477e3e15d6b1633c9ece846b385c52fbd38))
+* **proxy:** update the embedded Go network module ([56b9028](https://github.com/kennfarbe/LearnPip/commit/56b90288ffeca5efa4d23a0d568c4c962bbf1848))
+* **web:** update the nginx runtime image ([7f36423](https://github.com/kennfarbe/LearnPip/commit/7f36423323f2ffbdd60d6f9a7e1acd14d1906623))
+
 ## [1.17.3](https://github.com/kennfarbe/LearnPip/compare/v1.17.2...v1.17.3) (2026-11-01)
 
 
