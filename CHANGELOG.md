@@ -1,3 +1,10 @@
+## [1.17.5](https://github.com/kennfarbe/LearnPip/compare/v1.17.4...v1.17.5) (2026-11-25)
+
+
+### Bug Fixes
+
+* **data:** keep dotnet-ef on the EF Core 10 release line ([aed9607](https://github.com/kennfarbe/LearnPip/commit/aed96071978e5272a4524e5208d3391fe88f650e))
+
 ## [1.17.4](https://github.com/kennfarbe/LearnPip/compare/v1.17.3...v1.17.4) (2026-11-22)
 
 
