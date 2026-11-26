@@ -156,6 +156,7 @@ test('mobile menu and disclosures work with a keyboard, without horizontal overf
   await api(page);
   await page.setViewportSize({ width: 320, height: 740 });
   await page.goto('/overview');
+  await expect(page.locator('#page-title')).toBeFocused();
   await expect(page.getByRole('navigation')).toBeHidden();
   await page.locator('#navigation-toggle').focus();
   await page.keyboard.press('Enter');
